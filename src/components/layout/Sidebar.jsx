@@ -277,6 +277,28 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
               <span>Transactions</span>
             </NavLink>
 
+            {/* Proposals */}
+            <NavLink
+              to="/proposals"
+              onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 14px',
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                textDecoration: 'none',
+                color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
+                backgroundColor: isActive ? 'var(--primary)' : 'transparent',
+                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none'
+              })}
+            >
+              <FileSpreadsheet size={19} />
+              <span>Proposals</span>
+            </NavLink>
+
             {/* Categories */}
             <NavLink
               to="/categories"

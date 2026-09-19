@@ -257,3 +257,42 @@ export const CCC_DETAILS = {
     { title: 'Open-Source Hacktoberfest Practice Sprint', date: '20 Jul 2026', amount: 15000, status: 'Approved', category: 'Coding Sprint' }
   ]
 };
+
+export const CSE_PROPOSAL_CATEGORIES = [
+  'CSEA Association',
+  'CCC Coding Club',
+  'Technical Workshop',
+  'Guest Lecture',
+  'Technical Event',
+  'Coding Contest',
+  'Academic Activity',
+  'Lab / Equipment',
+  'Other CSE Activity'
+];
+
+export const INITIAL_PROPOSALS = [
+  {
+    id: 'PROP-2026-001',
+    proposalDate: '18 Sep 2026',
+    facultyName: 'Dr. Arun Kumar',
+    facultyEmail: 'arun@kongu.edu',
+    category: 'CSEA Association',
+    title: 'CSEA Technical Symposium (OPUS 2026)',
+    programDate: '25 Sep 2026',
+    guestDetails: 'Dr. Arun Kumar, Senior Software Engineer, ABC Technologies',
+    amount: 35000,
+    status: 'Approved'
+  },
+  {
+    id: 'PROP-2026-002',
+    proposalDate: '17 Sep 2026',
+    facultyName: 'Dr. Priya S',
+    facultyEmail: 'priya@kongu.edu',
+    category: 'CCC Coding Club',
+    title: 'CCC Algorithmic Coding Contest',
+    programDate: '30 Sep 2026',
+    guestDetails: 'Prof. Ramesh G, ACM Chapter Chair',
+    amount: 12500,
+    status: 'Pending'
+  }
+];

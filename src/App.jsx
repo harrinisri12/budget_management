@@ -4,7 +4,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { BudgetProvider } from './context/BudgetContext';
 
 import { LoginPage } from './pages/LoginPage';
+import { FacultyLoginPage } from './pages/FacultyLoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { FacultyDashboardPage } from './pages/FacultyDashboardPage';
+import { FacultyProposalsPage } from './pages/FacultyProposalsPage';
+import { NewProposalPage } from './pages/NewProposalPage';
+import { FacultyProfilePage } from './pages/FacultyProfilePage';
+import { AdminProposalsPage } from './pages/AdminProposalsPage';
 import { FacultyPage } from './pages/FacultyPage';
 import { AddFacultyPage } from './pages/AddFacultyPage';
 import { CSEAPage } from './pages/CSEAPage';
@@ -14,20 +20,35 @@ import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
-// Protected Route Guard
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+// Admin Route Guard
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, isFaculty } = useAuth();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  if (isFaculty) {
+    return <Navigate to="/faculty/dashboard" replace />;
   }
   return children;
 };
 
-// Public Route Guard (Redirects to dashboard if already logged in)
-const PublicRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  if (isAuthenticated) {
+// Faculty Route Guard
+const FacultyRoute = ({ children }) => {
+  const { isAuthenticated, isAdmin } = useAuth();
+  if (!isAuthenticated) {
+    return <Navigate to="/faculty/login" replace />;
+  }
+  if (isAdmin) {
     return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+};
+
+// Public Route Guard (Redirects to relevant dashboard if already logged in)
+const PublicRoute = ({ children }) => {
+  const { isAuthenticated, isFaculty } = useAuth();
+  if (isAuthenticated) {
+    return isFaculty ? <Navigate to="/faculty/dashboard" replace /> : <Navigate to="/dashboard" replace />;
   }
   return children;
 };
@@ -38,7 +59,7 @@ export default function App() {
       <BudgetProvider>
         <BrowserRouter>
           <Routes>
-            {/* Login Route */}
+            {/* Login Routes */}
             <Route
               path="/login"
               element={
@@ -47,32 +68,80 @@ export default function App() {
                 </PublicRoute>
               }
             />
-
-            {/* Protected Dashboard Routes */}
             <Route
-              path="/dashboard"
+              path="/faculty/login"
               element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
+                <PublicRoute>
+                  <FacultyLoginPage />
+                </PublicRoute>
               }
             />
 
-            {/* Faculty Management Routes */}
+            {/* Admin Dashboard & Management Routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <AdminRoute>
+                  <DashboardPage />
+                </AdminRoute>
+              }
+            />
             <Route
               path="/faculty"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <FacultyPage />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
             <Route
               path="/faculty/add"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <AddFacultyPage />
-                </ProtectedRoute>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/proposals"
+              element={
+                <AdminRoute>
+                  <AdminProposalsPage />
+                </AdminRoute>
+              }
+            />
+
+            {/* Faculty Portal Routes */}
+            <Route
+              path="/faculty/dashboard"
+              element={
+                <FacultyRoute>
+                  <FacultyDashboardPage />
+                </FacultyRoute>
+              }
+            />
+            <Route
+              path="/faculty/proposals"
+              element={
+                <FacultyRoute>
+                  <FacultyProposalsPage />
+                </FacultyRoute>
+              }
+            />
+            <Route
+              path="/faculty/proposal/new"
+              element={
+                <FacultyRoute>
+                  <NewProposalPage />
+                </FacultyRoute>
+              }
+            />
+            <Route
+              path="/faculty/profile"
+              element={
+                <FacultyRoute>
+                  <FacultyProfilePage />
+                </FacultyRoute>
               }
             />
 
@@ -80,17 +149,17 @@ export default function App() {
             <Route
               path="/csea"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <CSEAPage />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
             <Route
               path="/ccc"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <CCCPage />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
 
@@ -98,67 +167,67 @@ export default function App() {
             <Route
               path="/budget/overview"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <BudgetOverviewPage />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
             <Route
               path="/budget/allocations"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <BudgetOverviewPage />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
             <Route
               path="/budget/requests"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <DashboardPage />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
             <Route
               path="/budget/expenses"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <DashboardPage />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
 
-            {/* Transactions, Categories */}
+            {/* Transactions, Categories, Reports, Settings */}
             <Route
               path="/transactions"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <DashboardPage />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
             <Route
               path="/categories"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <BudgetOverviewPage />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
             <Route
               path="/reports"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <ReportsPage />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
             <Route
               path="/settings"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <SettingsPage />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
 
@@ -173,3 +242,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

@@ -5,10 +5,12 @@ import { Input } from '../components/common/Input';
 import { PasswordInput } from '../components/common/PasswordInput';
 import { Button } from '../components/common/Button';
 import { useAuth } from '../context/AuthContext';
+import { useBudget } from '../context/BudgetContext';
 
-export const LoginPage = () => {
+export const FacultyLoginPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { loginFaculty } = useAuth();
+  const { facultyList } = useBudget();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,11 +33,11 @@ export const LoginPage = () => {
     setIsLoading(true);
 
     setTimeout(() => {
-      const result = login(email, password);
+      const result = loginFaculty(email, password, facultyList);
       setIsLoading(false);
 
       if (result.success) {
-        navigate('/dashboard');
+        navigate('/faculty/dashboard');
       } else {
         setError(result.message);
       }
@@ -153,7 +155,7 @@ export const LoginPage = () => {
           </div>
         </div>
 
-        {/* Right Side: Login Form Panel */}
+        {/* Right Side: Faculty Login Form Panel */}
         <div style={{ padding: '56px 48px', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ marginBottom: 36 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }} className="md:hidden">
@@ -161,10 +163,10 @@ export const LoginPage = () => {
               <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--dark)' }}>CSE Budget Management</span>
             </div>
             <h2 style={{ fontSize: 30, fontWeight: 800, color: 'var(--dark)', marginBottom: 8 }}>
-              Welcome Back
+              Welcome, Faculty
             </h2>
             <p style={{ fontSize: 14.5, color: 'var(--dark-muted)' }}>
-              Sign in to manage your CSE department budget
+              Sign in to submit and manage your department proposals.
             </p>
           </div>
 
@@ -189,13 +191,13 @@ export const LoginPage = () => {
             </div>
           )}
 
-          {/* Login Form */}
+          {/* Faculty Login Form */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {/* Email Input */}
             <Input
               label="Email Address"
               type="email"
-              placeholder="Enter your email address"
+              placeholder="Enter your Kongu email"
               icon={Mail}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -223,13 +225,13 @@ export const LoginPage = () => {
             </Button>
           </form>
 
-          {/* Faculty Login Link */}
+          {/* Switch to Admin Login */}
           <div style={{ marginTop: 20, textAlign: 'center' }}>
             <span style={{ fontSize: 14, color: 'var(--dark-muted)' }}>
-              Are you a faculty member?{' '}
+              Are you an administrator?{' '}
               <button
                 type="button"
-                onClick={() => navigate('/faculty/login')}
+                onClick={() => navigate('/login')}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -241,14 +243,14 @@ export const LoginPage = () => {
                   fontSize: 14
                 }}
               >
-                Faculty Login
+                Admin Login
               </button>
             </span>
           </div>
 
           {/* Institutional footer note */}
           <div style={{ marginTop: 44, textAlign: 'center', fontSize: 12.5, color: 'var(--secondary)', fontWeight: 500 }}>
-            Kongu Engineering College • CSE Department Portal
+            Kongu Engineering College • CSE Department Faculty Portal
           </div>
         </div>
       </div>
