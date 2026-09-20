@@ -162,6 +162,14 @@ export default function App() {
               }
             />
             <Route
+              path="/faculty/proposals/new"
+              element={
+                <FacultyRoute>
+                  <NewProposalPage />
+                </FacultyRoute>
+              }
+            />
+            <Route
               path="/faculty/profile"
               element={
                 <FacultyRoute>

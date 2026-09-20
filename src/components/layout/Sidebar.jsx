@@ -15,7 +15,6 @@ import {
   LogOut,
   ChevronDown,
   ChevronRight,
-  GraduationCap,
   Code2,
   Trophy,
   X
@@ -88,15 +87,16 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
                 width: 42,
                 height: 42,
                 borderRadius: 12,
-                backgroundColor: 'var(--primary)',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid var(--border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#FFFFFF',
-                boxShadow: '0 4px 12px rgba(68, 60, 222, 0.25)'
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                padding: 4
               }}
             >
-              <GraduationCap size={24} />
+              <img src="/favicon.svg" alt="Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
             </div>
             <div>
               <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--dark)', lineHeight: 1.2 }}>

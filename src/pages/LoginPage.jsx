@@ -42,6 +42,16 @@ export const LoginPage = ({ initialMode }) => {
       setError('Email address is required.');
       return;
     }
+
+    if (!email.includes('@')) {
+      if (mode === 'faculty') {
+        setError('Faculty login requires your institutional email address (@kongu.edu). Faculty ID / Employee ID cannot be used to log in.');
+      } else {
+        setError('Please enter a valid email address.');
+      }
+      return;
+    }
+
     if (!password) {
       setError('Password is required.');
       return;

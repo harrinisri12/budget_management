@@ -99,8 +99,8 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  // Admin & General Login (Email + Password)
-  const login = async (email, password) => {
+  // Admin & General Login (Email + Password, optional role)
+  const login = async (email, password, role) => {
     const cleanEmail = (email || '').trim().toLowerCase();
 
     if (!cleanEmail) {
@@ -108,6 +108,14 @@ export const AuthProvider = ({ children }) => {
     }
     if (!password) {
       return { success: false, message: 'Password is required.' };
+    }
+
+    // Disallow employee ID as login credential
+    if (!cleanEmail.includes('@')) {
+      return {
+        success: false,
+        message: 'Please use your registered email address to log in. Employee/Faculty ID is not accepted as a login credential.'
+      };
     }
 
     try {
@@ -126,6 +134,12 @@ export const AuthProvider = ({ children }) => {
       }
 
       const profile = await fetchUserProfile(data.user);
+
+      if (role && profile && profile.role !== role && profile.role !== 'admin') {
+        await supabase.auth.signOut();
+        return { success: false, message: `Access denied: Account is not authorized for ${role} role.` };
+      }
+
       return { success: true, user: profile };
     } catch (err) {
       console.error('Login error:', err);
@@ -133,7 +147,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Faculty Login (Email + Password)
+  // Faculty Login (Email + Password ONLY - Employee ID rejected)
   const loginFaculty = async (email, password) => {
     const cleanEmail = (email || '').trim().toLowerCase();
 
@@ -142,6 +156,21 @@ export const AuthProvider = ({ children }) => {
     }
     if (!password) {
       return { success: false, message: 'Password is required.' };
+    }
+
+    // Strict validation: Faculty ID / Employee ID MUST NOT be used as login credential
+    if (!cleanEmail.includes('@')) {
+      return {
+        success: false,
+        message: 'Faculty login requires your institutional email address (@kongu.edu). Faculty ID / Employee ID cannot be used to log in.'
+      };
+    }
+
+    if (!cleanEmail.endsWith('@kongu.edu')) {
+      return {
+        success: false,
+        message: 'Please use a valid Kongu email address ending in @kongu.edu.'
+      };
     }
 
     try {
@@ -173,6 +202,9 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: err.message || 'An error occurred during sign in.' };
     }
   };
+
+  // Current user accessor
+  const getCurrentUser = () => user;
 
   // Sign Out
   const logout = async () => {
@@ -251,6 +283,8 @@ export const AuthProvider = ({ children }) => {
         login,
         loginFaculty,
         logout,
+        getCurrentUser,
+        onAuthStateChange: (cb) => supabase.auth.onAuthStateChange(cb),
         resetPassword,
         updatePassword,
         refreshProfile

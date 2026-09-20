@@ -71,6 +71,12 @@ export async function seedDatabase() {
       if (adminAuthError) throw adminAuthError;
       adminAuthUser = newAdminUser.user;
       console.log('✅ Admin auth user created.');
+    } else {
+      await supabaseAdmin.auth.admin.updateUserById(adminAuthUser.id, {
+        password: defaultPassword,
+        email_confirm: true
+      });
+      console.log('✅ Admin password updated to default.');
     }
 
     // Upsert Admin Profile
@@ -156,6 +162,11 @@ export async function seedDatabase() {
         } else {
           facUser = newFacUser.user;
         }
+      } else {
+        await supabaseAdmin.auth.admin.updateUserById(facUser.id, {
+          password: defaultPassword,
+          email_confirm: true
+        });
       }
 
       if (facUser) {
@@ -243,33 +254,71 @@ export async function seedDatabase() {
     console.log('📝 Seeding Initial Proposals...');
     const arunId = facultyProfileMap['arun@kongu.edu'];
     const priyaId = facultyProfileMap['priya@kongu.edu'];
+    const rajeshId = facultyProfileMap['rajesh@kongu.edu'];
+    const karthikId = facultyProfileMap['karthik@kongu.edu'];
 
-    if (arunId && categoryMap['CSEA Association']) {
-      await supabaseAdmin.from('proposals').upsert({
+    const initialProposals = [
+      {
         proposal_number: 'PROP-2026-001',
         faculty_id: arunId,
-        category_id: categoryMap['CSEA Association'],
+        category_name: 'CSEA Association',
         title: 'CSEA Technical Symposium (OPUS 2026)',
         proposal_date: '2026-09-18',
         program_date: '2026-09-25',
-        guestDetails: 'Dr. Arun Kumar, Senior Software Engineer, ABC Technologies',
+        guest_details: 'Dr. Arun Kumar, Senior Software Engineer, ABC Technologies',
         amount: 35000,
         status: 'Approved'
-      }, { onConflict: 'proposal_number' });
-    }
-
-    if (priyaId && categoryMap['CCC Coding Club']) {
-      await supabaseAdmin.from('proposals').upsert({
+      },
+      {
         proposal_number: 'PROP-2026-002',
         faculty_id: priyaId,
-        category_id: categoryMap['CCC Coding Club'],
+        category_name: 'CCC Coding Club',
         title: 'CCC Algorithmic Coding Contest',
         proposal_date: '2026-09-17',
         program_date: '2026-09-30',
-        guestDetails: 'Prof. Ramesh G, ACM Chapter Chair',
+        guest_details: 'Prof. Ramesh G, ACM Chapter Chair',
         amount: 12500,
         status: 'Pending'
-      }, { onConflict: 'proposal_number' });
+      },
+      {
+        proposal_number: 'PROP-2026-003',
+        faculty_id: rajeshId,
+        category_name: 'Lab & Equipment',
+        title: 'High-performance AI workstation GPU upgrade for CSE Lab 3',
+        proposal_date: '2026-09-15',
+        program_date: '2026-10-05',
+        guest_details: 'Dell Technical Sales Team',
+        amount: 28000,
+        status: 'Approved'
+      },
+      {
+        proposal_number: 'PROP-2026-004',
+        faculty_id: karthikId,
+        category_name: 'Technical Workshop',
+        title: 'Hands-on Cloud Computing & DevOps workshop',
+        proposal_date: '2026-09-14',
+        program_date: '2026-10-12',
+        guest_details: 'AWS Authorized Trainer',
+        amount: 18000,
+        status: 'Under Review'
+      }
+    ];
+
+    for (const p of initialProposals) {
+      const catId = categoryMap[p.category_name] || Object.values(categoryMap)[0];
+      if (p.faculty_id && catId) {
+        await supabaseAdmin.from('proposals').upsert({
+          proposal_number: p.proposal_number,
+          faculty_id: p.faculty_id,
+          category_id: catId,
+          title: p.title,
+          proposal_date: p.proposal_date,
+          program_date: p.program_date,
+          guest_details: p.guest_details,
+          amount: p.amount,
+          status: p.status
+        }, { onConflict: 'proposal_number' });
+      }
     }
     console.log('✅ Proposals verified.');
 

@@ -234,15 +234,25 @@ export const BudgetProvider = ({ children }) => {
 
   // Load all initial data on mount / authentication change
   useEffect(() => {
+    let isMounted = true;
     if (isAuthenticated) {
-      setLoading(true);
-      Promise.all([
-        refreshFaculty(),
-        refreshProposals(),
-        refreshTransactions(),
-        refreshBudget()
-      ]).finally(() => setLoading(false));
+      const loadData = async () => {
+        try {
+          await Promise.all([
+            refreshFaculty(),
+            refreshProposals(),
+            refreshTransactions(),
+            refreshBudget()
+          ]);
+        } finally {
+          if (isMounted) setLoading(false);
+        }
+      };
+      loadData();
     }
+    return () => {
+      isMounted = false;
+    };
   }, [isAuthenticated, refreshFaculty, refreshProposals, refreshTransactions, refreshBudget]);
 
   // Admin: Add Faculty
@@ -373,7 +383,7 @@ export const BudgetProvider = ({ children }) => {
   const getFacultyMetrics = (facultyEmail) => {
     const cleanEmail = facultyEmail ? facultyEmail.trim().toLowerCase() : '';
     const facultyProposals = cleanEmail
-      ? proposals.filter((p) => p.facultyEmail && p.facultyEmail.trim().toLowerCase() === cleanEmail)
+      ? proposals.filter((p) => (p.facultyEmail && p.facultyEmail.trim().toLowerCase() === cleanEmail) || (user && p.facultyId === user.id))
       : proposals;
 
     const totalProposed = facultyProposals.reduce((sum, p) => sum + Number(p.amount || 0), 0);

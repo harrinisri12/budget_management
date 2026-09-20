@@ -3,8 +3,24 @@ import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { CSE_UNITS_OVERVIEW } from '../data/mockData';
 import { Badge } from '../components/common/Badge';
 import { Download, Sparkles } from 'lucide-react';
+import { useBudget } from '../context/BudgetContext';
 
 export const BudgetOverviewPage = () => {
+  const { categories } = useBudget();
+
+  const unitsData = CSE_UNITS_OVERVIEW.map(item => {
+    const matched = categories.find(c => c.name.toLowerCase().includes(item.unit.toLowerCase().slice(0, 5)));
+    const allocated = matched ? Number(matched.allocated_amount) : item.allocated;
+    const spent = matched ? Number(matched.spent_amount) : item.spent;
+    const utilization = allocated > 0 ? Math.round((spent / allocated) * 100) : item.utilization;
+    return {
+      ...item,
+      allocated,
+      spent,
+      utilization
+    };
+  });
+
   return (
     <DashboardLayout pageTitle="CSE Budget Overview">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -34,7 +50,7 @@ export const BudgetOverviewPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {CSE_UNITS_OVERVIEW.map((item) => (
+                {unitsData.map((item) => (
                   <tr key={item.unit}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: 'var(--primary)' }}>

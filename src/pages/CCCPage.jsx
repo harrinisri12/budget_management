@@ -4,8 +4,16 @@ import { StatCard } from '../components/dashboard/StatCard';
 import { Badge } from '../components/common/Badge';
 import { CCC_DETAILS } from '../data/mockData';
 import { Code2, Terminal, Flame, Zap } from 'lucide-react';
+import { useBudget } from '../context/BudgetContext';
 
 export const CCCPage = () => {
+  const { categories } = useBudget();
+  const cccCategory = categories.find(c => c.name.toLowerCase().includes('ccc'));
+  const allocated = cccCategory ? Number(cccCategory.allocated_amount) : CCC_DETAILS.allocated;
+  const spent = cccCategory ? Number(cccCategory.spent_amount) : CCC_DETAILS.spent;
+  const remaining = Math.max(0, allocated - spent);
+  const spentPercent = allocated > 0 ? ((spent / allocated) * 100).toFixed(1) : '68.6';
+
   return (
     <DashboardLayout pageTitle="CCC Coding Club">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -56,21 +64,21 @@ export const CCCPage = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 20 }}>
           <StatCard
             title="Allocated Budget"
-            amount={CCC_DETAILS.allocated}
+            amount={allocated}
             supportingText="Annual CCC FY 2026-27 Quota"
             icon={Terminal}
             color="#443CDE"
           />
           <StatCard
             title="Amount Spent"
-            amount={CCC_DETAILS.spent}
-            supportingText="68.6% of allocated funds utilized"
+            amount={spent}
+            supportingText={`${spentPercent}% of allocated funds utilized`}
             icon={Flame}
             color="#10B981"
           />
           <StatCard
             title="Remaining Balance"
-            amount={CCC_DETAILS.remaining}
+            amount={remaining}
             supportingText="Available for Q4 coding contests"
             icon={Zap}
             color="#F59E0B"

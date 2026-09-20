@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 export const Button = ({
   children,
   variant = 'primary', // primary, secondary, outline, danger
-  size = 'md',
+  _size = 'md',
   isLoading = false,
   disabled = false,
   icon: Icon,

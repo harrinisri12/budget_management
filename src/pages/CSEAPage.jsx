@@ -4,8 +4,16 @@ import { StatCard } from '../components/dashboard/StatCard';
 import { Badge } from '../components/common/Badge';
 import { CSEA_DETAILS } from '../data/mockData';
 import { Users, Calendar, Trophy, Sparkles, Award } from 'lucide-react';
+import { useBudget } from '../context/BudgetContext';
 
 export const CSEAPage = () => {
+  const { categories } = useBudget();
+  const cseaCategory = categories.find(c => c.name.toLowerCase().includes('csea'));
+  const allocated = cseaCategory ? Number(cseaCategory.allocated_amount) : CSEA_DETAILS.allocated;
+  const spent = cseaCategory ? Number(cseaCategory.spent_amount) : CSEA_DETAILS.spent;
+  const remaining = Math.max(0, allocated - spent);
+  const spentPercent = allocated > 0 ? ((spent / allocated) * 100).toFixed(1) : '71.1';
+
   return (
     <DashboardLayout pageTitle="CSEA Association">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -56,21 +64,21 @@ export const CSEAPage = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 20 }}>
           <StatCard
             title="Allocated Budget"
-            amount={CSEA_DETAILS.allocated}
+            amount={allocated}
             supportingText="Annual CSEA FY 2026-27 Quota"
             icon={Trophy}
             color="#443CDE"
           />
           <StatCard
             title="Amount Spent"
-            amount={CSEA_DETAILS.spent}
-            supportingText="71.1% of allocated funds utilized"
+            amount={spent}
+            supportingText={`${spentPercent}% of allocated funds utilized`}
             icon={Calendar}
             color="#10B981"
           />
           <StatCard
             title="Remaining Balance"
-            amount={CSEA_DETAILS.remaining}
+            amount={remaining}
             supportingText="Available for Q4 activities"
             icon={Award}
             color="#F59E0B"

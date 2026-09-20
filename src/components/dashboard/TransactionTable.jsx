@@ -2,11 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { Search, ArrowUpDown, Eye, FileDown } from 'lucide-react';
 import { Badge } from '../common/Badge';
 import { TransactionDetailModal } from './TransactionDetailModal';
-import { CATEGORIES, STATUSES } from '../../data/mockData';
 import { useBudget } from '../../context/BudgetContext';
 
+const STATUS_OPTIONS = ['All Statuses', 'Approved', 'Pending', 'Rejected'];
+
 export const TransactionTable = () => {
-  const { transactions } = useBudget();
+  const { transactions, categories } = useBudget();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
@@ -14,6 +15,13 @@ export const TransactionTable = () => {
   const [sortField, setSortField] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedTxn, setSelectedTxn] = useState(null);
+
+  const categoryFilterOptions = useMemo(() => {
+    const fromCats = categories && categories.length > 0 ? categories.map(c => c.name) : [];
+    const fromTxns = transactions.map(t => t.category).filter(Boolean);
+    const unique = Array.from(new Set([...fromCats, ...fromTxns]));
+    return ['All Categories', ...unique];
+  }, [categories, transactions]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(txn => {
@@ -92,7 +100,7 @@ export const TransactionTable = () => {
             className="cbm-select"
             style={{ height: 42, fontSize: 13.5 }}
           >
-            {CATEGORIES.map(c => (
+            {categoryFilterOptions.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
@@ -104,7 +112,7 @@ export const TransactionTable = () => {
             className="cbm-select"
             style={{ height: 42, fontSize: 13.5 }}
           >
-            {STATUSES.map(s => (
+            {STATUS_OPTIONS.map(s => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>

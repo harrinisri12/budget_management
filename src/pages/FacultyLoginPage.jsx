@@ -5,19 +5,17 @@ import { Input } from '../components/common/Input';
 import { PasswordInput } from '../components/common/PasswordInput';
 import { Button } from '../components/common/Button';
 import { useAuth } from '../context/AuthContext';
-import { useBudget } from '../context/BudgetContext';
 
 export const FacultyLoginPage = () => {
   const navigate = useNavigate();
   const { loginFaculty } = useAuth();
-  const { facultyList } = useBudget();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -32,16 +30,19 @@ export const FacultyLoginPage = () => {
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      const result = loginFaculty(email, password, facultyList);
+    try {
+      const result = await loginFaculty(email, password);
       setIsLoading(false);
 
       if (result.success) {
         navigate('/faculty/dashboard');
       } else {
-        setError(result.message);
+        setError(result.message || 'Invalid email or password.');
       }
-    }, 600);
+    } catch (err) {
+      setIsLoading(false);
+      setError(err.message || 'An error occurred during sign in.');
+    }
   };
 
   return (

@@ -5,8 +5,7 @@ import {
   FileSpreadsheet,
   FilePlus,
   User,
-  LogOut,
-  GraduationCap
+  LogOut
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -90,15 +89,16 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
                 width: 42,
                 height: 42,
                 borderRadius: 12,
-                backgroundColor: 'var(--primary)',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid var(--border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#FFFFFF',
-                boxShadow: '0 4px 12px rgba(68, 60, 222, 0.25)'
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                padding: 4
               }}
             >
-              <GraduationCap size={24} />
+              <img src="/favicon.svg" alt="Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
             </div>
             <div>
               <h1 style={{ fontSize: 16, fontWeight: 800, color: 'var(--dark)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>

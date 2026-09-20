@@ -1,37 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FacultyLayout } from '../components/layout/FacultyLayout';
 import { useAuth } from '../context/AuthContext';
 import { useBudget } from '../context/BudgetContext';
-import { CSE_PROPOSAL_CATEGORIES } from '../data/mockData';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
 import { AlertCircle, ArrowRight } from 'lucide-react';
 
+const DEFAULT_CATEGORIES = [
+  'CSEA Association',
+  'CCC Coding Club',
+  'Lab & Equipment',
+  'Technical Workshop',
+  'Department Maintenance',
+  'Academic Research'
+];
+
 export const NewProposalPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { generateProposalId, addProposal, getFacultyMetrics } = useBudget();
+  const { generateProposalId, addProposal, getFacultyMetrics, categories } = useBudget();
+
+  const categoryOptions = categories && categories.length > 0
+    ? categories.map((c) => c.name)
+    : DEFAULT_CATEGORIES;
 
   // Faculty balance metrics
   const metrics = getFacultyMetrics(user?.email);
   const currentAvailableBalance = metrics.remainingBalance; // Or baseline 150000
 
   // Automatically generated ID and Current Date
-  const [proposalId, setProposalId] = useState('');
-  const [proposalDateStr, setProposalDateStr] = useState('');
-  const [todayIso, setTodayIso] = useState('');
-
-  useEffect(() => {
-    setProposalId(generateProposalId());
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    setProposalDateStr(formattedDate);
-    setTodayIso(now.toISOString().split('T')[0]);
-  }, []);
+  const [proposalId] = useState(() => generateProposalId());
+  const [todayIso] = useState(() => new Date().toISOString().split('T')[0]);
+  const [proposalDateStr] = useState(() => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
 
   // Form fields
-  const [category, setCategory] = useState(CSE_PROPOSAL_CATEGORIES[0]);
+  const [category, setCategory] = useState(categoryOptions[0] || 'CSEA Association');
   const [title, setTitle] = useState('');
   const [programDate, setProgramDate] = useState('');
   const [guestDetails, setGuestDetails] = useState('');
@@ -200,7 +204,7 @@ export const NewProposalPage = () => {
                     outline: 'none'
                   }}
                 >
-                  {CSE_PROPOSAL_CATEGORIES.map((cat) => (
+                  {categoryOptions.map((cat) => (
                     <option key={cat} value={cat}>
                       {cat}
                     </option>

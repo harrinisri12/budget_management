@@ -209,12 +209,19 @@ router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Delete profile (cascades or delete auth user)
-    const { error: authDeleteErr } = await supabaseAdmin.auth.admin.deleteUser(id);
-    if (authDeleteErr) {
-      console.warn('Auth user delete notice:', authDeleteErr.message);
-    }
+    // 1. Remove referencing proposals submitted by this faculty member
+    await supabaseAdmin
+      .from('proposals')
+      .delete()
+      .eq('faculty_id', id);
 
+    // 2. Set requested_by to null on transactions to preserve financial audit history
+    await supabaseAdmin
+      .from('transactions')
+      .update({ requested_by: null })
+      .eq('requested_by', id);
+
+    // 3. Delete profile from public.profiles
     const { error: profileDeleteErr } = await supabaseAdmin
       .from('profiles')
       .delete()
@@ -222,6 +229,12 @@ router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
 
     if (profileDeleteErr) {
       return res.status(400).json({ success: false, error: profileDeleteErr.message });
+    }
+
+    // 4. Delete user from Supabase Auth
+    const { error: authDeleteErr } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authDeleteErr) {
+      console.warn('Auth user delete notice:', authDeleteErr.message);
     }
 
     return res.json({

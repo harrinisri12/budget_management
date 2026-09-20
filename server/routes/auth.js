@@ -4,8 +4,8 @@ import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// GET /api/auth/profile - Fetch current authenticated user profile
-router.get('/profile', authenticateUser, async (req, res) => {
+// GET & POST /api/auth/profile - Fetch current authenticated user profile
+const handleProfile = async (req, res) => {
   try {
     const { data: profile, error } = await supabaseAdmin
       .from('profiles')
@@ -25,6 +25,17 @@ router.get('/profile', authenticateUser, async (req, res) => {
     console.error('Error fetching profile:', err);
     return res.status(500).json({ success: false, error: 'Server error retrieving profile' });
   }
+};
+
+router.get('/profile', authenticateUser, handleProfile);
+router.post('/profile', authenticateUser, handleProfile);
+
+// POST /api/auth/logout - Logout confirmation endpoint
+router.post('/logout', authenticateUser, (req, res) => {
+  return res.json({
+    success: true,
+    message: 'Logged out successfully.'
+  });
 });
 
 // POST /api/auth/reset-password - Request password reset email

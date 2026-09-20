@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const StatCard = ({ title, amount, supportingText, icon: Icon, color = 'var(--primary)', isPositive = true }) => {
+export const StatCard = ({ title, amount, supportingText, icon: Icon, color = 'var(--primary)', _isPositive = true }) => {
   // Format currency if number
   const formattedAmount = typeof amount === 'number'
     ? `₹${amount.toLocaleString('en-IN')}`

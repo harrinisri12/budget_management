@@ -46,6 +46,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/faculty', facultyRoutes);
 app.use('/api/proposals', proposalsRoutes);
 app.use('/api/budgets', budgetsRoutes);
+app.use('/api/budget-categories', (req, res, next) => {
+  req.url = '/categories' + (req.url === '/' ? '' : req.url);
+  budgetsRoutes(req, res, next);
+});
+app.use('/api/dashboard', (req, res, next) => {
+  req.url = '/dashboard' + (req.url === '/' ? '' : req.url);
+  budgetsRoutes(req, res, next);
+});
 app.use('/api/transactions', transactionsRoutes);
 
 // Global 404 handler for unmatched API routes
@@ -57,7 +65,7 @@ app.use((req, res) => {
 });
 
 // Global error handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error('Unhandled server error:', err);
   res.status(500).json({
     success: false,

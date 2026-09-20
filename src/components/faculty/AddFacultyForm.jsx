@@ -4,8 +4,10 @@ import { User, Mail, Building, Briefcase, BadgeCheck, Phone, CheckCircle2 } from
 import { Input } from '../common/Input';
 import { PasswordInput } from '../common/PasswordInput';
 import { Button } from '../common/Button';
-import { FORM_DEPARTMENTS, DESIGNATIONS } from '../../data/mockData';
 import { useBudget } from '../../context/BudgetContext';
+
+const FORM_DEPARTMENTS = ['Computer Science and Engineering (CSE)'];
+const DESIGNATIONS = ['Assistant Professor', 'Associate Professor', 'Professor', 'HOD'];
 
 export const AddFacultyForm = ({ onCancel }) => {
   const navigate = useNavigate();
@@ -16,7 +18,7 @@ export const AddFacultyForm = ({ onCancel }) => {
     email: '',
     department: 'Computer Science and Engineering (CSE)',
     designation: 'Assistant Professor',
-    employeeId: `FAC00${Math.floor(Math.random() * 90 + 10)}`,
+    employeeId: '',
     phone: '',
     password: 'kongu@123',
     confirmPassword: 'kongu@123',
