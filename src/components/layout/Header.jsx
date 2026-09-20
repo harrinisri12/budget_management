@@ -1,24 +1,48 @@
-import React, { useState } from 'react';
-import { Bell, Search, Menu, ChevronDown, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Bell, Search, Menu, ChevronDown, LogOut, Settings as SettingsIcon, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isFaculty } = useAuth();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+  const notificationRef = useRef(null);
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate(isFaculty ? '/faculty/login' : '/login');
   };
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowUserDropdown(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const notifications = [
     { id: 1, title: 'CSEA Budget Approved', time: '10m ago', text: '₹45,000 approved for CSEA Symposium 2026.' },
     { id: 2, title: 'CCC Coding Contest Request', time: '1h ago', text: 'CCC Hackathon request of ₹12,500 requires review.' },
     { id: 3, title: 'CSE Lab Equipment Audit', time: '1d ago', text: 'Q3 CSE hardware maintenance audit due on Sep 30.' }
   ];
+
+  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : (isFaculty ? 'F' : 'A');
+  const userName = user?.name || (isFaculty ? 'Faculty Member' : 'Admin User');
+  const userRole = isFaculty ? (user?.designation || 'Faculty Member') : 'CSE Budget Officer';
+  const userEmail = user?.email || (isFaculty ? 'faculty@kongu.edu' : 'admin@kongu.edu');
 
   return (
     <header
@@ -59,7 +83,7 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
             {pageTitle}
           </h1>
           <p style={{ fontSize: 13, color: 'var(--secondary)', fontWeight: 500 }}>
-            Welcome back, <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{user?.name || 'Admin'}</span> • <span style={{ color: 'var(--dark-muted)' }}>CSE Department</span>
+            Welcome back, <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{userName}</span> • <span style={{ color: 'var(--dark-muted)' }}>CSE Department</span>
           </p>
         </div>
       </div>
@@ -87,7 +111,7 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
         </div>
 
         {/* Notification Bell Icon */}
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }} ref={notificationRef}>
           <button
             onClick={() => {
               setShowNotifications(!showNotifications);
@@ -158,8 +182,8 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
           )}
         </div>
 
-        {/* Admin Profile Pill & Dropdown */}
-        <div style={{ position: 'relative' }}>
+        {/* Admin / User Profile Pill & Dropdown */}
+        <div style={{ position: 'relative' }} ref={dropdownRef}>
           <button
             onClick={() => {
               setShowUserDropdown(!showUserDropdown);
@@ -192,11 +216,11 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
                 boxShadow: '0 2px 8px rgba(68, 60, 222, 0.25)'
               }}
             >
-              A
+              {userInitial}
             </div>
             <div style={{ textAlign: 'left' }} className="hidden sm:block">
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>Admin</div>
-              <div style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 500 }}>CSE Budget Officer</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>{userName}</div>
+              <div style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 500 }}>{userRole}</div>
             </div>
             <ChevronDown size={16} style={{ color: 'var(--secondary)' }} />
           </button>
@@ -218,14 +242,18 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
               }}
             >
               <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>{user?.name || 'Admin User'}</p>
-                <p style={{ fontSize: 12, color: 'var(--secondary)' }}>{user?.email || 'admin@kongu.edu'}</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>{userName}</p>
+                <p style={{ fontSize: 12, color: 'var(--secondary)' }}>{userEmail}</p>
               </div>
 
               <button
                 onClick={() => {
                   setShowUserDropdown(false);
-                  navigate('/settings');
+                  if (isFaculty || user?.role === 'faculty') {
+                    navigate('/faculty/profile');
+                  } else {
+                    navigate('/settings');
+                  }
                 }}
                 style={{
                   width: '100%',
