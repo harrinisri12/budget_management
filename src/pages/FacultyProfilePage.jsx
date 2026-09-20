@@ -1,10 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FacultyLayout } from '../components/layout/FacultyLayout';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Shield, Building, Phone } from 'lucide-react';
+import { Mail, Shield, Building, Phone, Key, CheckCircle, AlertCircle } from 'lucide-react';
+import { PasswordInput } from '../components/common/PasswordInput';
+import { Button } from '../components/common/Button';
 
 export const FacultyProfilePage = () => {
-  const { user } = useAuth();
+  const { user, updatePassword } = useAuth();
+
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [message, setMessage] = useState({ text: '', type: '' });
+  const [loading, setLoading] = useState(false);
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setMessage({ text: '', type: '' });
+
+    if (!newPassword) {
+      setMessage({ text: 'Please enter a new password.', type: 'error' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setMessage({ text: 'Password must be at least 6 characters.', type: 'error' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage({ text: 'Passwords do not match.', type: 'error' });
+      return;
+    }
+
+    setLoading(true);
+    const result = await updatePassword(newPassword);
+    setLoading(false);
+
+    if (result.success) {
+      setMessage({ text: 'Your account password has been updated successfully!', type: 'success' });
+      setNewPassword('');
+      setConfirmPassword('');
+    } else {
+      setMessage({ text: result.message || 'Failed to update password.', type: 'error' });
+    }
+  };
 
   return (
     <FacultyLayout pageTitle="Faculty Profile">
@@ -12,10 +49,11 @@ export const FacultyProfilePage = () => {
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--dark)' }}>Faculty Profile</h1>
           <p style={{ fontSize: 14, color: 'var(--dark-muted)', marginTop: 4 }}>
-            Your official Kongu Engineering College faculty portal record.
+            Your official Kongu Engineering College faculty portal record & account settings.
           </p>
         </div>
 
+        {/* Profile Info Card */}
         <div className="cbm-card" style={{ padding: '36px' }}>
           {/* Header info */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingBottom: 28, borderBottom: '1px solid var(--border)' }}>
@@ -79,6 +117,62 @@ export const FacultyProfilePage = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Change Password Card */}
+        <div className="cbm-card" style={{ padding: '36px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <div style={{ padding: 10, borderRadius: 10, backgroundColor: 'rgba(68, 60, 222, 0.1)', color: 'var(--primary)' }}>
+              <Key size={20} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>Security & Password</h3>
+              <p style={{ fontSize: 13, color: 'var(--secondary)' }}>Update your faculty account password for security</p>
+            </div>
+          </div>
+
+          <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {message.text && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '12px 16px',
+                  borderRadius: 10,
+                  backgroundColor: message.type === 'error' ? '#FEE2E2' : '#DCFCE7',
+                  color: message.type === 'error' ? '#DC2626' : '#16A34A',
+                  fontSize: 13.5,
+                  fontWeight: 600
+                }}
+              >
+                {message.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
+                <span>{message.text}</span>
+              </div>
+            )}
+
+            <PasswordInput
+              label="New Password"
+              placeholder="Enter at least 6 characters"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+
+            <PasswordInput
+              label="Confirm New Password"
+              placeholder="Re-enter new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 8 }}>
+              <Button variant="primary" type="submit" disabled={loading}>
+                {loading ? 'Updating Password...' : 'Update Password'}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
     </FacultyLayout>

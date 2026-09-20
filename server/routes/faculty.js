@@ -204,6 +204,34 @@ router.patch('/:id', authenticateUser, requireAdmin, async (req, res) => {
   }
 });
 
+// PATCH /api/faculty/:id/password - Admin updates faculty member password
+router.patch('/:id/password', authenticateUser, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body;
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters long.' });
+    }
+
+    const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(id, {
+      password: password
+    });
+
+    if (authErr) {
+      return res.status(400).json({ success: false, error: authErr.message });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Faculty password updated successfully.'
+    });
+  } catch (err) {
+    console.error('Error updating faculty password:', err);
+    return res.status(500).json({ success: false, error: 'Server error updating faculty password.' });
+  }
+});
+
 // DELETE /api/faculty/:id - Admin removes faculty member
 router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
   try {

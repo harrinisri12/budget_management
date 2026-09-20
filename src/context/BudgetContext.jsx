@@ -398,6 +398,22 @@ export const BudgetProvider = ({ children }) => {
     };
   };
 
+  // Admin: Update Faculty Password
+  const updateFacultyPassword = async (id, newPassword) => {
+    try {
+      const res = await api.patch(`/api/faculty/${id}/password`, { password: newPassword });
+      if (res?.success) {
+        showToast(res.message || 'Faculty password updated successfully.', 'success');
+        return { success: true };
+      }
+      return { success: false, error: res?.error || 'Failed to update password.' };
+    } catch (err) {
+      console.error('Error updating faculty password:', err);
+      showToast(err.message || 'Error updating password', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
   return (
     <BudgetContext.Provider
       value={{
@@ -415,6 +431,7 @@ export const BudgetProvider = ({ children }) => {
         addFaculty,
         deleteFaculty,
         updateFacultyStatus,
+        updateFacultyPassword,
         generateProposalId,
         addProposal,
         updateProposalStatus,

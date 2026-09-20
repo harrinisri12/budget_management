@@ -1,19 +1,58 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Eye, Edit2, Trash2 } from 'lucide-react';
+import { Search, Plus, Eye, Edit2, Trash2, Key } from 'lucide-react';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
+import { PasswordInput } from '../common/PasswordInput';
 import { useBudget } from '../../context/BudgetContext';
 
 export const FacultyList = () => {
   const navigate = useNavigate();
-  const { facultyList, deleteFaculty, updateFacultyStatus } = useBudget();
+  const { facultyList, deleteFaculty, updateFacultyStatus, updateFacultyPassword } = useBudget();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [editFaculty, setEditFaculty] = useState(null);
+
+  // Change Password state
+  const [passwordFaculty, setPasswordFaculty] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    if (!newPassword) {
+      setPasswordError('New password is required.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    const res = await updateFacultyPassword(passwordFaculty.id, newPassword);
+    setIsUpdatingPassword(false);
+
+    if (res.success) {
+      setPasswordFaculty(null);
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordError('');
+    } else {
+      setPasswordError(res.error || 'Failed to update password.');
+    }
+  };
 
   const filteredFaculty = useMemo(() => {
     return facultyList.filter(f => {
@@ -167,6 +206,27 @@ export const FacultyList = () => {
                           <Eye size={16} />
                         </button>
 
+                        {/* Change Password */}
+                        <button
+                          onClick={() => {
+                            setPasswordFaculty(f);
+                            setNewPassword('');
+                            setConfirmPassword('');
+                            setPasswordError('');
+                          }}
+                          style={{
+                            background: '#FFF7ED',
+                            border: '1px solid #FFEDD5',
+                            borderRadius: 6,
+                            padding: 6,
+                            color: '#EA580C',
+                            cursor: 'pointer'
+                          }}
+                          title="Change Password"
+                        >
+                          <Key size={16} />
+                        </button>
+
                         {/* Edit status */}
                         <button
                           onClick={() => setEditFaculty(f)}
@@ -311,6 +371,70 @@ export const FacultyList = () => {
               </Button>
             </div>
           </div>
+        </Modal>
+      )}
+
+      {/* Change Password Modal */}
+      {passwordFaculty && (
+        <Modal
+          isOpen={!!passwordFaculty}
+          onClose={() => {
+            setPasswordFaculty(null);
+            setNewPassword('');
+            setConfirmPassword('');
+            setPasswordError('');
+          }}
+          title={`Change Password for ${passwordFaculty.name}`}
+        >
+          <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <p style={{ fontSize: 13.5, color: 'var(--dark-muted)' }}>
+              Set a new account password for employee <strong style={{ color: 'var(--dark)' }}>{passwordFaculty.employeeId}</strong> ({passwordFaculty.email}).
+            </p>
+
+            {passwordError && (
+              <div style={{ padding: '10px 14px', borderRadius: 8, backgroundColor: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600 }}>
+                {passwordError}
+              </div>
+            )}
+
+            <PasswordInput
+              label="New Password"
+              placeholder="Enter at least 6 characters"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+
+            <PasswordInput
+              label="Confirm New Password"
+              placeholder="Re-enter new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setPasswordFaculty(null);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  setPasswordError('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={isUpdatingPassword}
+              >
+                {isUpdatingPassword ? 'Updating Password...' : 'Update Password'}
+              </Button>
+            </div>
+          </form>
         </Modal>
       )}
     </div>
