@@ -1,21 +1,40 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Mail, ArrowRight, ShieldCheck, PieChart, CheckCircle2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { GraduationCap, Mail, ArrowRight, ShieldCheck, PieChart, CheckCircle2, AlertCircle, KeyRound } from 'lucide-react';
 import { Input } from '../components/common/Input';
 import { PasswordInput } from '../components/common/PasswordInput';
 import { Button } from '../components/common/Button';
+import { Modal } from '../components/common/Modal';
 import { useAuth } from '../context/AuthContext';
 
-export const LoginPage = () => {
+export const LoginPage = ({ initialMode }) => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const { login, loginFaculty, resetPassword } = useAuth();
 
+  // Determine initial mode: prop -> path / query -> default 'admin'
+  const getInitialRole = () => {
+    if (initialMode) return initialMode;
+    if (location.pathname.includes('faculty')) return 'faculty';
+    const params = new URLSearchParams(location.search);
+    if (params.get('role') === 'faculty') return 'faculty';
+    return 'admin';
+  };
+
+  const [mode, setMode] = useState(getInitialRole);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  // Forgot Password modal states
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [isSendingReset, setIsSendingReset] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -30,16 +49,51 @@ export const LoginPage = () => {
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      const result = login(email, password);
-      setIsLoading(false);
+    try {
+      if (mode === 'admin') {
+        const result = await login(email, password);
+        setIsLoading(false);
 
-      if (result.success) {
-        navigate('/dashboard');
+        if (result.success) {
+          navigate('/dashboard');
+        } else {
+          setError(result.message || 'Invalid email or password.');
+        }
       } else {
-        setError(result.message);
+        const result = await loginFaculty(email, password);
+        setIsLoading(false);
+
+        if (result.success) {
+          navigate('/faculty/dashboard');
+        } else {
+          setError(result.message || 'Invalid email or password.');
+        }
       }
-    }, 600);
+    } catch (err) {
+      setIsLoading(false);
+      setError(err.message || 'Login failed.');
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
+
+    if (!forgotEmail.trim()) {
+      setForgotError('Please enter your registered email address.');
+      return;
+    }
+
+    setIsSendingReset(true);
+    const res = await resetPassword(forgotEmail);
+    setIsSendingReset(false);
+
+    if (res.success) {
+      setForgotSuccess(res.message);
+    } else {
+      setForgotError(res.message);
+    }
   };
 
   return (
@@ -154,17 +208,123 @@ export const LoginPage = () => {
         </div>
 
         {/* Right Side: Login Form Panel */}
-        <div style={{ padding: '56px 48px', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ marginBottom: 36 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }} className="md:hidden">
-              <GraduationCap size={28} color="var(--primary)" />
-              <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--dark)' }}>CSE Budget Management</span>
-            </div>
+        <div style={{ padding: '48px 44px', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          
+          {/* Mobile Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }} className="md:hidden">
+            <GraduationCap size={28} color="var(--primary)" />
+            <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--dark)' }}>CSE Budget Management</span>
+          </div>
+
+          {/* Segmented Switch (Admin / Faculty) */}
+          <div
+            role="tablist"
+            aria-label="Login Role Selection"
+            style={{
+              position: 'relative',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              backgroundColor: '#F3F4F8',
+              borderRadius: 12,
+              padding: 4,
+              marginBottom: 28,
+              border: '1px solid #E5E3F0'
+            }}
+          >
+            {/* Animated active sliding pill */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 4,
+                bottom: 4,
+                left: 4,
+                width: 'calc(50% - 4px)',
+                backgroundColor: '#4F46E5',
+                borderRadius: 8,
+                transform: mode === 'admin' ? 'translateX(0%)' : 'translateX(100%)',
+                transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)',
+                zIndex: 1,
+                pointerEvents: 'none'
+              }}
+            />
+
+            {/* Admin Option */}
+            <button
+              type="button"
+              role="tab"
+              id="role-tab-admin"
+              aria-selected={mode === 'admin'}
+              onClick={() => {
+                setMode('admin');
+                setError('');
+              }}
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '10px 16px',
+                fontSize: 14.5,
+                fontWeight: mode === 'admin' ? 600 : 500,
+                color: mode === 'admin' ? '#FFFFFF' : '#4B4963',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                transition: 'color 0.2s ease',
+                fontFamily: 'inherit'
+              }}
+            >
+              <ShieldCheck size={17} />
+              <span>Admin</span>
+            </button>
+
+            {/* Faculty Option */}
+            <button
+              type="button"
+              role="tab"
+              id="role-tab-faculty"
+              aria-selected={mode === 'faculty'}
+              onClick={() => {
+                setMode('faculty');
+                setError('');
+              }}
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '10px 16px',
+                fontSize: 14.5,
+                fontWeight: mode === 'faculty' ? 600 : 500,
+                color: mode === 'faculty' ? '#FFFFFF' : '#4B4963',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                transition: 'color 0.2s ease',
+                fontFamily: 'inherit'
+              }}
+            >
+              <GraduationCap size={17} />
+              <span>Faculty</span>
+            </button>
+          </div>
+
+          {/* Heading */}
+          <div style={{ marginBottom: 28 }}>
             <h2 style={{ fontSize: 30, fontWeight: 800, color: 'var(--dark)', marginBottom: 8 }}>
               Welcome Back
             </h2>
             <p style={{ fontSize: 14.5, color: 'var(--dark-muted)' }}>
-              Sign in to manage your CSE department budget
+              {mode === 'admin'
+                ? 'Sign in to manage your CSE department budget'
+                : 'Sign in to manage department proposals and activities'}
             </p>
           </div>
 
@@ -185,31 +345,62 @@ export const LoginPage = () => {
                 gap: 8
               }}
             >
-              <span>⚠️ {error}</span>
+              <AlertCircle size={16} />
+              <span>{error}</span>
             </div>
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            {/* Email Input */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Email Address */}
             <Input
+              id="login-email"
               label="Email Address"
               type="email"
-              placeholder="Enter your email address"
+              placeholder={mode === 'admin' ? 'Enter your email address' : 'Enter your Kongu email'}
               icon={Mail}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="username"
             />
 
             {/* Password Input with show/hide toggle */}
-            <PasswordInput
-              label="Password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div>
+              <PasswordInput
+                id="login-password"
+                label="Password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+
+              {/* Forgot Password Link */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotEmail(email);
+                    setForgotError('');
+                    setForgotSuccess('');
+                    setShowForgotModal(true);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            </div>
 
             {/* Submit Button */}
             <Button
@@ -217,41 +408,84 @@ export const LoginPage = () => {
               variant="primary"
               isLoading={isLoading}
               icon={ArrowRight}
-              style={{ marginTop: 12, height: 52, fontSize: 16 }}
+              style={{ marginTop: 8, height: 52, fontSize: 16, backgroundColor: '#4F46E5' }}
             >
               Sign In
             </Button>
           </form>
 
-          {/* Faculty Login Link */}
-          <div style={{ marginTop: 20, textAlign: 'center' }}>
-            <span style={{ fontSize: 14, color: 'var(--dark-muted)' }}>
-              Are you a faculty member?{' '}
-              <button
-                type="button"
-                onClick={() => navigate('/faculty/login')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--primary)',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  padding: 0,
-                  fontSize: 14
-                }}
-              >
-                Faculty Login
-              </button>
-            </span>
-          </div>
-
           {/* Institutional footer note */}
-          <div style={{ marginTop: 44, textAlign: 'center', fontSize: 12.5, color: 'var(--secondary)', fontWeight: 500 }}>
+          <div style={{ marginTop: 36, textAlign: 'center', fontSize: 12.5, color: 'var(--secondary)', fontWeight: 500 }}>
             Kongu Engineering College • CSE Department Portal
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <Modal
+          isOpen={showForgotModal}
+          onClose={() => setShowForgotModal(false)}
+          title="Reset Account Password"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <p style={{ fontSize: 14, color: 'var(--dark-muted)' }}>
+              Enter your registered Kongu institutional email address. We will dispatch a password recovery link to your inbox.
+            </p>
+
+            {forgotError && (
+              <div
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: 8,
+                  backgroundColor: 'var(--danger-bg)',
+                  color: 'var(--danger-text)',
+                  fontSize: 13,
+                  fontWeight: 600
+                }}
+              >
+                ⚠️ {forgotError}
+              </div>
+            )}
+
+            {forgotSuccess && (
+              <div
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: 8,
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  color: '#047857',
+                  fontSize: 13,
+                  fontWeight: 600
+                }}
+              >
+                ✓ {forgotSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Input
+                label="Email Address"
+                type="email"
+                placeholder="name@kongu.edu"
+                icon={Mail}
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                required
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
+                <Button type="button" variant="outline" onClick={() => setShowForgotModal(false)}>
+                  Close
+                </Button>
+                <Button type="submit" variant="primary" isLoading={isSendingReset} icon={KeyRound}>
+                  Send Reset Link
+                </Button>
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

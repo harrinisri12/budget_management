@@ -1,108 +1,259 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const savedUser = sessionStorage.getItem('cbm_user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Admin Login
-  const login = (email, password) => {
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (cleanEmail === 'admin@kongu.edu' && password === 'kongu@123') {
-      const adminUser = {
-        name: 'System Admin',
-        email: 'admin@kongu.edu',
-        role: 'admin',
-        designation: 'Chief Budget Administrator',
-        institution: 'Kongu Engineering College',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-      };
-      setUser(adminUser);
-      sessionStorage.setItem('cbm_user', JSON.stringify(adminUser));
-      return { success: true };
-    } else {
-      return {
-        success: false,
-        message: 'Invalid email or password.'
-      };
-    }
-  };
-
-  // Faculty Login
-  const loginFaculty = (email, password, facultyList = []) => {
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (!cleanEmail.endsWith('@kongu.edu')) {
-      return {
-        success: false,
-        message: 'Please use a valid Kongu email address.'
-      };
+  // Fetch full user profile from profiles table linked to auth.users
+  const fetchUserProfile = async (authUser) => {
+    if (!authUser) {
+      setUser(null);
+      return null;
     }
 
-    // Check matching faculty from state/roster
-    const facultyMatch = facultyList.find(
-      (f) => f.email && f.email.trim().toLowerCase() === cleanEmail
-    );
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*, departments(id, name, code)')
+        .eq('id', authUser.id)
+        .maybeSingle();
 
-    // Accept default mock password 'kongu@123' if password not explicitly set on record
-    const expectedPassword = (facultyMatch && facultyMatch.password) ? facultyMatch.password : 'kongu@123';
+      if (error) {
+        console.warn('Profile fetch notice:', error.message);
+      }
 
-    if (facultyMatch && password === expectedPassword) {
-      const facultyUser = {
-        name: facultyMatch.name,
-        email: facultyMatch.email,
-        role: 'faculty',
-        designation: facultyMatch.designation || 'Faculty Member',
-        employeeId: facultyMatch.employeeId || 'FAC001',
-        department: 'Computer Science and Engineering (CSE)',
-        phone: facultyMatch.phone || '+91 98421 12345'
+      const mergedUser = {
+        id: authUser.id,
+        email: authUser.email,
+        name: profile?.name || authUser.user_metadata?.name || authUser.email.split('@')[0],
+        role: profile?.role || authUser.user_metadata?.role || 'faculty',
+        designation: profile?.designation || (profile?.role === 'admin' ? 'Chief Budget Administrator' : 'Faculty Member'),
+        employeeId: profile?.employee_id || (profile?.role === 'admin' ? 'ADM001' : 'FAC001'),
+        department: profile?.departments?.name || 'Computer Science and Engineering (CSE)',
+        departmentCode: profile?.departments?.code || 'CSE',
+        phone: profile?.phone || '+91 98421 12345',
+        status: profile?.status || 'Active'
       };
-      setUser(facultyUser);
-      sessionStorage.setItem('cbm_user', JSON.stringify(facultyUser));
-      return { success: true };
-    }
 
-    // Fallback for default demo faculty arun@kongu.edu if not found in passed array
-    if (cleanEmail === 'arun@kongu.edu' && password === 'kongu@123') {
-      const defaultFaculty = {
-        name: 'Dr. Arun Kumar',
-        email: 'arun@kongu.edu',
-        role: 'faculty',
-        designation: 'Professor',
+      setUser(mergedUser);
+      return mergedUser;
+    } catch (err) {
+      console.error('Error fetching profile in AuthProvider:', err);
+      const fallbackUser = {
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.user_metadata?.name || 'User',
+        role: authUser.user_metadata?.role || 'faculty',
+        designation: 'Faculty Member',
         employeeId: 'FAC001',
         department: 'Computer Science and Engineering (CSE)',
-        phone: '+91 98421 12345'
+        phone: '+91 98421 12345',
+        status: 'Active'
       };
-      setUser(defaultFaculty);
-      sessionStorage.setItem('cbm_user', JSON.stringify(defaultFaculty));
-      return { success: true };
+      setUser(fallbackUser);
+      return fallbackUser;
     }
-
-    return {
-      success: false,
-      message: 'Invalid email or password.'
-    };
   };
 
-  const logout = () => {
-    setUser(null);
-    sessionStorage.removeItem('cbm_user');
+  // Listen to Supabase Auth State Changes
+  useEffect(() => {
+    let mounted = true;
+
+    async function initializeAuth() {
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        if (mounted) {
+          setSession(initialSession);
+          if (initialSession?.user) {
+            await fetchUserProfile(initialSession.user);
+          } else {
+            setUser(null);
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase session init warning:', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      setSession(newSession);
+      if (newSession?.user) {
+        await fetchUserProfile(newSession.user);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  // Admin & General Login (Email + Password)
+  const login = async (email, password) => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    if (!cleanEmail) {
+      return { success: false, message: 'Email address is required.' };
+    }
+    if (!password) {
+      return { success: false, message: 'Password is required.' };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password
+      });
+
+      if (error) {
+        return {
+          success: false,
+          message: error.message === 'Invalid login credentials'
+            ? 'Invalid email or password.'
+            : error.message
+        };
+      }
+
+      const profile = await fetchUserProfile(data.user);
+      return { success: true, user: profile };
+    } catch (err) {
+      console.error('Login error:', err);
+      return { success: false, message: err.message || 'An error occurred during sign in.' };
+    }
+  };
+
+  // Faculty Login (Email + Password)
+  const loginFaculty = async (email, password) => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    if (!cleanEmail) {
+      return { success: false, message: 'Email address is required.' };
+    }
+    if (!password) {
+      return { success: false, message: 'Password is required.' };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password
+      });
+
+      if (error) {
+        return {
+          success: false,
+          message: error.message === 'Invalid login credentials'
+            ? 'Invalid email or password.'
+            : error.message
+        };
+      }
+
+      const profile = await fetchUserProfile(data.user);
+
+      // Verify user is faculty
+      if (profile && profile.role !== 'faculty' && profile.role !== 'admin') {
+        await supabase.auth.signOut();
+        return { success: false, message: 'Access denied: You do not have faculty portal permissions.' };
+      }
+
+      return { success: true, user: profile };
+    } catch (err) {
+      console.error('Faculty login error:', err);
+      return { success: false, message: err.message || 'An error occurred during sign in.' };
+    }
+  };
+
+  // Sign Out
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('Sign out warning:', err);
+    } finally {
+      setUser(null);
+      setSession(null);
+    }
+  };
+
+  // Reset Password Request (Forgot Password flow)
+  const resetPassword = async (email) => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail) {
+      return { success: false, message: 'Email address is required.' };
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
+      if (error) {
+        return { success: false, message: error.message };
+      }
+
+      return {
+        success: true,
+        message: 'Password reset link has been dispatched to your email address.'
+      };
+    } catch (err) {
+      return { success: false, message: err.message || 'Error sending password reset email.' };
+    }
+  };
+
+  // Update Password (when user lands on reset password page)
+  const updatePassword = async (newPassword) => {
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, message: 'Password must be at least 6 characters.' };
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        return { success: false, message: error.message };
+      }
+
+      return { success: true, message: 'Password updated successfully. You can now sign in.' };
+    } catch (err) {
+      return { success: false, message: err.message || 'Failed to update password.' };
+    }
+  };
+
+  const refreshProfile = async () => {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (currentUser) {
+      await fetchUserProfile(currentUser);
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        session,
         isAuthenticated: !!user,
         isAdmin: user?.role === 'admin',
         isFaculty: user?.role === 'faculty',
+        loading,
         login,
         loginFaculty,
-        logout
+        logout,
+        resetPassword,
+        updatePassword,
+        refreshProfile
       }}
     >
       {children}
@@ -117,4 +268,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

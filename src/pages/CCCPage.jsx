@@ -3,7 +3,7 @@ import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { StatCard } from '../components/dashboard/StatCard';
 import { Badge } from '../components/common/Badge';
 import { CCC_DETAILS } from '../data/mockData';
-import { Code2, Terminal, Flame, Zap, Award } from 'lucide-react';
+import { Code2, Terminal, Flame, Zap } from 'lucide-react';
 
 export const CCCPage = () => {
   return (

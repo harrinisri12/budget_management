@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { BudgetProvider } from './context/BudgetContext';
 
 import { LoginPage } from './pages/LoginPage';
-import { FacultyLoginPage } from './pages/FacultyLoginPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { FacultyDashboardPage } from './pages/FacultyDashboardPage';
 import { FacultyProposalsPage } from './pages/FacultyProposalsPage';
@@ -22,7 +22,14 @@ import { NotFoundPage } from './pages/NotFoundPage';
 
 // Admin Route Guard
 const AdminRoute = ({ children }) => {
-  const { isAuthenticated, isFaculty } = useAuth();
+  const { isAuthenticated, isFaculty, loading } = useAuth();
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1EFFD' }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--primary)' }}>Loading CSE Portal...</div>
+      </div>
+    );
+  }
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -34,7 +41,14 @@ const AdminRoute = ({ children }) => {
 
 // Faculty Route Guard
 const FacultyRoute = ({ children }) => {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1EFFD' }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--primary)' }}>Loading CSE Faculty Portal...</div>
+      </div>
+    );
+  }
   if (!isAuthenticated) {
     return <Navigate to="/faculty/login" replace />;
   }
@@ -46,7 +60,14 @@ const FacultyRoute = ({ children }) => {
 
 // Public Route Guard (Redirects to relevant dashboard if already logged in)
 const PublicRoute = ({ children }) => {
-  const { isAuthenticated, isFaculty } = useAuth();
+  const { isAuthenticated, isFaculty, loading } = useAuth();
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1EFFD' }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--primary)' }}>Loading CSE Portal...</div>
+      </div>
+    );
+  }
   if (isAuthenticated) {
     return isFaculty ? <Navigate to="/faculty/dashboard" replace /> : <Navigate to="/dashboard" replace />;
   }
@@ -59,7 +80,7 @@ export default function App() {
       <BudgetProvider>
         <BrowserRouter>
           <Routes>
-            {/* Login Routes */}
+            {/* Login & Recovery Routes */}
             <Route
               path="/login"
               element={
@@ -72,9 +93,13 @@ export default function App() {
               path="/faculty/login"
               element={
                 <PublicRoute>
-                  <FacultyLoginPage />
+                  <LoginPage initialMode="faculty" />
                 </PublicRoute>
               }
+            />
+            <Route
+              path="/reset-password"
+              element={<ResetPasswordPage />}
             />
 
             {/* Admin Dashboard & Management Routes */}
@@ -242,4 +267,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-

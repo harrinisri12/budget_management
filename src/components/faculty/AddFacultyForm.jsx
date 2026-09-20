@@ -38,7 +38,7 @@ export const AddFacultyForm = ({ onCancel }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
 
@@ -49,7 +49,7 @@ export const AddFacultyForm = ({ onCancel }) => {
     if (!formData.email.trim()) {
       newErrors.email = 'Faculty Email is required.';
     } else if (!formData.email.trim().toLowerCase().endsWith('@kongu.edu')) {
-      newErrors.email = 'Please use a valid Kongu email address.';
+      newErrors.email = 'Please use a valid Kongu email address (@kongu.edu).';
     }
 
     if (!formData.employeeId.trim()) {
@@ -67,14 +67,16 @@ export const AddFacultyForm = ({ onCancel }) => {
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const result = addFaculty({
-        name: formData.name,
-        email: formData.email,
+    try {
+      const result = await addFaculty({
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
         department: formData.department,
         designation: formData.designation,
-        employeeId: formData.employeeId,
+        employeeId: formData.employeeId.trim(),
         phone: formData.phone || '+91 98765 43210',
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
         status: formData.status
       });
 
@@ -89,7 +91,10 @@ export const AddFacultyForm = ({ onCancel }) => {
       } else {
         setErrors({ email: result.error });
       }
-    }, 400);
+    } catch (err) {
+      setIsSubmitting(false);
+      setErrors({ email: err.message || 'Failed to add faculty.' });
+    }
   };
 
   return (

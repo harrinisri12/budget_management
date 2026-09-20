@@ -6,12 +6,12 @@ import { useBudget } from '../context/BudgetContext';
 import { CSE_PROPOSAL_CATEGORIES } from '../data/mockData';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
-import { FileText, Calendar, DollarSign, AlertCircle, CheckCircle2, ArrowRight, User } from 'lucide-react';
+import { AlertCircle, ArrowRight } from 'lucide-react';
 
 export const NewProposalPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { generateProposalId, addProposal, DEFAULT_AVAILABLE_BALANCE, getFacultyMetrics } = useBudget();
+  const { generateProposalId, addProposal, getFacultyMetrics } = useBudget();
 
   // Faculty balance metrics
   const metrics = getFacultyMetrics(user?.email);
@@ -43,7 +43,6 @@ export const NewProposalPage = () => {
   const parsedAmount = Number(proposedAmount) || 0;
   const remainingBalance = currentAvailableBalance - parsedAmount;
   const isOverBudget = parsedAmount > currentAvailableBalance;
-  const isInvalidAmount = parsedAmount <= 0;
 
   // Format program date for display e.g. 2026-09-25 -> 25 Sep 2026
   const formatDisplayDate = (dateIso) => {
@@ -54,7 +53,7 @@ export const NewProposalPage = () => {
       : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -77,15 +76,15 @@ export const NewProposalPage = () => {
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const result = addProposal({
+    try {
+      const result = await addProposal({
         id: proposalId,
         proposalDate: proposalDateStr,
         facultyName: user?.name || 'Faculty Member',
         facultyEmail: user?.email || 'faculty@kongu.edu',
         category,
         title: title.trim(),
-        programDate: formatDisplayDate(programDate),
+        programDate,
         guestDetails: guestDetails.trim() || 'None',
         amount: parsedAmount
       });
@@ -95,9 +94,12 @@ export const NewProposalPage = () => {
       if (result.success) {
         navigate('/faculty/proposals');
       } else {
-        setError('Failed to submit proposal. Please try again.');
+        setError(result.error || 'Failed to submit proposal. Please try again.');
       }
-    }, 500);
+    } catch (err) {
+      setIsSubmitting(false);
+      setError(err.message || 'Error submitting proposal.');
+    }
   };
 
   return (

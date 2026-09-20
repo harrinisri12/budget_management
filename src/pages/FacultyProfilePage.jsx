@@ -1,7 +1,7 @@
 import React from 'react';
 import { FacultyLayout } from '../components/layout/FacultyLayout';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Shield, Building, Phone, BadgeCheck } from 'lucide-react';
+import { Mail, Shield, Building, Phone } from 'lucide-react';
 
 export const FacultyProfilePage = () => {
   const { user } = useAuth();
