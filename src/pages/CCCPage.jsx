@@ -18,8 +18,8 @@ export const CCCPage = () => {
     <DashboardLayout pageTitle="CCC Coding Club">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* Unit Title Header */}
-        <div className="cbm-card" style={{ padding: '28px', backgroundColor: '#FFFFFF' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+        <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 28px)', backgroundColor: '#FFFFFF' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
             <div
               style={{
                 width: 52,
@@ -30,16 +30,17 @@ export const CCCPage = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 6px 16px rgba(68, 60, 222, 0.3)'
+                boxShadow: '0 6px 16px rgba(68, 60, 222, 0.3)',
+                flexShrink: 0
               }}
             >
               <Code2 size={28} />
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
                 CSE DEPARTMENT COMPETITIVE PROGRAMMING CLUB
               </span>
-              <h2 style={{ fontSize: 26, fontWeight: 800, color: 'var(--dark)' }}>
+              <h2 style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800, color: 'var(--dark)', wordBreak: 'break-word' }}>
                 {CCC_DETAILS.fullName} ({CCC_DETAILS.name})
               </h2>
             </div>
@@ -48,7 +49,7 @@ export const CCCPage = () => {
             {CCC_DETAILS.description}
           </p>
 
-          <div style={{ display: 'flex', gap: 24, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', fontSize: 13 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', fontSize: 13 }}>
             <div>
               <span style={{ color: 'var(--secondary)', fontWeight: 600 }}>FACULTY IN-CHARGE: </span>
               <strong style={{ color: 'var(--dark)' }}>{CCC_DETAILS.facultyInCharge}</strong>
@@ -61,7 +62,7 @@ export const CCCPage = () => {
         </div>
 
         {/* CCC Budget KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 20 }}>
           <StatCard
             title="Allocated Budget"
             amount={allocated}
@@ -86,7 +87,7 @@ export const CCCPage = () => {
         </div>
 
         {/* Recent Activities & Events Table */}
-        <div className="cbm-card" style={{ padding: '28px' }}>
+        <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 28px)' }}>
           <div style={{ marginBottom: 20 }}>
             <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>CCC Hackathons & Contests Expenditure</h3>
             <p style={{ fontSize: 13, color: 'var(--secondary)' }}>Competitive programming bootcamps, hackathons, and server compute expenses</p>

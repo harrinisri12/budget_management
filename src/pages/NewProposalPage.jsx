@@ -118,9 +118,9 @@ export const NewProposalPage = () => {
         </div>
 
         {/* Form & Summary Container */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 28, alignItems: 'start' }}>
+        <div className="cbm-proposal-grid">
           {/* Main Form Card */}
-          <div className="cbm-card" style={{ padding: '32px' }}>
+          <div className="cbm-card" style={{ padding: 'clamp(20px, 4vw, 32px)' }}>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
               {/* Error Alert */}
               {error && (
@@ -144,7 +144,7 @@ export const NewProposalPage = () => {
               )}
 
               {/* Automatic Metadata Fields (Read-Only) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
                     Proposal ID <span style={{ color: 'var(--primary)', fontSize: 11 }}>(Auto-Generated)</span>
@@ -354,7 +354,7 @@ export const NewProposalPage = () => {
           </div>
 
           {/* Live Proposal Summary Card */}
-          <div className="cbm-card" style={{ padding: '28px' }}>
+          <div className="cbm-card" style={{ padding: 'clamp(20px, 4vw, 28px)' }}>
             <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--dark)', marginBottom: 4 }}>
               Proposal Summary Preview
             </h3>

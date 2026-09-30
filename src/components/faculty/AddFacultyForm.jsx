@@ -101,7 +101,7 @@ export const AddFacultyForm = ({ onCancel }) => {
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 20 }}>
         {/* Faculty Name */}
         <Input
           label="Faculty Name"
@@ -228,6 +228,7 @@ export const AddFacultyForm = ({ onCancel }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
+          flexWrap: 'wrap',
           gap: 12,
           paddingTop: 16,
           borderTop: '1px solid var(--border)',

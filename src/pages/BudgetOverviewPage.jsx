@@ -26,7 +26,7 @@ export const BudgetOverviewPage = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 800 }}>CSE Department Unit Allocations</h2>
+            <h2 style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800 }}>CSE Department Unit Allocations</h2>
             <p style={{ fontSize: 13, color: 'var(--secondary)' }}>Annual budget quotas and utilization ratios across CSE activity units & labs</p>
           </div>
           <button className="cbm-btn cbm-btn-outline" onClick={() => alert('Downloading CSE department budget quota sheet...')}>
@@ -35,7 +35,7 @@ export const BudgetOverviewPage = () => {
         </div>
 
         {/* Table Card */}
-        <div className="cbm-card" style={{ padding: 24 }}>
+        <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 24px)' }}>
           <div className="cbm-table-container">
             <table className="cbm-table">
               <thead>

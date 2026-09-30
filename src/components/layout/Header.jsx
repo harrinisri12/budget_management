@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Search, Menu, ChevronDown, LogOut, Settings as SettingsIcon, User } from 'lucide-react';
+import { Bell, Search, Menu, ChevronDown, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -45,22 +45,9 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
   const userEmail = user?.email || (isFaculty ? 'faculty@kongu.edu' : 'admin@kongu.edu');
 
   return (
-    <header
-      style={{
-        height: 72,
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid var(--border)',
-        padding: '0 28px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: 0,
-        zIndex: 30
-      }}
-    >
+    <header className="cbm-header">
       {/* Left side: Hamburger & Titles */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
         <button
           onClick={onMenuToggle}
           style={{
@@ -68,28 +55,29 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
             border: 'none',
             color: 'var(--dark-muted)',
             cursor: 'pointer',
-            padding: 4,
+            padding: 6,
             display: 'flex',
-            alignItems: 'center'
+            alignItems: 'center',
+            borderRadius: 8
           }}
-          className="md:hidden"
+          className="lg:hidden"
           aria-label="Toggle menu"
         >
           <Menu size={22} />
         </button>
 
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)', lineHeight: 1.2 }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 'clamp(17px, 2.5vw, 20px)', fontWeight: 700, color: 'var(--dark)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {pageTitle}
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--secondary)', fontWeight: 500 }}>
+          <p style={{ fontSize: 13, color: 'var(--secondary)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Welcome back, <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{userName}</span> • <span style={{ color: 'var(--dark-muted)' }}>CSE Department</span>
           </p>
         </div>
       </div>
 
       {/* Right side: Search, Notifications & Profile dropdown */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
         {/* Quick Search */}
         <div style={{ position: 'relative', width: 240 }} className="hidden sm:block">
           <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--secondary)' }} />
@@ -154,7 +142,7 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
                 position: 'absolute',
                 right: 0,
                 top: 48,
-                width: 320,
+                width: 'min(320px, calc(100vw - 32px))',
                 backgroundColor: '#FFFFFF',
                 borderRadius: 16,
                 border: '1px solid var(--border)',
@@ -232,7 +220,7 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
                 position: 'absolute',
                 right: 0,
                 top: 48,
-                width: 220,
+                width: 'min(220px, calc(100vw - 32px))',
                 backgroundColor: '#FFFFFF',
                 borderRadius: 14,
                 border: '1px solid var(--border)',

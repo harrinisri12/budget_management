@@ -53,16 +53,12 @@ export const FacultyLoginPage = () => {
         backgroundColor: '#F1EFFD',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px'
+        padding: 'clamp(16px, 3vw, 24px)'
       }}
     >
       <div
-        className="cbm-card"
+        className="cbm-card cbm-auth-card"
         style={{
-          width: '100%',
-          maxWidth: 1040,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
           borderRadius: 24,
           overflow: 'hidden',
           boxShadow: '0 20px 50px -10px rgba(68, 60, 222, 0.12)',
@@ -157,13 +153,13 @@ export const FacultyLoginPage = () => {
         </div>
 
         {/* Right Side: Faculty Login Form Panel */}
-        <div style={{ padding: '56px 48px', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ marginBottom: 36 }}>
+        <div style={{ padding: 'clamp(28px, 5vw, 56px) clamp(20px, 4vw, 48px)', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ marginBottom: 32 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }} className="md:hidden">
               <GraduationCap size={28} color="var(--primary)" />
               <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--dark)' }}>CSE Budget Management</span>
             </div>
-            <h2 style={{ fontSize: 30, fontWeight: 800, color: 'var(--dark)', marginBottom: 8 }}>
+            <h2 style={{ fontSize: 'clamp(24px, 4vw, 30px)', fontWeight: 800, color: 'var(--dark)', marginBottom: 8 }}>
               Welcome, Faculty
             </h2>
             <p style={{ fontSize: 14.5, color: 'var(--dark-muted)' }}>

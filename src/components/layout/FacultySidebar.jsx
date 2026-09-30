@@ -5,7 +5,8 @@ import {
   FileSpreadsheet,
   FilePlus,
   User,
-  LogOut
+  LogOut,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -111,6 +112,16 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
               </p>
             </div>
           </div>
+          {setIsMobileOpen && (
+            <button
+              onClick={() => setIsMobileOpen(false)}
+              style={{ background: 'none', border: 'none', color: 'var(--secondary)', cursor: 'pointer', padding: 4 }}
+              className="lg:hidden"
+              aria-label="Close sidebar"
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         {/* User Card */}

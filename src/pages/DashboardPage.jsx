@@ -14,7 +14,7 @@ export const DashboardPage = () => {
     <DashboardLayout pageTitle="CSE Department Budget Overview">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
         {/* KPI Cards Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 20 }}>
           <StatCard
             title="Total CSE Budget"
             amount={kpis.totalBudget}
@@ -49,8 +49,8 @@ export const DashboardPage = () => {
         </div>
 
         {/* Charts and Allocations Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 24 }}>
-          <div style={{ gridColumn: 'span 2' }}>
+        <div className="cbm-dashboard-grid">
+          <div>
             <BudgetChart />
           </div>
           <div>

@@ -5,7 +5,7 @@ export const AllocationCard = () => {
   const { categoryAllocations } = useBudget();
 
   return (
-    <div className="cbm-card" style={{ padding: '24px' }}>
+    <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 24px)' }}>
       <div style={{ marginBottom: 20 }}>
         <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--dark)' }}>CSE Activity Allocations</h3>
         <p style={{ fontSize: 13, color: 'var(--secondary)' }}>Fund distribution across CSE units & activities</p>
@@ -14,7 +14,7 @@ export const AllocationCard = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {categoryAllocations.map(cat => (
           <div key={cat.id}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4, fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
               <span style={{ color: 'var(--dark)' }}>{cat.name}</span>
               <span style={{ color: 'var(--dark-muted)' }}>
                 ₹{cat.spent.toLocaleString('en-IN')} <span style={{ color: 'var(--secondary)', fontWeight: 400 }}>/ ₹{cat.allocated.toLocaleString('en-IN')}</span>

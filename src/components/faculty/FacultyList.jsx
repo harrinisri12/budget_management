@@ -89,10 +89,10 @@ export const FacultyList = () => {
       </div>
 
       {/* Filter and Search Bar Card */}
-      <div className="cbm-card" style={{ padding: '20px 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+      <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 24px)' }}>
+        <div className="cbm-search-grid">
           {/* Search Box */}
-          <div className="cbm-input-wrapper" style={{ gridColumn: 'span 2' }}>
+          <div className="cbm-input-wrapper" style={{ width: '100%' }}>
             <Search size={16} style={{ position: 'absolute', left: 14, color: 'var(--secondary)' }} />
             <input
               type="text"
@@ -100,7 +100,7 @@ export const FacultyList = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="cbm-input"
-              style={{ height: 44, paddingLeft: 38, fontSize: 14 }}
+              style={{ height: 44, paddingLeft: 38, fontSize: 14, width: '100%' }}
             />
           </div>
 
@@ -109,7 +109,7 @@ export const FacultyList = () => {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="cbm-select"
-            style={{ height: 44, fontSize: 14 }}
+            style={{ height: 44, fontSize: 14, width: '100%' }}
           >
             <option value="All">All Statuses</option>
             <option value="Active">Active</option>
@@ -119,7 +119,7 @@ export const FacultyList = () => {
       </div>
 
       {/* Faculty Table Card */}
-      <div className="cbm-card" style={{ padding: '24px' }}>
+      <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 24px)' }}>
         <div className="cbm-table-container">
           <table className="cbm-table">
             <thead>
@@ -303,7 +303,7 @@ export const FacultyList = () => {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 16 }}>
               <div>
                 <p style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 600 }}>EMPLOYEE ID</p>
                 <p style={{ fontSize: 14, fontWeight: 700 }}>{selectedFaculty.employeeId}</p>
@@ -314,7 +314,7 @@ export const FacultyList = () => {
               </div>
               <div>
                 <p style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 600 }}>INSTITUTION EMAIL</p>
-                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)' }}>{selectedFaculty.email}</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)', wordBreak: 'break-all' }}>{selectedFaculty.email}</p>
               </div>
               <div>
                 <p style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 600 }}>PHONE</p>

@@ -41,13 +41,13 @@ export const BudgetChart = () => {
   const { monthlySpending } = useBudget();
 
   return (
-    <div className="cbm-card" style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+    <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 24px)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--dark)' }}>Budget vs Spending</h3>
           <p style={{ fontSize: 13, color: 'var(--secondary)' }}>Monthly comparisons for H1 Academic Year 2026-27</p>
         </div>
-        <div style={{ display: 'flex', gap: 16, fontSize: 13, fontWeight: 600 }}>
+        <div style={{ display: 'flex', gap: 16, fontSize: 13, fontWeight: 600, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: 'var(--primary)' }} />
             <span>Budget</span>
@@ -59,9 +59,9 @@ export const BudgetChart = () => {
         </div>
       </div>
 
-      <div style={{ width: '100%', height: 310 }}>
+      <div style={{ width: '100%', height: 310, minHeight: 260 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={monthlySpending} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+          <BarChart data={monthlySpending} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E3F0" />
             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#4B4963', fontSize: 12 }} />
             <YAxis

@@ -43,10 +43,15 @@
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -59,15 +64,22 @@ body {
   min-height: 100vh;
 }
 
+img, svg, video, canvas, audio, iframe, embed, object {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Typography Helpers */
 h1, h2, h3, h4, h5, h6 {
   color: var(--dark);
   font-weight: 700;
   letter-spacing: -0.02em;
+  word-break: break-word;
 }
 
 p {
   color: var(--dark-muted);
+  word-break: break-word;
 }
 
 /* Scrollbar styling */
@@ -93,11 +105,19 @@ p {
   border: 1px solid var(--border);
   box-shadow: var(--shadow-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  max-width: 100%;
 }
 
 .cbm-card-hover:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px -4px rgba(68, 60, 222, 0.08), 0 4px 8px -2px rgba(19, 20, 29, 0.04);
+}
+
+/* Responsive Card Padding Utility */
+@media (max-width: 640px) {
+  .cbm-card {
+    border-radius: 14px;
+  }
 }
 
 /* Button Component Styles */
@@ -116,6 +136,7 @@ p {
   transition: all 0.2s ease;
   font-family: inherit;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 .cbm-btn-primary {
@@ -176,6 +197,7 @@ p {
   flex-direction: column;
   gap: 6px;
   width: 100%;
+  max-width: 100%;
 }
 
 .cbm-label {
@@ -188,10 +210,13 @@ p {
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  max-width: 100%;
 }
 
 .cbm-input, .cbm-select {
   width: 100%;
+  max-width: 100%;
   height: 50px;
   padding: 0 16px;
   font-size: 15px;
@@ -241,6 +266,7 @@ p {
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .cbm-badge-success {
@@ -269,20 +295,24 @@ p {
   height: 6px;
   border-radius: 50%;
   display: inline-block;
+  flex-shrink: 0;
 }
 .cbm-dot-success { background-color: var(--success); }
 .cbm-dot-warning { background-color: var(--warning); }
 .cbm-dot-danger { background-color: var(--danger); }
+.cbm-dot-secondary { background-color: var(--primary); }
 
-/* Table Styles */
+/* Table Styles & Responsive Scrolling */
 .cbm-table-container {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-card);
 }
 
 .cbm-table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
   text-align: left;
   font-size: 14px;
@@ -297,6 +327,7 @@ p {
   letter-spacing: 0.05em;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .cbm-table td {
@@ -317,7 +348,7 @@ p {
   border-bottom: none;
 }
 
-/* Modal Overlay */
+/* Modal Overlay & Responsive Positioning */
 .cbm-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -339,10 +370,23 @@ p {
   width: 100%;
   max-width: 650px;
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
   padding: 32px;
   position: relative;
   animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 640px) {
+  .cbm-modal-backdrop {
+    padding: 12px;
+  }
+  .cbm-modal-content {
+    padding: 20px 16px;
+    border-radius: 18px;
+    max-height: 88vh;
+    max-height: 88dvh;
+  }
 }
 
 @keyframes fadeIn {
@@ -374,9 +418,188 @@ p {
   animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@media (max-width: 640px) {
+  .cbm-toast {
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+    justifyContent: center;
+  }
+}
+
 @keyframes toastIn {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* Layout & Main Content Responsive Spacing */
+.cbm-main-content {
+  flex: 1;
+  padding: 28px 32px;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .cbm-main-content {
+    padding: 20px 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cbm-main-content {
+    padding: 16px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cbm-main-content {
+    padding: 14px 12px;
+  }
+}
+
+/* Header Responsive Behavior */
+.cbm-header {
+  height: 72px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .cbm-header {
+    height: 64px;
+    padding: 0 16px;
+  }
+}
+
+/* Sidebar Drawer for Tablets & Mobile */
+.cbm-sidebar {
+  width: 280px;
+  background-color: #FFFFFF;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 1024px) {
+  .cbm-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-width: calc(100vw - 48px) !important;
+    z-index: 50 !important;
+    transform: translateX(-100%);
+    box-shadow: none;
+  }
+
+  .cbm-sidebar.mobile-show {
+    transform: translateX(0) !important;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.35) !important;
+  }
+}
+
+/* Dashboard 2-column Grid on Desktop, 1-column on tablet/mobile */
+.cbm-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 1100px) {
+  .cbm-dashboard-grid {
+    grid-template-columns: 1.85fr 1.15fr;
+  }
+}
+
+@media (min-width: 1280px) {
+  .cbm-dashboard-grid {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+/* Proposal Form & Summary Preview Grid */
+.cbm-proposal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .cbm-proposal-grid {
+    grid-template-columns: 1.25fr 0.75fr;
+  }
+}
+
+/* Faculty Banner Responsive Container */
+.cbm-faculty-banner {
+  padding: 28px 32px;
+  border-radius: 20px;
+  background-color: #13141D;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(19, 20, 29, 0.15);
+}
+
+@media (max-width: 768px) {
+  .cbm-faculty-banner {
+    padding: 24px 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+}
+
+/* Auth Card Grid */
+.cbm-auth-card {
+  width: 100%;
+  max-width: 1040px;
+  display: grid;
+  grid-template-columns: 1fr;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px -10px rgba(68, 60, 222, 0.12);
+  border: 1px solid var(--border);
+}
+
+@media (min-width: 768px) {
+  .cbm-auth-card {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Faculty List Search Bar Grid */
+.cbm-search-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .cbm-search-grid {
+    grid-template-columns: 2fr 1fr;
+  }
 }
 
 /* Responsive Utilities */
@@ -384,30 +607,43 @@ p {
   display: none !important;
 }
 
+@media (min-width: 640px) {
+  .sm\:block { display: block !important; }
+  .sm\:flex { display: flex !important; }
+  .sm\:grid { display: grid !important; }
+  .sm\:hidden { display: none !important; }
+}
+
+@media (max-width: 639px) {
+  .sm-down\:hidden { display: none !important; }
+  .sm-down\:block { display: block !important; }
+  .sm-down\:flex { display: flex !important; }
+}
+
 @media (min-width: 768px) {
-  .md\:flex {
-    display: flex !important;
-  }
-  .md\:hidden {
-    display: none !important;
-  }
-  .md\:block {
-    display: block !important;
-  }
-  .md\:grid {
-    display: grid !important;
-  }
+  .md\:flex { display: flex !important; }
+  .md\:hidden { display: none !important; }
+  .md\:block { display: block !important; }
+  .md\:grid { display: grid !important; }
 }
 
 @media (max-width: 767px) {
-  .hidden.md\:flex {
-    display: none !important;
-  }
+  .md-down\:hidden { display: none !important; }
+  .md-down\:block { display: block !important; }
+  .md-down\:flex { display: flex !important; }
 }
 
-@media (min-width: 640px) {
-  .sm\:block {
-    display: block !important;
-  }
+@media (min-width: 1025px) {
+  .lg\:flex { display: flex !important; }
+  .lg\:hidden { display: none !important; }
+  .lg\:block { display: block !important; }
+  .lg\:grid { display: grid !important; }
 }
+
+@media (max-width: 1024px) {
+  .lg-down\:hidden { display: none !important; }
+  .lg-down\:block { display: block !important; }
+  .lg-down\:flex { display: flex !important; }
+}
+
 

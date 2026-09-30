@@ -57,7 +57,7 @@ export const TransactionTable = () => {
   };
 
   return (
-    <div className="cbm-card" style={{ padding: '24px' }}>
+    <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 24px)' }}>
       {/* Table Title & Filter Controls Header */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -79,7 +79,7 @@ export const TransactionTable = () => {
         </div>
 
         {/* Filter Controls Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12 }}>
           {/* Search Box */}
           <div className="cbm-input-wrapper">
             <Search size={16} style={{ position: 'absolute', left: 14, color: 'var(--secondary)' }} />

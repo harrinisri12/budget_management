@@ -57,7 +57,7 @@ export const ResetPasswordPage = () => {
         backgroundColor: '#F1EFFD',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px'
+        padding: 'clamp(16px, 3vw, 24px)'
       }}
     >
       <div
@@ -65,7 +65,7 @@ export const ResetPasswordPage = () => {
         style={{
           width: '100%',
           maxWidth: 480,
-          padding: '44px',
+          padding: 'clamp(24px, 5vw, 44px)',
           borderRadius: 24,
           backgroundColor: '#FFFFFF',
           boxShadow: '0 20px 50px -10px rgba(68, 60, 222, 0.12)',

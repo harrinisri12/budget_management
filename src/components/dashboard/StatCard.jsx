@@ -7,7 +7,7 @@ export const StatCard = ({ title, amount, supportingText, icon: Icon, color = 'v
     : amount;
 
   return (
-    <div className="cbm-card cbm-card-hover" style={{ padding: '24px' }}>
+    <div className="cbm-card cbm-card-hover" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           {title}
@@ -21,14 +21,15 @@ export const StatCard = ({ title, amount, supportingText, icon: Icon, color = 'v
             color: color,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            flexShrink: 0
           }}
         >
           {Icon && <Icon size={22} />}
         </div>
       </div>
 
-      <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--dark)', letterSpacing: '-0.02em', marginBottom: 8 }}>
+      <div style={{ fontSize: 'clamp(22px, 3.5vw, 26px)', fontWeight: 800, color: 'var(--dark)', letterSpacing: '-0.02em', marginBottom: 8, wordBreak: 'break-word' }}>
         {formattedAmount}
       </div>
 

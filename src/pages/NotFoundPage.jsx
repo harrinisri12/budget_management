@@ -18,7 +18,7 @@ export const NotFoundPage = () => {
         textAlign: 'center'
       }}
     >
-      <div className="cbm-card" style={{ padding: 48, maxWidth: 500, width: '100%' }}>
+      <div className="cbm-card" style={{ padding: 'clamp(24px, 5vw, 48px)', maxWidth: 500, width: '100%' }}>
         <h1 style={{ fontSize: 64, fontWeight: 800, color: 'var(--primary)', marginBottom: 8 }}>404</h1>
         <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Page Not Found</h2>
         <p style={{ color: 'var(--dark-muted)', marginBottom: 24 }}>

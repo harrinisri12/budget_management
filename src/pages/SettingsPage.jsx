@@ -12,11 +12,11 @@ export const SettingsPage = () => {
     <DashboardLayout pageTitle="Settings">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 800 }}>
         <div>
-          <h2 style={{ fontSize: 24, fontWeight: 800 }}>CSE System Settings & Profile</h2>
+          <h2 style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800 }}>CSE System Settings & Profile</h2>
           <p style={{ fontSize: 13, color: 'var(--secondary)' }}>Manage administrative account settings and CSE fiscal parameters</p>
         </div>
 
-        <div className="cbm-card" style={{ padding: 32 }}>
+        <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 32px)' }}>
           <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>CSE Administrator Profile</h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

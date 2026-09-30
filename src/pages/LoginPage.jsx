@@ -114,16 +114,12 @@ export const LoginPage = ({ initialMode }) => {
         backgroundColor: '#F1EFFD',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px'
+        padding: 'clamp(16px, 3vw, 24px)'
       }}
     >
       <div
-        className="cbm-card"
+        className="cbm-card cbm-auth-card"
         style={{
-          width: '100%',
-          maxWidth: 1040,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
           borderRadius: 24,
           overflow: 'hidden',
           boxShadow: '0 20px 50px -10px rgba(68, 60, 222, 0.12)',
@@ -218,7 +214,7 @@ export const LoginPage = ({ initialMode }) => {
         </div>
 
         {/* Right Side: Login Form Panel */}
-        <div style={{ padding: '48px 44px', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ padding: 'clamp(28px, 5vw, 48px) clamp(20px, 4vw, 44px)', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           
           {/* Mobile Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }} className="md:hidden">

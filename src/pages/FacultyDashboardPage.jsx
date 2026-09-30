@@ -93,20 +93,7 @@ export const FacultyDashboardPage = () => {
     <FacultyLayout pageTitle="Faculty Dashboard">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
         {/* Welcome Banner */}
-        <div
-          style={{
-            padding: '28px 32px',
-            borderRadius: 20,
-            backgroundColor: '#13141D',
-            color: '#FFFFFF',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: '0 10px 30px rgba(19, 20, 29, 0.15)'
-          }}
-        >
+        <div className="cbm-faculty-banner">
           <div
             style={{
               position: 'absolute',
@@ -136,7 +123,7 @@ export const FacultyDashboardPage = () => {
             >
               CSE FACULTY PORTAL
             </span>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: '#FFFFFF', marginBottom: 6 }}>
+            <h1 style={{ fontSize: 'clamp(20px, 3.5vw, 26px)', fontWeight: 800, color: '#FFFFFF', marginBottom: 6 }}>
               Welcome back, {user?.name || 'Faculty Member'}!
             </h1>
             <p style={{ fontSize: 14, color: '#ABA7CD', maxWidth: 540 }}>
@@ -160,7 +147,8 @@ export const FacultyDashboardPage = () => {
               gap: 8,
               cursor: 'pointer',
               boxShadow: '0 6px 20px rgba(68, 60, 222, 0.4)',
-              transition: 'transform 0.2s ease'
+              transition: 'transform 0.2s ease',
+              whiteSpace: 'nowrap'
             }}
           >
             <Plus size={20} />
@@ -169,9 +157,9 @@ export const FacultyDashboardPage = () => {
         </div>
 
         {/* Financial Summary Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 20 }}>
           {/* Card 1: Available Balance */}
-          <div className="cbm-card" style={{ padding: '24px 28px' }}>
+          <div className="cbm-card" style={{ padding: 'clamp(18px, 3vw, 24px) clamp(16px, 3.5vw, 28px)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Available Balance
@@ -185,13 +173,14 @@ export const FacultyDashboardPage = () => {
                   color: '#10B981',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  flexShrink: 0
                 }}
               >
                 <Wallet size={22} />
               </div>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--dark)', letterSpacing: '-0.02em', marginBottom: 4 }}>
+            <div style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, color: 'var(--dark)', letterSpacing: '-0.02em', marginBottom: 4, wordBreak: 'break-word' }}>
               ₹{metrics.availableBalance.toLocaleString('en-IN')}
             </div>
             <p style={{ fontSize: 12.5, color: 'var(--dark-muted)' }}>
@@ -200,7 +189,7 @@ export const FacultyDashboardPage = () => {
           </div>
 
           {/* Card 2: Total Proposed */}
-          <div className="cbm-card" style={{ padding: '24px 28px' }}>
+          <div className="cbm-card" style={{ padding: 'clamp(18px, 3vw, 24px) clamp(16px, 3.5vw, 28px)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Total Proposed
@@ -214,13 +203,14 @@ export const FacultyDashboardPage = () => {
                   color: 'var(--primary)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  flexShrink: 0
                 }}
               >
                 <FileText size={22} />
               </div>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.02em', marginBottom: 4 }}>
+            <div style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.02em', marginBottom: 4, wordBreak: 'break-word' }}>
               ₹{metrics.totalProposed.toLocaleString('en-IN')}
             </div>
             <p style={{ fontSize: 12.5, color: 'var(--dark-muted)' }}>
@@ -229,7 +219,7 @@ export const FacultyDashboardPage = () => {
           </div>
 
           {/* Card 3: Remaining Balance */}
-          <div className="cbm-card" style={{ padding: '24px 28px' }}>
+          <div className="cbm-card" style={{ padding: 'clamp(18px, 3vw, 24px) clamp(16px, 3.5vw, 28px)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Remaining Balance
@@ -243,13 +233,14 @@ export const FacultyDashboardPage = () => {
                   color: '#635BFF',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  flexShrink: 0
                 }}
               >
                 <ArrowUpRight size={22} />
               </div>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--dark)', letterSpacing: '-0.02em', marginBottom: 4 }}>
+            <div style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, color: 'var(--dark)', letterSpacing: '-0.02em', marginBottom: 4, wordBreak: 'break-word' }}>
               ₹{metrics.remainingBalance.toLocaleString('en-IN')}
             </div>
             <p style={{ fontSize: 12.5, color: 'var(--dark-muted)' }}>
@@ -259,8 +250,8 @@ export const FacultyDashboardPage = () => {
         </div>
 
         {/* My Proposals Table Section */}
-        <div className="cbm-card" style={{ padding: '28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div className="cbm-card" style={{ padding: 'clamp(18px, 3vw, 28px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
             <div>
               <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--dark)' }}>My Proposals</h3>
               <p style={{ fontSize: 13, color: 'var(--dark-muted)', marginTop: 2 }}>

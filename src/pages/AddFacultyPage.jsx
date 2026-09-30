@@ -31,8 +31,8 @@ export const AddFacultyPage = () => {
         </button>
 
         {/* Card Form Container */}
-        <div className="cbm-card" style={{ padding: '32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
+        <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 32px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
             <div
               style={{
                 width: 46,

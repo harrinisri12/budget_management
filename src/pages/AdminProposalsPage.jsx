@@ -102,7 +102,7 @@ export const AdminProposalsPage = () => {
         </div>
 
         {/* Proposals List Card */}
-        <div className="cbm-card" style={{ padding: '28px' }}>
+        <div className="cbm-card" style={{ padding: 'clamp(18px, 3vw, 28px)' }}>
           {/* Status Filter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -134,36 +134,36 @@ export const AdminProposalsPage = () => {
               No proposals found matching status filter "{filterStatus}".
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="cbm-table-container">
+              <table className="cbm-table">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ padding: '14px 16px', fontSize: 12, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Proposal ID</th>
-                    <th style={{ padding: '14px 16px', fontSize: 12, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Faculty</th>
-                    <th style={{ padding: '14px 16px', fontSize: 12, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Category</th>
-                    <th style={{ padding: '14px 16px', fontSize: 12, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Program Title</th>
-                    <th style={{ padding: '14px 16px', fontSize: 12, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Program Date</th>
-                    <th style={{ padding: '14px 16px', fontSize: 12, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Proposed Amount</th>
-                    <th style={{ padding: '14px 16px', fontSize: 12, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Status</th>
-                    <th style={{ padding: '14px 16px', fontSize: 12, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Action</th>
+                  <tr>
+                    <th>Proposal ID</th>
+                    <th>Faculty</th>
+                    <th>Category</th>
+                    <th>Program Title</th>
+                    <th>Program Date</th>
+                    <th>Proposed Amount</th>
+                    <th>Status</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredProposals.map((prop) => (
-                    <tr key={prop.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '16px', fontSize: 13.5, fontWeight: 700, color: 'var(--primary)' }}>{prop.id}</td>
-                      <td style={{ padding: '16px', fontSize: 13.5, fontWeight: 700, color: 'var(--dark)' }}>
+                    <tr key={prop.id}>
+                      <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{prop.id}</td>
+                      <td style={{ fontWeight: 700, color: 'var(--dark)' }}>
                         {prop.facultyName || 'Faculty Member'}
                         <div style={{ fontSize: 11, color: 'var(--dark-muted)', fontWeight: 500 }}>{prop.facultyEmail}</div>
                       </td>
-                      <td style={{ padding: '16px', fontSize: 13.5, color: 'var(--dark)', fontWeight: 600 }}>{prop.category}</td>
-                      <td style={{ padding: '16px', fontSize: 13.5, color: 'var(--dark)', fontWeight: 700 }}>{prop.title}</td>
-                      <td style={{ padding: '16px', fontSize: 13.5, color: 'var(--dark-muted)' }}>{prop.programDate}</td>
-                      <td style={{ padding: '16px', fontSize: 14, fontWeight: 800, color: 'var(--dark)' }}>
+                      <td style={{ color: 'var(--dark)', fontWeight: 600 }}>{prop.category}</td>
+                      <td style={{ color: 'var(--dark)', fontWeight: 700 }}>{prop.title}</td>
+                      <td style={{ color: 'var(--dark-muted)' }}>{prop.programDate}</td>
+                      <td style={{ fontWeight: 800, color: 'var(--dark)' }}>
                         ₹{Number(prop.amount).toLocaleString('en-IN')}
                       </td>
-                      <td style={{ padding: '16px' }}>{getStatusBadge(prop.status)}</td>
-                      <td style={{ padding: '16px' }}>
+                      <td>{getStatusBadge(prop.status)}</td>
+                      <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <button
                             onClick={() => setSelectedProposal(prop)}
@@ -206,7 +206,7 @@ export const AdminProposalsPage = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: 24
+              padding: 'clamp(12px, 3vw, 24px)'
             }}
           >
             <div
@@ -215,10 +215,12 @@ export const AdminProposalsPage = () => {
               style={{
                 width: '100%',
                 maxWidth: 580,
-                padding: '32px',
+                padding: 'clamp(20px, 4vw, 32px)',
                 borderRadius: 20,
                 backgroundColor: '#FFFFFF',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
+                boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+                maxHeight: '90vh',
+                overflowY: 'auto'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -242,7 +244,7 @@ export const AdminProposalsPage = () => {
                   <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', marginTop: 2 }}>{selectedProposal.title}</p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 14, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
                   <div>
                     <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Category</span>
                     <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--dark)', marginTop: 2 }}>{selectedProposal.category}</p>
@@ -270,7 +272,7 @@ export const AdminProposalsPage = () => {
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--dark)', display: 'block', marginBottom: 10 }}>
                     Update Proposal Status:
                   </span>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 100px), 1fr))', gap: 10 }}>
                     <button
                       onClick={() => {
                         updateProposalStatus(selectedProposal.id, 'Approved');

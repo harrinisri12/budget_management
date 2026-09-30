@@ -112,8 +112,9 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
           {setIsMobileOpen && (
             <button
               onClick={() => setIsMobileOpen(false)}
-              style={{ background: 'none', border: 'none', color: 'var(--secondary)', cursor: 'pointer' }}
-              className="md:hidden"
+              style={{ background: 'none', border: 'none', color: 'var(--secondary)', cursor: 'pointer', padding: 4 }}
+              className="lg:hidden"
+              aria-label="Close sidebar"
             >
               <X size={20} />
             </button>

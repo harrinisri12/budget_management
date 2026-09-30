@@ -54,9 +54,9 @@ export const FacultyProfilePage = () => {
         </div>
 
         {/* Profile Info Card */}
-        <div className="cbm-card" style={{ padding: '36px' }}>
+        <div className="cbm-card" style={{ padding: 'clamp(20px, 4vw, 36px)' }}>
           {/* Header info */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingBottom: 28, borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 16, paddingBottom: 24, borderBottom: '1px solid var(--border)' }}>
             <div
               style={{
                 width: 64,
@@ -68,7 +68,8 @@ export const FacultyProfilePage = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 26,
-                fontWeight: 800
+                fontWeight: 800,
+                flexShrink: 0
               }}
             >
               {user?.name ? user.name.charAt(0) : 'F'}
@@ -82,17 +83,17 @@ export const FacultyProfilePage = () => {
           </div>
 
           {/* Details Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24, paddingTop: 28 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 20, paddingTop: 24 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-              <Mail size={20} style={{ color: 'var(--primary)', marginTop: 2 }} />
+              <Mail size={20} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
               <div>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Email Address</span>
-                <p style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--dark)', marginTop: 2 }}>{user?.email || 'faculty@kongu.edu'}</p>
+                <p style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--dark)', marginTop: 2, wordBreak: 'break-all' }}>{user?.email || 'faculty@kongu.edu'}</p>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-              <Building size={20} style={{ color: 'var(--primary)', marginTop: 2 }} />
+              <Building size={20} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
               <div>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Department</span>
                 <p style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--dark)', marginTop: 2 }}>
@@ -102,7 +103,7 @@ export const FacultyProfilePage = () => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-              <Shield size={20} style={{ color: 'var(--primary)', marginTop: 2 }} />
+              <Shield size={20} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
               <div>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Institution</span>
                 <p style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--dark)', marginTop: 2 }}>Kongu Engineering College</p>
@@ -110,7 +111,7 @@ export const FacultyProfilePage = () => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-              <Phone size={20} style={{ color: 'var(--primary)', marginTop: 2 }} />
+              <Phone size={20} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
               <div>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Phone</span>
                 <p style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--dark)', marginTop: 2 }}>{user?.phone || '+91 98421 12345'}</p>
@@ -120,9 +121,9 @@ export const FacultyProfilePage = () => {
         </div>
 
         {/* Change Password Card */}
-        <div className="cbm-card" style={{ padding: '36px' }}>
+        <div className="cbm-card" style={{ padding: 'clamp(20px, 4vw, 36px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <div style={{ padding: 10, borderRadius: 10, backgroundColor: 'rgba(68, 60, 222, 0.1)', color: 'var(--primary)' }}>
+            <div style={{ padding: 10, borderRadius: 10, backgroundColor: 'rgba(68, 60, 222, 0.1)', color: 'var(--primary)', flexShrink: 0 }}>
               <Key size={20} />
             </div>
             <div>

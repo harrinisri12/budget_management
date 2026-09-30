@@ -15,15 +15,15 @@ export const ReportsPage = () => {
     <DashboardLayout pageTitle="CSE Reports & Audits">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         <div>
-          <h2 style={{ fontSize: 24, fontWeight: 800 }}>CSE Department Financial Reports</h2>
+          <h2 style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800 }}>CSE Department Financial Reports</h2>
           <p style={{ fontSize: 13, color: 'var(--secondary)' }}>Generate and download CSE departmental budget statements for institutional audits</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 20 }}>
           {reports.map((r, i) => (
-            <div key={i} className="cbm-card cbm-card-hover" style={{ padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 16 }}>
+            <div key={i} className="cbm-card cbm-card-hover" style={{ padding: 'clamp(16px, 3vw, 24px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#F1EFFD', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#F1EFFD', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <FileSpreadsheet size={22} />
                 </div>
                 <div>
@@ -31,7 +31,7 @@ export const ReportsPage = () => {
                   <span style={{ fontSize: 12, color: 'var(--secondary)' }}>{r.type} • {r.size}</span>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
                 <span style={{ fontSize: 12, color: 'var(--dark-muted)' }}>Generated: {r.date}</span>
                 <Button variant="outline" style={{ height: 36, fontSize: 12, padding: '0 12px' }} onClick={() => alert(`Downloading ${r.name}...`)}>
                   <Download size={14} /> Download

@@ -37,7 +37,7 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
         </div>
 
         {/* Details Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 16 }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <Calendar size={18} style={{ color: 'var(--primary)' }} />
             <div>
