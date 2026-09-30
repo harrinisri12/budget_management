@@ -1,47 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FacultyLayout } from '../components/layout/FacultyLayout';
 import { useAuth } from '../context/AuthContext';
 import { useBudget } from '../context/BudgetContext';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
-import { AlertCircle, ArrowRight } from 'lucide-react';
-
-const DEFAULT_CATEGORIES = [
-  'CSEA Association',
-  'CCC Coding Club',
-  'Lab & Equipment',
-  'Technical Workshop',
-  'Department Maintenance',
-  'Academic Research'
-];
+import { AlertCircle, ArrowRight, Calendar, AlertTriangle } from 'lucide-react';
+import { CATEGORY_LIST, getSubcategoriesForCategory } from '../data/categories';
 
 export const NewProposalPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { generateProposalId, addProposal, getFacultyMetrics, categories } = useBudget();
+  const { academicYears, addProposal, getFacultyMetrics, generateProposalId } = useBudget();
 
-  const categoryOptions = categories && categories.length > 0
-    ? categories.map((c) => c.name)
-    : DEFAULT_CATEGORIES;
+  // Active academic years created by Admin
+  const activeAcademicYears = (academicYears || []).filter(ay => ay.isActive !== false);
 
   // Faculty balance metrics
   const metrics = getFacultyMetrics(user?.email);
-  const currentAvailableBalance = metrics.remainingBalance; // Or baseline 150000
+  const currentAvailableBalance = metrics.remainingBalance;
 
-  // Automatically generated ID and Current Date
-  const [proposalId] = useState(() => generateProposalId());
-  const [todayIso] = useState(() => new Date().toISOString().split('T')[0]);
+  // Form Fields State
+  // Field 1: Academic Year
+  const [academicYearId, setAcademicYearId] = useState(() => {
+    return activeAcademicYears.length > 0 ? activeAcademicYears[0].id : '';
+  });
+
+  // Keep academicYearId updated if activeAcademicYears loads after mount
+  useEffect(() => {
+    if (!academicYearId && activeAcademicYears.length > 0) {
+      setAcademicYearId(activeAcademicYears[0].id);
+    }
+  }, [activeAcademicYears, academicYearId]);
+
+  // Field 2: Date (Existing auto proposal date)
   const [proposalDateStr] = useState(() => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
+  const [todayIso] = useState(() => new Date().toISOString().split('T')[0]);
 
-  // Form fields
-  const [category, setCategory] = useState(categoryOptions[0] || 'CSEA Association');
+  // Field 3: Category
+  const [category, setCategory] = useState(CATEGORY_LIST[0] || 'CSEA');
+
+  // Field 4: Sub Category (dependent on Category)
+  const [subCategory, setSubCategory] = useState(() => {
+    const subs = getSubcategoriesForCategory(CATEGORY_LIST[0] || 'CSEA');
+    return subs.length > 0 ? subs[0] : '';
+  });
+
+  // Field 5: Proposal ID (Manual text entry)
+  const [proposalId, setProposalId] = useState(() => generateProposalId());
+
+  // Additional Proposal Fields
   const [title, setTitle] = useState('');
   const [programDate, setProgramDate] = useState('');
   const [guestDetails, setGuestDetails] = useState('');
   const [proposedAmount, setProposedAmount] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Available subcategories for currently selected category
+  const availableSubcategories = getSubcategoriesForCategory(category);
+
+  // Handle Category change - resets subcategory
+  const handleCategoryChange = (e) => {
+    const newCat = e.target.value;
+    setCategory(newCat);
+    const newSubs = getSubcategoriesForCategory(newCat);
+    setSubCategory(newSubs.length > 0 ? newSubs[0] : '');
+  };
+
+  // Selected academic year object
+  const selectedAcademicYearObj = activeAcademicYears.find(ay => ay.id === academicYearId);
+  const selectedAcademicYearLabel = selectedAcademicYearObj ? selectedAcademicYearObj.academicYear : 'None Selected';
 
   // Live financial calculations
   const parsedAmount = Number(proposedAmount) || 0;
@@ -61,6 +90,38 @@ export const NewProposalPage = () => {
     e.preventDefault();
     setError('');
 
+    // Field 1 Validation: Academic Year
+    if (activeAcademicYears.length === 0) {
+      setError('No academic year available. Please contact the administrator.');
+      return;
+    }
+    if (!academicYearId) {
+      setError('Please select an Academic Year.');
+      return;
+    }
+
+    // Field 2 Validation: Date is auto-set
+
+    // Field 3 Validation: Category
+    if (!category) {
+      setError('Please select a Category.');
+      return;
+    }
+
+    // Field 4 Validation: Sub Category (when subcategories are available)
+    if (availableSubcategories.length > 0 && !subCategory) {
+      setError(`Please select a Sub Category for ${category}.`);
+      return;
+    }
+
+    // Field 5 Validation: Proposal ID
+    const cleanProposalId = proposalId.trim();
+    if (!cleanProposalId) {
+      setError('Please enter a valid Proposal ID.');
+      return;
+    }
+
+    // Other validations
     if (!title.trim()) {
       setError('Please enter the Program / Proposal Title.');
       return;
@@ -82,11 +143,15 @@ export const NewProposalPage = () => {
 
     try {
       const result = await addProposal({
-        id: proposalId,
-        proposalDate: proposalDateStr,
+        proposalId: cleanProposalId,
+        id: cleanProposalId,
+        academicYearId,
+        academicYear: selectedAcademicYearLabel,
+        proposalDate: todayIso,
         facultyName: user?.name || 'Faculty Member',
         facultyEmail: user?.email || 'faculty@kongu.edu',
         category,
+        subCategory: availableSubcategories.length > 0 ? subCategory : '',
         title: title.trim(),
         programDate,
         guestDetails: guestDetails.trim() || 'None',
@@ -108,12 +173,12 @@ export const NewProposalPage = () => {
 
   return (
     <FacultyLayout pageTitle="New Budget Proposal">
-      <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
+      <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
         {/* Page Header */}
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--dark)' }}>New Budget Proposal</h1>
           <p style={{ fontSize: 14, color: 'var(--dark-muted)', marginTop: 4 }}>
-            Submit a proposal for an upcoming CSE department activity.
+            Submit an activity budget proposal for Computer Science and Engineering, Kongu Engineering College.
           </p>
         </div>
 
@@ -138,35 +203,87 @@ export const NewProposalPage = () => {
                     gap: 10
                   }}
                 >
-                  <AlertCircle size={18} />
+                  <AlertCircle size={18} style={{ flexShrink: 0 }} />
                   <span>{error}</span>
                 </div>
               )}
 
-              {/* Automatic Metadata Fields (Read-Only) */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 16 }}>
+              {/* Warning if no Academic Years available */}
+              {activeAcademicYears.length === 0 && (
+                <div
+                  style={{
+                    padding: '14px 18px',
+                    borderRadius: 12,
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    color: '#B45309',
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10
+                  }}
+                >
+                  <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                  <span>No academic year available. Please contact the administrator.</span>
+                </div>
+              )}
+
+              {/* ========================================================= */}
+              {/* FIELD 1: ACADEMIC YEAR & FIELD 2: DATE                    */}
+              {/* ========================================================= */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 16 }}>
+                {/* Field 1 — Academic Year Dropdown */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
-                    Proposal ID <span style={{ color: 'var(--primary)', fontSize: 11 }}>(Auto-Generated)</span>
+                  <label htmlFor="academic-year-select" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
+                    Academic Year <span style={{ color: '#EF4444' }}>*</span>
                   </label>
-                  <div
-                    style={{
-                      padding: '12px 16px',
-                      borderRadius: 10,
-                      backgroundColor: '#F8F7FD',
-                      border: '1px solid var(--border)',
-                      fontWeight: 700,
-                      color: 'var(--primary)',
-                      fontSize: 14.5
-                    }}
-                  >
-                    {proposalId || 'Generating...'}
-                  </div>
+                  {activeAcademicYears.length > 0 ? (
+                    <select
+                      id="academic-year-select"
+                      value={academicYearId}
+                      onChange={(e) => setAcademicYearId(e.target.value)}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        borderRadius: 10,
+                        border: '1px solid var(--border)',
+                        backgroundColor: '#FFFFFF',
+                        fontSize: 14.5,
+                        fontWeight: 600,
+                        color: 'var(--dark)',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {activeAcademicYears.map((ay) => (
+                        <option key={ay.id} value={ay.id}>
+                          {ay.academicYear} (Budget: ₹{Number(ay.budget).toLocaleString('en-IN')})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div
+                      style={{
+                        padding: '12px 16px',
+                        borderRadius: 10,
+                        backgroundColor: '#FEF2F2',
+                        border: '1px solid #FCA5A5',
+                        color: '#EF4444',
+                        fontSize: 13,
+                        fontWeight: 600
+                      }}
+                    >
+                      No academic year available. Please contact the administrator.
+                    </div>
+                  )}
                 </div>
 
+                {/* Field 2 — Date (System / Proposal Date) */}
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
-                    Date of Proposal <span style={{ color: 'var(--secondary)', fontSize: 11 }}>(Auto System Date)</span>
+                    Date <span style={{ color: 'var(--secondary)', fontSize: 11 }}>(System Date)</span>
                   </label>
                   <div
                     style={{
@@ -176,48 +293,133 @@ export const NewProposalPage = () => {
                       border: '1px solid var(--border)',
                       fontWeight: 600,
                       color: 'var(--dark)',
-                      fontSize: 14
+                      fontSize: 14,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8
                     }}
                   >
-                    {proposalDateStr}
+                    <Calendar size={16} color="var(--primary)" />
+                    <span>{proposalDateStr}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Category Dropdown */}
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
-                  Category <span style={{ color: '#EF4444' }}>*</span>
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '13px 16px',
-                    borderRadius: 10,
-                    border: '1px solid var(--border)',
-                    backgroundColor: '#FFFFFF',
-                    fontSize: 14.5,
-                    fontWeight: 600,
-                    color: 'var(--dark)',
-                    outline: 'none'
-                  }}
-                >
-                  {categoryOptions.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+              {/* ========================================================= */}
+              {/* FIELD 3: CATEGORY & FIELD 4: SUB CATEGORY                */}
+              {/* ========================================================= */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 16 }}>
+                {/* Field 3 — Category Dropdown */}
+                <div>
+                  <label htmlFor="category-select" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
+                    Category <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  <select
+                    id="category-select"
+                    value={category}
+                    onChange={handleCategoryChange}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      borderRadius: 10,
+                      border: '1px solid var(--border)',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: 14.5,
+                      fontWeight: 600,
+                      color: 'var(--dark)',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {CATEGORY_LIST.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Field 4 — Sub Category (Dependent Dropdown) */}
+                <div>
+                  <label htmlFor="subcategory-select" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
+                    Sub Category {availableSubcategories.length > 0 && <span style={{ color: '#EF4444' }}>*</span>}
+                  </label>
+                  {availableSubcategories.length > 0 ? (
+                    <select
+                      id="subcategory-select"
+                      value={subCategory}
+                      onChange={(e) => setSubCategory(e.target.value)}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        borderRadius: 10,
+                        border: '1px solid var(--border)',
+                        backgroundColor: '#FFFFFF',
+                        fontSize: 14.5,
+                        fontWeight: 600,
+                        color: 'var(--dark)',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {availableSubcategories.map((sub) => (
+                        <option key={sub} value={sub}>
+                          {sub}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      id="subcategory-select"
+                      disabled
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        borderRadius: 10,
+                        border: '1px solid var(--border)',
+                        backgroundColor: '#F8F7FD',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: 'var(--dark-muted)',
+                        outline: 'none',
+                        cursor: 'not-allowed'
+                      }}
+                    >
+                      <option value="">Select Sub Category (None for {category})</option>
+                    </select>
+                  )}
+                </div>
               </div>
+
+              {/* ========================================================= */}
+              {/* FIELD 5: PROPOSAL ID                                     */}
+              {/* ========================================================= */}
+              <div>
+                <label htmlFor="proposal-id-input" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
+                  Proposal ID <span style={{ color: '#EF4444' }}>*</span>
+                </label>
+                <Input
+                  id="proposal-id-input"
+                  placeholder="Enter proposal ID e.g. PROP-2026-005"
+                  value={proposalId}
+                  onChange={(e) => setProposalId(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* ========================================================= */}
+              {/* ADDITIONAL PROPOSAL FIELDS                               */}
+              {/* ========================================================= */}
 
               {/* Program Title */}
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
+                <label htmlFor="program-title-input" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
                   Program / Proposal Title <span style={{ color: '#EF4444' }}>*</span>
                 </label>
                 <Input
+                  id="program-title-input"
                   placeholder="Enter program title e.g. CSEA Technical Symposium"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -227,10 +429,11 @@ export const NewProposalPage = () => {
 
               {/* Date of Program */}
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
+                <label htmlFor="program-date-input" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
                   Date of Program <span style={{ color: '#EF4444' }}>*</span>
                 </label>
                 <input
+                  id="program-date-input"
                   type="date"
                   min={todayIso}
                   value={programDate}
@@ -253,10 +456,11 @@ export const NewProposalPage = () => {
               {/* Guest Details (Optional) */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>Guest Details</label>
+                  <label htmlFor="guest-details-input" style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>Guest Details</label>
                   <span style={{ fontSize: 12, color: 'var(--secondary)', fontWeight: 600 }}>Optional</span>
                 </div>
                 <textarea
+                  id="guest-details-input"
                   placeholder="Enter guest name, designation, organization, etc. e.g. Dr. Arun Kumar, Senior Software Engineer, ABC Technologies"
                   value={guestDetails}
                   onChange={(e) => setGuestDetails(e.target.value)}
@@ -278,10 +482,11 @@ export const NewProposalPage = () => {
 
               {/* Proposed Amount */}
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
+                <label htmlFor="proposed-amount-input" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
                   Proposed Amount (₹) <span style={{ color: '#EF4444' }}>*</span>
                 </label>
                 <Input
+                  id="proposed-amount-input"
                   type="number"
                   min="1"
                   placeholder="Enter amount in ₹ e.g. 35000"
@@ -344,7 +549,7 @@ export const NewProposalPage = () => {
                 type="submit"
                 variant="primary"
                 isLoading={isSubmitting}
-                disabled={isOverBudget || isSubmitting}
+                disabled={isOverBudget || isSubmitting || activeAcademicYears.length === 0}
                 icon={ArrowRight}
                 style={{ height: 50, fontSize: 16, marginTop: 8 }}
               >
@@ -353,7 +558,7 @@ export const NewProposalPage = () => {
             </form>
           </div>
 
-          {/* Live Proposal Summary Card */}
+          {/* Live Proposal Summary Preview Card */}
           <div className="cbm-card" style={{ padding: 'clamp(20px, 4vw, 28px)' }}>
             <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--dark)', marginBottom: 4 }}>
               Proposal Summary Preview
@@ -364,8 +569,8 @@ export const NewProposalPage = () => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-                <span style={{ fontSize: 11, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Proposal ID</span>
-                <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--primary)', marginTop: 2 }}>{proposalId}</p>
+                <span style={{ fontSize: 11, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Academic Year</span>
+                <p style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--primary)', marginTop: 2 }}>{selectedAcademicYearLabel}</p>
               </div>
 
               <div style={{ paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
@@ -375,7 +580,14 @@ export const NewProposalPage = () => {
 
               <div style={{ paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
                 <span style={{ fontSize: 11, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Category</span>
-                <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', marginTop: 2 }}>{category}</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', marginTop: 2 }}>
+                  {category} {subCategory ? `— ${subCategory}` : ''}
+                </p>
+              </div>
+
+              <div style={{ paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 11, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Proposal ID</span>
+                <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--dark)', marginTop: 2 }}>{proposalId || '—'}</p>
               </div>
 
               <div style={{ paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>

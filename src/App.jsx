@@ -11,6 +11,7 @@ import { FacultyProposalsPage } from './pages/FacultyProposalsPage';
 import { NewProposalPage } from './pages/NewProposalPage';
 import { FacultyProfilePage } from './pages/FacultyProfilePage';
 import { AdminProposalsPage } from './pages/AdminProposalsPage';
+import { AcademicYearsPage } from './pages/AcademicYearsPage';
 import { FacultyPage } from './pages/FacultyPage';
 import { AddFacultyPage } from './pages/AddFacultyPage';
 import { CSEAPage } from './pages/CSEAPage';
@@ -132,6 +133,14 @@ export default function App() {
               element={
                 <AdminRoute>
                   <AdminProposalsPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/academic-years"
+              element={
+                <AdminRoute>
+                  <AcademicYearsPage />
                 </AdminRoute>
               }
             />

@@ -35,7 +35,19 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 );
 
 -- ------------------------------------------------------------------------------
--- 3. BUDGETS TABLE
+-- 3. ACADEMIC YEARS TABLE
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.academic_years (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    academic_year TEXT NOT NULL UNIQUE,
+    budget NUMERIC(14, 2) NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- ------------------------------------------------------------------------------
+-- 4. BUDGETS TABLE
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.budgets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -46,7 +58,7 @@ CREATE TABLE IF NOT EXISTS public.budgets (
 );
 
 -- ------------------------------------------------------------------------------
--- 4. BUDGET CATEGORIES TABLE
+-- 5. BUDGET CATEGORIES TABLE
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.budget_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -58,13 +70,16 @@ CREATE TABLE IF NOT EXISTS public.budget_categories (
 );
 
 -- ------------------------------------------------------------------------------
--- 5. PROPOSALS TABLE
+-- 6. PROPOSALS TABLE
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.proposals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     proposal_number TEXT UNIQUE NOT NULL,
     faculty_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    academic_year_id UUID REFERENCES public.academic_years(id) ON DELETE SET NULL,
     category_id UUID REFERENCES public.budget_categories(id) ON DELETE SET NULL,
+    category TEXT,
+    sub_category TEXT,
     title TEXT NOT NULL,
     proposal_date DATE DEFAULT CURRENT_DATE NOT NULL,
     program_date DATE NOT NULL,
@@ -77,7 +92,7 @@ CREATE TABLE IF NOT EXISTS public.proposals (
 );
 
 -- ------------------------------------------------------------------------------
--- 6. TRANSACTIONS TABLE
+-- 7. TRANSACTIONS TABLE
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -118,11 +133,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS tr_profiles_updated_at ON public.profiles;
 CREATE TRIGGER tr_profiles_updated_at
     BEFORE UPDATE ON public.profiles
     FOR EACH ROW
     EXECUTE FUNCTION public.set_updated_at();
 
+DROP TRIGGER IF EXISTS tr_academic_years_updated_at ON public.academic_years;
+CREATE TRIGGER tr_academic_years_updated_at
+    BEFORE UPDATE ON public.academic_years
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS tr_proposals_updated_at ON public.proposals;
 CREATE TRIGGER tr_proposals_updated_at
     BEFORE UPDATE ON public.proposals
     FOR EACH ROW
@@ -135,17 +158,20 @@ CREATE TRIGGER tr_proposals_updated_at
 -- Enable RLS on all public tables
 ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.academic_years ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.budget_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.proposals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
 -- 1. Departments Policies
+DROP POLICY IF EXISTS "Allow authenticated users to read departments" ON public.departments;
 CREATE POLICY "Allow authenticated users to read departments"
     ON public.departments FOR SELECT
     TO authenticated
     USING (true);
 
+DROP POLICY IF EXISTS "Allow admin full access to departments" ON public.departments;
 CREATE POLICY "Allow admin full access to departments"
     ON public.departments FOR ALL
     TO authenticated
@@ -153,79 +179,119 @@ CREATE POLICY "Allow admin full access to departments"
     WITH CHECK (public.is_admin());
 
 -- 2. Profiles Policies
+DROP POLICY IF EXISTS "Users can read own profile or admin can read all" ON public.profiles;
 CREATE POLICY "Users can read own profile or admin can read all"
     ON public.profiles FOR SELECT
     TO authenticated
     USING (auth.uid() = id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Users can update own profile or admin can update all" ON public.profiles;
 CREATE POLICY "Users can update own profile or admin can update all"
     ON public.profiles FOR UPDATE
     TO authenticated
     USING (auth.uid() = id OR public.is_admin())
     WITH CHECK (auth.uid() = id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Admin can insert profiles" ON public.profiles;
 CREATE POLICY "Admin can insert profiles"
     ON public.profiles FOR INSERT
     TO authenticated
     WITH CHECK (public.is_admin());
 
+DROP POLICY IF EXISTS "Admin can delete profiles" ON public.profiles;
 CREATE POLICY "Admin can delete profiles"
     ON public.profiles FOR DELETE
     TO authenticated
     USING (public.is_admin());
 
--- 3. Budgets Policies
+-- 3. Academic Years Policies
+DROP POLICY IF EXISTS "Allow authenticated users to read active academic years" ON public.academic_years;
+CREATE POLICY "Allow authenticated users to read active academic years"
+    ON public.academic_years FOR SELECT
+    TO authenticated
+    USING (is_active = true OR public.is_admin());
+
+DROP POLICY IF EXISTS "Admin can insert academic years" ON public.academic_years;
+CREATE POLICY "Admin can insert academic years"
+    ON public.academic_years FOR INSERT
+    TO authenticated
+    WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin can update academic years" ON public.academic_years;
+CREATE POLICY "Admin can update academic years"
+    ON public.academic_years FOR UPDATE
+    TO authenticated
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin can delete academic years" ON public.academic_years;
+CREATE POLICY "Admin can delete academic years"
+    ON public.academic_years FOR DELETE
+    TO authenticated
+    USING (public.is_admin());
+
+-- 4. Budgets Policies
+DROP POLICY IF EXISTS "Allow authenticated users to read budgets" ON public.budgets;
 CREATE POLICY "Allow authenticated users to read budgets"
     ON public.budgets FOR SELECT
     TO authenticated
     USING (true);
 
+DROP POLICY IF EXISTS "Admin full access on budgets" ON public.budgets;
 CREATE POLICY "Admin full access on budgets"
     ON public.budgets FOR ALL
     TO authenticated
     USING (public.is_admin())
     WITH CHECK (public.is_admin());
 
--- 4. Budget Categories Policies
+-- 5. Budget Categories Policies
+DROP POLICY IF EXISTS "Allow authenticated users to read budget categories" ON public.budget_categories;
 CREATE POLICY "Allow authenticated users to read budget categories"
     ON public.budget_categories FOR SELECT
     TO authenticated
     USING (true);
 
+DROP POLICY IF EXISTS "Admin full access on budget categories" ON public.budget_categories;
 CREATE POLICY "Admin full access on budget categories"
     ON public.budget_categories FOR ALL
     TO authenticated
     USING (public.is_admin())
     WITH CHECK (public.is_admin());
 
--- 5. Proposals Policies
+-- 6. Proposals Policies
+DROP POLICY IF EXISTS "Faculty can view own proposals or admin can view all" ON public.proposals;
 CREATE POLICY "Faculty can view own proposals or admin can view all"
     ON public.proposals FOR SELECT
     TO authenticated
     USING (faculty_id = auth.uid() OR public.is_admin());
 
+DROP POLICY IF EXISTS "Faculty can insert own proposals" ON public.proposals;
 CREATE POLICY "Faculty can insert own proposals"
     ON public.proposals FOR INSERT
     TO authenticated
     WITH CHECK (faculty_id = auth.uid() OR public.is_admin());
 
+DROP POLICY IF EXISTS "Faculty can update own pending proposals or admin can update any" ON public.proposals;
 CREATE POLICY "Faculty can update own pending proposals or admin can update any"
     ON public.proposals FOR UPDATE
     TO authenticated
     USING ((faculty_id = auth.uid() AND status = 'Pending') OR public.is_admin())
     WITH CHECK ((faculty_id = auth.uid() AND status = 'Pending') OR public.is_admin());
 
+DROP POLICY IF EXISTS "Admin can delete proposals" ON public.proposals;
 CREATE POLICY "Admin can delete proposals"
     ON public.proposals FOR DELETE
     TO authenticated
     USING (public.is_admin());
 
--- 6. Transactions Policies
+-- 7. Transactions Policies
+DROP POLICY IF EXISTS "Allow authenticated users to read transactions" ON public.transactions;
 CREATE POLICY "Allow authenticated users to read transactions"
     ON public.transactions FOR SELECT
     TO authenticated
     USING (true);
 
+DROP POLICY IF EXISTS "Admin full access on transactions" ON public.transactions;
 CREATE POLICY "Admin full access on transactions"
     ON public.transactions FOR ALL
     TO authenticated

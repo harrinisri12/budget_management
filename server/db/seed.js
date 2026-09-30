@@ -187,6 +187,38 @@ export async function seedDatabase() {
     }
     console.log('✅ Faculty accounts verified.');
 
+    // 3b. Seed Academic Years
+    console.log('📅 Seeding Academic Years...');
+    const academicYearsSeeds = [
+      { academic_year: '2026-2027', budget: 500000, is_active: true },
+      { academic_year: '2027-2028', budget: 600000, is_active: true }
+    ];
+
+    const academicYearsMap = {};
+    for (const ay of academicYearsSeeds) {
+      try {
+        const { data: existingAy } = await supabaseAdmin
+          .from('academic_years')
+          .select('*')
+          .eq('academic_year', ay.academic_year)
+          .maybeSingle();
+
+        if (!existingAy) {
+          const { data: newAy } = await supabaseAdmin
+            .from('academic_years')
+            .insert(ay)
+            .select()
+            .single();
+          if (newAy) academicYearsMap[ay.academic_year] = newAy.id;
+        } else {
+          academicYearsMap[ay.academic_year] = existingAy.id;
+        }
+      } catch (err) {
+        console.warn(`Could not seed academic year ${ay.academic_year}: ${err.message}`);
+      }
+    }
+    console.log('✅ Academic Years verified.');
+
     // 4. Seed Budget (FY 2026-27 - ₹24.5 Lakhs)
     console.log('💰 Seeding Annual Budget...');
     let { data: existingBudget } = await supabaseAdmin

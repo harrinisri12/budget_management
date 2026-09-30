@@ -11,6 +11,7 @@ import {
   Users,
   UserPlus,
   FileSpreadsheet,
+  CalendarRange,
   Settings,
   LogOut,
   ChevronDown,
@@ -144,6 +145,28 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
             >
               <LayoutDashboard size={19} />
               <span>Dashboard</span>
+            </NavLink>
+
+            {/* Academic Years */}
+            <NavLink
+              to="/academic-years"
+              onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 14px',
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                textDecoration: 'none',
+                color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
+                backgroundColor: isActive ? 'var(--primary)' : 'transparent',
+                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none'
+              })}
+            >
+              <CalendarRange size={19} />
+              <span>Academic Years</span>
             </NavLink>
 
             {/* Budget Accordion */}

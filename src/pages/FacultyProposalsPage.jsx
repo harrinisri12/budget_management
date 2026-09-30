@@ -182,6 +182,7 @@ export const FacultyProposalsPage = () => {
                 <thead>
                   <tr>
                     <th>Proposal ID</th>
+                    <th>Academic Year</th>
                     <th>Date</th>
                     <th>Category</th>
                     <th>Program Title</th>
@@ -195,8 +196,18 @@ export const FacultyProposalsPage = () => {
                   {filteredProposals.map((prop) => (
                     <tr key={prop.id}>
                       <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{prop.id}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--dark)' }}>
+                        <span style={{ padding: '3px 8px', borderRadius: 6, backgroundColor: '#F1EFFD', color: 'var(--primary)', fontSize: 12, fontWeight: 700 }}>
+                          {prop.academicYear || '2026-2027'}
+                        </span>
+                      </td>
                       <td style={{ color: 'var(--dark-muted)' }}>{prop.proposalDate}</td>
-                      <td style={{ color: 'var(--dark)', fontWeight: 600 }}>{prop.category}</td>
+                      <td style={{ color: 'var(--dark)', fontWeight: 600 }}>
+                        <div>{prop.category}</div>
+                        {prop.subCategory && (
+                          <div style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 600 }}>{prop.subCategory}</div>
+                        )}
+                      </td>
                       <td style={{ color: 'var(--dark)', fontWeight: 700 }}>{prop.title}</td>
                       <td style={{ color: 'var(--dark-muted)' }}>{prop.programDate}</td>
                       <td style={{ fontWeight: 800, color: 'var(--dark)' }}>
@@ -270,20 +281,28 @@ export const FacultyProposalsPage = () => {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 14, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+                  <div>
+                    <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Academic Year</span>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', marginTop: 2 }}>{selectedProposal.academicYear || '2026-2027'}</p>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Proposal Date</span>
+                    <p style={{ fontSize: 13.5, color: 'var(--dark)', marginTop: 2 }}>{selectedProposal.proposalDate}</p>
+                  </div>
+                </div>
+
                 <div style={{ paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Program Title</span>
                   <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', marginTop: 2 }}>{selectedProposal.title}</p>
                 </div>
 
-                <div style={{ paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Category</span>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)', marginTop: 2 }}>{selectedProposal.category}</p>
-                </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 14, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
                   <div>
-                    <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Proposal Date</span>
-                    <p style={{ fontSize: 13.5, color: 'var(--dark)', marginTop: 2 }}>{selectedProposal.proposalDate}</p>
+                    <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Category</span>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)', marginTop: 2 }}>
+                      {selectedProposal.category} {selectedProposal.subCategory ? `— ${selectedProposal.subCategory}` : ''}
+                    </p>
                   </div>
                   <div>
                     <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Program Date</span>

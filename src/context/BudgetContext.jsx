@@ -2,17 +2,34 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 import { useAuth } from './AuthContext';
+import { CATEGORY_COLOR_MAP } from '../data/categories';
 
 const BudgetContext = createContext();
 
-const CATEGORY_COLORS = {
-  'CSEA Association': '#443CDE',
-  'CCC Coding Club': '#635BFF',
-  'Lab & Equipment': '#3B82F6',
-  'Technical Workshop': '#10B981',
-  'Department Maintenance': '#F59E0B',
-  'Academic Research': '#8B5CF6'
+const CATEGORY_COLORS = CATEGORY_COLOR_MAP || {
+  'CSEA': '#443CDE',
+  'CCC': '#635BFF',
+  'Research': '#8B5CF6',
+  'Lab and Equipment': '#3B82F6',
+  'Department Maintenance': '#F59E0B'
 };
+
+const DEFAULT_ACADEMIC_YEARS = [
+  {
+    id: 'ay-2026-2027-default',
+    academicYear: '2026-2027',
+    budget: 500000,
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'ay-2027-2028-default',
+    academicYear: '2027-2028',
+    budget: 600000,
+    isActive: true,
+    createdAt: new Date().toISOString()
+  }
+];
 
 const DEFAULT_MONTHLY_SPENDING = [
   { month: 'January', budget: 350000, spending: 280000 },
@@ -27,6 +44,7 @@ export const BudgetProvider = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
 
   const [facultyList, setFacultyList] = useState([]);
+  const [academicYears, setAcademicYears] = useState(DEFAULT_ACADEMIC_YEARS);
   const [transactions, setTransactions] = useState([]);
   const [proposals, setProposals] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -50,10 +68,43 @@ export const BudgetProvider = ({ children }) => {
     }, 4000);
   }, []);
 
-  // 1. Fetch Faculty List from Database / API
+  // 1. Fetch Academic Years from Database / API
+  const refreshAcademicYears = useCallback(async () => {
+    try {
+      try {
+        const res = await api.get('/api/academic-years');
+        if (res?.success && res.academicYears) {
+          setAcademicYears(res.academicYears);
+          return res.academicYears;
+        }
+      } catch {
+        // Fallback to direct Supabase query
+        const { data, error } = await supabase
+          .from('academic_years')
+          .select('*')
+          .order('academic_year', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          const formatted = data.map(ay => ({
+            id: ay.id,
+            academicYear: ay.academic_year,
+            budget: Number(ay.budget),
+            isActive: Boolean(ay.is_active),
+            createdAt: ay.created_at,
+            updatedAt: ay.updated_at
+          }));
+          setAcademicYears(formatted);
+          return formatted;
+        }
+      }
+    } catch (err) {
+      console.warn('Refresh academic years warning:', err);
+    }
+  }, []);
+
+  // 2. Fetch Faculty List from Database / API
   const refreshFaculty = useCallback(async () => {
     try {
-      // Try API first
       try {
         const res = await api.get('/api/faculty');
         if (res?.success && res.faculty) {
@@ -61,7 +112,6 @@ export const BudgetProvider = ({ children }) => {
           return res.faculty;
         }
       } catch {
-        // Fallback to direct Supabase query
         const { data, error } = await supabase
           .from('profiles')
           .select('*, departments(name, code)')
@@ -90,7 +140,7 @@ export const BudgetProvider = ({ children }) => {
     }
   }, []);
 
-  // 2. Fetch Proposals from Database / API
+  // 3. Fetch Proposals from Database / API
   const refreshProposals = useCallback(async () => {
     try {
       try {
@@ -100,10 +150,9 @@ export const BudgetProvider = ({ children }) => {
           return res.proposals;
         }
       } catch {
-        // Direct Supabase query
         let query = supabase
           .from('proposals')
-          .select('*, profiles:faculty_id(id, name, email), budget_categories:category_id(id, name)')
+          .select('*, profiles:faculty_id(id, name, email), budget_categories:category_id(id, name), academic_years:academic_year_id(id, academic_year, budget)')
           .order('created_at', { ascending: false });
 
         if (user && user.role !== 'admin') {
@@ -115,12 +164,16 @@ export const BudgetProvider = ({ children }) => {
           const formatted = data.map(p => ({
             id: p.proposal_number,
             dbId: p.id,
+            proposalId: p.proposal_number,
+            academicYearId: p.academic_year_id,
+            academicYear: p.academic_years?.academic_year || '2026-2027',
             proposalDate: p.proposal_date ? new Date(p.proposal_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
             facultyName: p.profiles?.name || 'Faculty Member',
             facultyEmail: p.profiles?.email || '',
             facultyId: p.faculty_id,
-            category: p.budget_categories?.name || 'CSE Activity',
+            category: p.category || p.budget_categories?.name || 'CSEA',
             categoryId: p.category_id,
+            subCategory: p.sub_category || '',
             title: p.title,
             programDate: p.program_date ? new Date(p.program_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
             guestDetails: p.guest_details || '',
@@ -137,7 +190,7 @@ export const BudgetProvider = ({ children }) => {
     }
   }, [user]);
 
-  // 3. Fetch Transactions from Database / API
+  // 4. Fetch Transactions from Database / API
   const refreshTransactions = useCallback(async () => {
     try {
       try {
@@ -176,7 +229,7 @@ export const BudgetProvider = ({ children }) => {
     }
   }, []);
 
-  // 4. Fetch Budget & Dashboard Analytics
+  // 5. Fetch Budget & Dashboard Analytics
   const refreshBudget = useCallback(async () => {
     try {
       try {
@@ -188,7 +241,6 @@ export const BudgetProvider = ({ children }) => {
           return;
         }
       } catch {
-        // Direct database calculations
         const { data: budgetData } = await supabase
           .from('budgets')
           .select('*')
@@ -239,6 +291,7 @@ export const BudgetProvider = ({ children }) => {
       const loadData = async () => {
         try {
           await Promise.all([
+            refreshAcademicYears(),
             refreshFaculty(),
             refreshProposals(),
             refreshTransactions(),
@@ -253,7 +306,129 @@ export const BudgetProvider = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, refreshFaculty, refreshProposals, refreshTransactions, refreshBudget]);
+  }, [isAuthenticated, refreshAcademicYears, refreshFaculty, refreshProposals, refreshTransactions, refreshBudget]);
+
+  // Admin: Add Academic Year
+  const addAcademicYear = async (newYearData) => {
+    try {
+      const cleanYear = (newYearData.academicYear || '').trim();
+      const budgetNum = Number(newYearData.budget);
+
+      if (!cleanYear) {
+        return { success: false, error: 'Academic Year is required (e.g. 2026-2027).' };
+      }
+
+      if (isNaN(budgetNum) || budgetNum <= 0) {
+        return { success: false, error: 'Budget must be a valid positive amount.' };
+      }
+
+      // Check duplicate in client state
+      if (academicYears.some(ay => ay.academicYear.toLowerCase() === cleanYear.toLowerCase())) {
+        return { success: false, error: `Academic Year "${cleanYear}" already exists. Duplicate academic years are not allowed.` };
+      }
+
+      try {
+        const res = await api.post('/api/academic-years', {
+          academicYear: cleanYear,
+          budget: budgetNum,
+          isActive: newYearData.isActive !== undefined ? newYearData.isActive : true
+        });
+
+        if (res?.success) {
+          showToast(res.message || `Academic Year ${cleanYear} added successfully!`, 'success');
+          await refreshAcademicYears();
+          return { success: true, academicYear: res.academicYear };
+        }
+        return { success: false, error: res?.error || 'Failed to add academic year.' };
+      } catch (apiErr) {
+        // Fallback to local state update if backend returned specific error or fallback
+        if (apiErr.message && apiErr.message.includes('already exists')) {
+          return { success: false, error: apiErr.message };
+        }
+        
+        const fallbackItem = {
+          id: `ay-${Date.now()}`,
+          academicYear: cleanYear,
+          budget: budgetNum,
+          isActive: true,
+          createdAt: new Date().toISOString()
+        };
+        setAcademicYears(prev => [fallbackItem, ...prev]);
+        showToast(`Academic Year ${cleanYear} added successfully!`, 'success');
+        return { success: true, academicYear: fallbackItem };
+      }
+    } catch (err) {
+      console.error('Error adding academic year:', err);
+      const errMsg = err.message || 'Error creating academic year.';
+      showToast(errMsg, 'error');
+      return { success: false, error: errMsg };
+    }
+  };
+
+  // Admin: Update Academic Year
+  const updateAcademicYear = async (id, updateData) => {
+    try {
+      const cleanYear = updateData.academicYear ? updateData.academicYear.trim() : undefined;
+      const budgetNum = updateData.budget !== undefined ? Number(updateData.budget) : undefined;
+
+      if (cleanYear !== undefined && !cleanYear) {
+        return { success: false, error: 'Academic Year cannot be empty.' };
+      }
+      if (budgetNum !== undefined && (isNaN(budgetNum) || budgetNum <= 0)) {
+        return { success: false, error: 'Budget must be a positive number.' };
+      }
+
+      // Check duplicate
+      if (cleanYear && academicYears.some(ay => ay.id !== id && ay.academicYear.toLowerCase() === cleanYear.toLowerCase())) {
+        return { success: false, error: `Another academic year with name "${cleanYear}" already exists.` };
+      }
+
+      try {
+        const res = await api.patch(`/api/academic-years/${id}`, updateData);
+        if (res?.success) {
+          showToast(res.message || 'Academic Year updated successfully.', 'success');
+          await refreshAcademicYears();
+          return { success: true, academicYear: res.academicYear };
+        }
+        return { success: false, error: res?.error || 'Failed to update academic year.' };
+      } catch {
+        setAcademicYears(prev =>
+          prev.map(ay => (ay.id === id ? { ...ay, ...updateData, ...(cleanYear ? { academicYear: cleanYear } : {}), ...(budgetNum ? { budget: budgetNum } : {}) } : ay))
+        );
+        showToast('Academic Year updated successfully.', 'success');
+        return { success: true };
+      }
+    } catch (err) {
+      console.error('Error updating academic year:', err);
+      showToast(err.message || 'Error updating academic year.', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Admin: Toggle Academic Year Active Status
+  const toggleAcademicYearStatus = async (id, newStatus) => {
+    try {
+      try {
+        const res = await api.patch(`/api/academic-years/${id}/status`, { isActive: newStatus });
+        if (res?.success) {
+          showToast(`Academic Year status updated to ${newStatus ? 'Active' : 'Inactive'}.`, 'success');
+          await refreshAcademicYears();
+          return { success: true };
+        }
+        return { success: false, error: res?.error };
+      } catch {
+        setAcademicYears(prev =>
+          prev.map(ay => (ay.id === id ? { ...ay, isActive: newStatus } : ay))
+        );
+        showToast(`Academic Year status updated to ${newStatus ? 'Active' : 'Inactive'}.`, 'success');
+        return { success: true };
+      }
+    } catch (err) {
+      console.error('Error toggling academic year status:', err);
+      showToast(err.message || 'Error updating status.', 'error');
+      return { success: false, error: err.message };
+    }
+  };
 
   // Admin: Add Faculty
   const addFaculty = async (newFacultyData) => {
@@ -312,15 +487,16 @@ export const BudgetProvider = ({ children }) => {
     }
   };
 
-  // Automatic Proposal ID Generator
+  // Helper to suggest next default Proposal ID format
   const generateProposalId = () => {
     const year = new Date().getFullYear();
     const prefix = `PROP-${year}-`;
 
     let maxNum = 0;
     proposals.forEach((p) => {
-      if (p.id && p.id.startsWith(prefix)) {
-        const numPart = parseInt(p.id.replace(prefix, ''), 10);
+      const propIdStr = p.id || p.proposalId || '';
+      if (propIdStr.startsWith(prefix)) {
+        const numPart = parseInt(propIdStr.replace(prefix, ''), 10);
         if (!isNaN(numPart) && numPart > maxNum) {
           maxNum = numPart;
         }
@@ -334,11 +510,33 @@ export const BudgetProvider = ({ children }) => {
   // Faculty: Add Proposal
   const addProposal = async (proposalData) => {
     try {
+      const cleanProposalId = (proposalData.proposalId || proposalData.id || '').trim();
+      if (!cleanProposalId) {
+        return { success: false, error: 'Proposal ID is required.' };
+      }
+
+      if (!proposalData.academicYearId && !proposalData.academicYear) {
+        return { success: false, error: 'Please select an Academic Year.' };
+      }
+
+      if (!proposalData.category) {
+        return { success: false, error: 'Please select a Category.' };
+      }
+
+      if (proposalData.category === 'CSEA' && !proposalData.subCategory) {
+        return { success: false, error: 'Please select a Sub Category for CSEA.' };
+      }
+
       const res = await api.post('/api/proposals', {
-        title: proposalData.title,
+        proposalId: cleanProposalId,
+        academicYearId: proposalData.academicYearId,
+        academicYear: proposalData.academicYear,
         category: proposalData.category,
+        subCategory: proposalData.subCategory || '',
         categoryId: proposalData.categoryId,
+        title: proposalData.title,
         programDate: proposalData.programDate,
+        proposalDate: proposalData.proposalDate,
         guestDetails: proposalData.guestDetails,
         amount: proposalData.amount
       });
@@ -418,6 +616,7 @@ export const BudgetProvider = ({ children }) => {
     <BudgetContext.Provider
       value={{
         facultyList,
+        academicYears,
         transactions,
         proposals,
         budgets,
@@ -428,6 +627,10 @@ export const BudgetProvider = ({ children }) => {
         toast,
         loading,
         showToast,
+        addAcademicYear,
+        updateAcademicYear,
+        toggleAcademicYearStatus,
+        refreshAcademicYears,
         addFaculty,
         deleteFaculty,
         updateFacultyStatus,

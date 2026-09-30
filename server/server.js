@@ -9,6 +9,7 @@ import facultyRoutes from './routes/faculty.js';
 import proposalsRoutes from './routes/proposals.js';
 import budgetsRoutes from './routes/budgets.js';
 import transactionsRoutes from './routes/transactions.js';
+import academicYearsRoutes from './routes/academicYears.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,6 +55,7 @@ app.use('/api/dashboard', (req, res, next) => {
   req.url = '/dashboard' + (req.url === '/' ? '' : req.url);
   budgetsRoutes(req, res, next);
 });
+app.use('/api/academic-years', academicYearsRoutes);
 app.use('/api/transactions', transactionsRoutes);
 
 // Global 404 handler for unmatched API routes
