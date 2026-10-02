@@ -48,16 +48,6 @@ export const DashboardPage = () => {
           />
         </div>
 
-        {/* Charts and Allocations Row */}
-        <div className="cbm-dashboard-grid">
-          <div>
-            <BudgetChart />
-          </div>
-          <div>
-            <AllocationCard />
-          </div>
-        </div>
-
         {/* Recent Transactions Section */}
         <div>
           <TransactionTable />

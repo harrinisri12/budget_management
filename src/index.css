@@ -433,11 +433,40 @@ p {
 }
 
 /* Layout & Main Content Responsive Spacing */
+.cbm-admin-layout {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--background);
+}
+
+.cbm-main-area {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .cbm-main-content {
   flex: 1;
-  padding: 28px 32px;
+  min-height: 0;
   min-width: 0;
   width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 28px 32px;
+  -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 1024px) {
@@ -467,10 +496,9 @@ p {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 30;
+  flex-shrink: 0;
   width: 100%;
+  z-index: 30;
 }
 
 @media (max-width: 768px) {
@@ -480,7 +508,7 @@ p {
   }
 }
 
-/* Sidebar Drawer for Tablets & Mobile */
+/* Sidebar Drawer & Global Scrolling Layout */
 .cbm-sidebar {
   width: 280px;
   background-color: #FFFFFF;
@@ -488,11 +516,33 @@ p {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
   position: sticky;
   top: 0;
   z-index: 45;
   flex-shrink: 0;
+  overflow: hidden;
+  overscroll-behavior: contain;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cbm-sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cbm-sidebar-nav::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 @media (max-width: 1024px) {
@@ -503,10 +553,14 @@ p {
     bottom: 0 !important;
     height: 100vh !important;
     height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
     max-width: calc(100vw - 48px) !important;
     z-index: 50 !important;
     transform: translateX(-100%);
     box-shadow: none;
+    overflow: hidden;
+    overscroll-behavior: contain;
   }
 
   .cbm-sidebar.mobile-show {

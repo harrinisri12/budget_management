@@ -12,7 +12,7 @@ export const AddFacultyPage = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 900, margin: '0 auto' }}>
         {/* Back Link */}
         <button
-          onClick={() => navigate('/faculty')}
+          onClick={() => navigate('/dashboard')}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -27,7 +27,7 @@ export const AddFacultyPage = () => {
           }}
         >
           <ArrowLeft size={16} />
-          <span>Back to Faculty Roster</span>
+          <span>Back to Dashboard</span>
         </button>
 
         {/* Card Form Container */}
@@ -55,7 +55,7 @@ export const AddFacultyPage = () => {
             </div>
           </div>
 
-          <AddFacultyForm onCancel={() => navigate('/faculty')} />
+          <AddFacultyForm onCancel={() => navigate('/dashboard')} />
         </div>
       </div>
     </DashboardLayout>

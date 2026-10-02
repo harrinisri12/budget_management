@@ -27,7 +27,7 @@ export const SettingsPage = () => {
 
             <div style={{ paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
               <Button variant="primary" icon={Save} onClick={() => alert('CSE Settings saved successfully!')}>
-                Save Preferences
+                Save Changes
               </Button>
             </div>
           </div>

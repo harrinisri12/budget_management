@@ -2,22 +2,14 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Wallet,
-  PieChart,
-  GitPullRequest,
-  Receipt,
-  ArrowRightLeft,
-  Tags,
-  Users,
-  UserPlus,
   FileSpreadsheet,
+  UserPlus,
+  ShieldCheck,
   CalendarRange,
   Settings,
   LogOut,
   ChevronDown,
   ChevronRight,
-  Code2,
-  Trophy,
   X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -27,18 +19,14 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [budgetOpen, setBudgetOpen] = useState(true);
-  const [facultyOpen, setFacultyOpen] = useState(true);
-  const [activitiesOpen, setActivitiesOpen] = useState(true);
+  const [addMemberOpen, setAddMemberOpen] = useState(true);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const isBudgetPath = location.pathname.startsWith('/budget');
-  const isFacultyPath = location.pathname.startsWith('/faculty');
-  const isActivitiesPath = location.pathname === '/csea' || location.pathname === '/ccc';
+  const isAddMemberPath = location.pathname.startsWith('/admin/add') || location.pathname.startsWith('/faculty/add');
 
   return (
     <>
@@ -64,11 +52,14 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
           display: 'flex',
           flexDirection: 'column',
           height: '100vh',
+          maxHeight: '100vh',
           position: 'sticky',
           top: 0,
           zIndex: 45,
           transition: 'transform 0.3s ease',
-          flexShrink: 0
+          flexShrink: 0,
+          overflow: 'hidden',
+          overscrollBehavior: 'contain'
         }}
         className={`cbm-sidebar ${isMobileOpen ? 'mobile-show' : ''}`}
       >
@@ -79,7 +70,8 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid var(--border)'
+            borderBottom: '1px solid var(--border)',
+            flexShrink: 0
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -123,9 +115,21 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
         </div>
 
         {/* Navigation Section */}
-        <div style={{ padding: '16px 14px', flex: 1, overflowY: 'auto' }}>
+        <div
+          className="cbm-sidebar-nav"
+          style={{
+            padding: '16px 14px',
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            overscrollBehavior: 'contain',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {/* Dashboard */}
+            {/* 1. Dashboard */}
             <NavLink
               to="/dashboard"
               onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
@@ -140,170 +144,15 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
                 textDecoration: 'none',
                 color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
                 backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none'
+                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none',
+                transition: 'all 0.15s ease'
               })}
             >
               <LayoutDashboard size={19} />
               <span>Dashboard</span>
             </NavLink>
 
-            {/* Academic Years */}
-            <NavLink
-              to="/academic-years"
-              onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                textDecoration: 'none',
-                color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
-                backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none'
-              })}
-            >
-              <CalendarRange size={19} />
-              <span>Academic Years</span>
-            </NavLink>
-
-            {/* Budget Accordion */}
-            <div>
-              <button
-                onClick={() => setBudgetOpen(!budgetOpen)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  border: 'none',
-                  background: isBudgetPath ? 'var(--primary-light)' : 'transparent',
-                  color: isBudgetPath ? 'var(--primary)' : 'var(--dark-muted)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Wallet size={19} />
-                  <span>Budget</span>
-                </div>
-                {budgetOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-              </button>
-
-              {budgetOpen && (
-                <div style={{ paddingLeft: 34, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <NavLink
-                    to="/budget/overview"
-                    onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
-                    style={({ isActive }) => ({
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      fontSize: 13.5,
-                      fontWeight: 500,
-                      textDecoration: 'none',
-                      color: isActive ? 'var(--primary)' : 'var(--dark-muted)',
-                      backgroundColor: isActive ? '#F1EFFD' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent'
-                    })}
-                  >
-                    <PieChart size={15} />
-                    <span>Budget Overview</span>
-                  </NavLink>
-                  <NavLink
-                    to="/budget/allocations"
-                    onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
-                    style={({ isActive }) => ({
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      fontSize: 13.5,
-                      fontWeight: 500,
-                      textDecoration: 'none',
-                      color: isActive ? 'var(--primary)' : 'var(--dark-muted)',
-                      backgroundColor: isActive ? '#F1EFFD' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent'
-                    })}
-                  >
-                    <span>Allocations</span>
-                  </NavLink>
-                  <NavLink
-                    to="/budget/requests"
-                    onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
-                    style={({ isActive }) => ({
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      fontSize: 13.5,
-                      fontWeight: 500,
-                      textDecoration: 'none',
-                      color: isActive ? 'var(--primary)' : 'var(--dark-muted)',
-                      backgroundColor: isActive ? '#F1EFFD' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent'
-                    })}
-                  >
-                    <GitPullRequest size={15} />
-                    <span>Requests</span>
-                  </NavLink>
-                  <NavLink
-                    to="/budget/expenses"
-                    onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
-                    style={({ isActive }) => ({
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      fontSize: 13.5,
-                      fontWeight: 500,
-                      textDecoration: 'none',
-                      color: isActive ? 'var(--primary)' : 'var(--dark-muted)',
-                      backgroundColor: isActive ? '#F1EFFD' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent'
-                    })}
-                  >
-                    <Receipt size={15} />
-                    <span>Expenses</span>
-                  </NavLink>
-                </div>
-              )}
-            </div>
-
-            {/* Transactions */}
-            <NavLink
-              to="/transactions"
-              onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                textDecoration: 'none',
-                color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
-                backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none'
-              })}
-            >
-              <ArrowRightLeft size={19} />
-              <span>Transactions</span>
-            </NavLink>
-
-            {/* Proposals */}
+            {/* 2. Proposals */}
             <NavLink
               to="/proposals"
               onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
@@ -318,39 +167,19 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
                 textDecoration: 'none',
                 color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
                 backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none'
+                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none',
+                transition: 'all 0.15s ease'
               })}
             >
               <FileSpreadsheet size={19} />
               <span>Proposals</span>
             </NavLink>
 
-            {/* Categories */}
-            <NavLink
-              to="/categories"
-              onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                textDecoration: 'none',
-                color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
-                backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none'
-              })}
-            >
-              <Tags size={19} />
-              <span>Categories</span>
-            </NavLink>
-
-            {/* Faculty Accordion */}
+            {/* 3. Add Member (Expandable/Collapsible Menu) */}
             <div>
               <button
-                onClick={() => setFacultyOpen(!facultyOpen)}
+                type="button"
+                onClick={() => setAddMemberOpen(!addMemberOpen)}
                 style={{
                   width: '100%',
                   display: 'flex',
@@ -361,24 +190,24 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
                   fontSize: 14,
                   fontWeight: 600,
                   border: 'none',
-                  background: isFacultyPath ? 'var(--primary-light)' : 'transparent',
-                  color: isFacultyPath ? 'var(--primary)' : 'var(--dark-muted)',
+                  background: isAddMemberPath ? 'var(--primary-light)' : 'transparent',
+                  color: isAddMemberPath ? 'var(--primary)' : 'var(--dark-muted)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Users size={19} />
-                  <span>Faculty</span>
+                  <UserPlus size={19} />
+                  <span>Add Member</span>
                 </div>
-                {facultyOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                {addMemberOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </button>
 
-              {facultyOpen && (
+              {addMemberOpen && (
                 <div style={{ paddingLeft: 34, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {/* Add Member > Add Admin */}
                   <NavLink
-                    to="/faculty"
-                    end
+                    to="/admin/add"
                     onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
                     style={({ isActive }) => ({
                       display: 'flex',
@@ -391,13 +220,15 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
                       textDecoration: 'none',
                       color: isActive ? 'var(--primary)' : 'var(--dark-muted)',
                       backgroundColor: isActive ? '#F1EFFD' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent'
+                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent',
+                      transition: 'all 0.15s ease'
                     })}
                   >
-                    <Users size={15} />
-                    <span>Faculty List</span>
+                    <ShieldCheck size={15} />
+                    <span>Add Admin</span>
                   </NavLink>
 
+                  {/* Add Member > Add Faculty */}
                   <NavLink
                     to="/faculty/add"
                     onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
@@ -412,7 +243,8 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
                       textDecoration: 'none',
                       color: isActive ? 'var(--primary)' : 'var(--dark-muted)',
                       backgroundColor: isActive ? '#F1EFFD' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent'
+                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent',
+                      transition: 'all 0.15s ease'
                     })}
                   >
                     <UserPlus size={15} />
@@ -422,83 +254,9 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
               )}
             </div>
 
-            {/* CSE Activities Accordion */}
-            <div>
-              <button
-                onClick={() => setActivitiesOpen(!activitiesOpen)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  border: 'none',
-                  background: isActivitiesPath ? 'var(--primary-light)' : 'transparent',
-                  color: isActivitiesPath ? 'var(--primary)' : 'var(--dark-muted)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Trophy size={19} />
-                  <span>CSE Activities</span>
-                </div>
-                {activitiesOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-              </button>
-
-              {activitiesOpen && (
-                <div style={{ paddingLeft: 34, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <NavLink
-                    to="/csea"
-                    onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
-                    style={({ isActive }) => ({
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      fontSize: 13.5,
-                      fontWeight: 500,
-                      textDecoration: 'none',
-                      color: isActive ? 'var(--primary)' : 'var(--dark-muted)',
-                      backgroundColor: isActive ? '#F1EFFD' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent'
-                    })}
-                  >
-                    <Trophy size={15} />
-                    <span>CSEA Association</span>
-                  </NavLink>
-
-                  <NavLink
-                    to="/ccc"
-                    onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
-                    style={({ isActive }) => ({
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      fontSize: 13.5,
-                      fontWeight: 500,
-                      textDecoration: 'none',
-                      color: isActive ? 'var(--primary)' : 'var(--dark-muted)',
-                      backgroundColor: isActive ? '#F1EFFD' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent'
-                    })}
-                  >
-                    <Code2 size={15} />
-                    <span>CCC Coding Club</span>
-                  </NavLink>
-                </div>
-              )}
-            </div>
-
-            {/* Reports */}
+            {/* 4. Academic Year */}
             <NavLink
-              to="/reports"
+              to="/academic-years"
               onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
               style={({ isActive }) => ({
                 display: 'flex',
@@ -511,14 +269,15 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
                 textDecoration: 'none',
                 color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
                 backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none'
+                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none',
+                transition: 'all 0.15s ease'
               })}
             >
-              <FileSpreadsheet size={19} />
-              <span>Reports</span>
+              <CalendarRange size={19} />
+              <span>Academic Year</span>
             </NavLink>
 
-            {/* Settings */}
+            {/* 5. Settings */}
             <NavLink
               to="/settings"
               onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
@@ -533,7 +292,8 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
                 textDecoration: 'none',
                 color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
                 backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none'
+                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none',
+                transition: 'all 0.15s ease'
               })}
             >
               <Settings size={19} />
@@ -542,8 +302,8 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
           </div>
         </div>
 
-        {/* Sidebar Footer / Logout */}
-        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)' }}>
+        {/* 6. Logout / Sidebar Footer */}
+        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
           <button
             onClick={handleLogout}
             style={{

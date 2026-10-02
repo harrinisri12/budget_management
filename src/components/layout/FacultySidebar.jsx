@@ -155,7 +155,22 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
         </div>
 
         {/* Nav Items */}
-        <nav style={{ padding: '20px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <nav
+          className="cbm-sidebar-nav"
+          style={{
+            padding: '20px 16px',
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            overscrollBehavior: 'contain',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
           <div style={{ padding: '0 12px 8px', fontSize: 11, fontWeight: 700, color: '#A09CB8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Faculty Menu
           </div>

@@ -14,6 +14,7 @@ import { AdminProposalsPage } from './pages/AdminProposalsPage';
 import { AcademicYearsPage } from './pages/AcademicYearsPage';
 import { FacultyPage } from './pages/FacultyPage';
 import { AddFacultyPage } from './pages/AddFacultyPage';
+import { AddAdminPage } from './pages/AddAdminPage';
 import { CSEAPage } from './pages/CSEAPage';
 import { CCCPage } from './pages/CCCPage';
 import { BudgetOverviewPage } from './pages/BudgetOverviewPage';
@@ -125,6 +126,22 @@ export default function App() {
               element={
                 <AdminRoute>
                   <AddFacultyPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/add"
+              element={
+                <AdminRoute>
+                  <AddAdminPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/add-admin"
+              element={
+                <AdminRoute>
+                  <AddAdminPage />
                 </AdminRoute>
               }
             />

@@ -7,15 +7,51 @@ export const FacultyLayout = ({ children, pageTitle = 'Faculty Dashboard' }) => 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--background)' }}>
-      {/* Faculty Sidebar */}
+    <div
+      className="cbm-admin-layout"
+      style={{
+        display: 'flex',
+        height: '100vh',
+        height: '100dvh',
+        maxHeight: '100vh',
+        maxHeight: '100dvh',
+        width: '100%',
+        overflow: 'hidden',
+        backgroundColor: 'var(--background)'
+      }}
+    >
+      {/* Faculty Sidebar - Independent Left Scroll Area */}
       <FacultySidebar isMobileOpen={isMobileOpen} setIsMobileOpen={setIsMobileOpen} />
 
-      {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      {/* Main Area - Independent Right Scroll Area */}
+      <div
+        className="cbm-main-area"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          height: '100vh',
+          height: '100dvh',
+          maxHeight: '100vh',
+          maxHeight: '100dvh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}
+      >
         <Header pageTitle={pageTitle} onMenuToggle={() => setIsMobileOpen(!isMobileOpen)} />
 
-        <main style={{ flex: 1, padding: '28px 32px' }} className="cbm-main-content">
+        <main
+          className="cbm-main-content"
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            overscrollBehavior: 'contain',
+            padding: '28px 32px'
+          }}
+        >
           {children}
         </main>
       </div>

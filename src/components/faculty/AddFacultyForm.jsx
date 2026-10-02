@@ -88,7 +88,7 @@ export const AddFacultyForm = ({ onCancel }) => {
         if (onCancel) {
           onCancel();
         } else {
-          navigate('/faculty');
+          navigate('/dashboard');
         }
       } else {
         setErrors({ email: result.error });
@@ -238,7 +238,7 @@ export const AddFacultyForm = ({ onCancel }) => {
         <Button
           type="button"
           variant="outline"
-          onClick={onCancel || (() => navigate('/faculty'))}
+          onClick={onCancel || (() => navigate('/dashboard'))}
         >
           Cancel
         </Button>
