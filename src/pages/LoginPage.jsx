@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { GraduationCap, Mail, ArrowRight, ShieldCheck, PieChart, CheckCircle2, AlertCircle, KeyRound } from 'lucide-react';
+import { GraduationCap, Mail, ArrowRight, ShieldCheck, PieChart, CheckCircle2, AlertCircle, KeyRound, Building, Lock } from 'lucide-react';
 import { Input } from '../components/common/Input';
 import { PasswordInput } from '../components/common/PasswordInput';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
+import { LegalModal } from '../components/common/LegalModal';
 import { useAuth } from '../context/AuthContext';
 
 export const LoginPage = ({ initialMode }) => {
@@ -29,6 +30,7 @@ export const LoginPage = ({ initialMode }) => {
 
   // Forgot Password modal states
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotError, setForgotError] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
@@ -110,116 +112,126 @@ export const LoginPage = ({ initialMode }) => {
     <div
       style={{
         minHeight: '100vh',
+        position: 'relative',
         display: 'flex',
-        backgroundColor: '#F1EFFD',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 'clamp(16px, 3vw, 24px)'
+        padding: '24px 16px',
+        backgroundColor: 'var(--bg-page)'
       }}
     >
-      <div
-        className="cbm-card cbm-auth-card"
-        style={{
-          borderRadius: 24,
-          overflow: 'hidden',
-          boxShadow: '0 20px 50px -10px rgba(68, 60, 222, 0.12)',
-          border: '1px solid var(--border)'
-        }}
-      >
-        {/* Left Side: Branding & Institutional Visual Panel (Desktop) */}
+      {/* Background College Campus Image with 60% Blur & Soft Translucent Overlay */}
+      <div className="cbm-bg-canvas" aria-hidden="true">
+        <div className="cbm-bg-image" />
+        <div className="cbm-bg-overlay" />
+      </div>
+
+      <div className="cbm-auth-card" style={{ position: 'relative', zIndex: 10 }}>
+        {/* Left Side: Institutional Administrative Panel (Desktop) */}
         <div
           style={{
-            backgroundColor: '#13141D',
+            backgroundColor: '#121212',
             color: '#FFFFFF',
-            padding: '52px 44px',
+            padding: '44px 36px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            position: 'relative',
-            overflow: 'hidden'
+            borderRight: '1px solid #27272A'
           }}
           className="hidden md:flex"
         >
-          {/* Subtle background glow */}
-          <div
-            style={{
-              position: 'absolute',
-              top: -60,
-              right: -60,
-              width: 300,
-              height: 300,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(68,60,222,0.3) 0%, rgba(19,20,29,0) 70%)',
-              pointerEvents: 'none'
-            }}
-          />
-
-          {/* Top Brand Header */}
+          {/* Top Institutional Header */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div
                 style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 12,
-                  backgroundColor: 'var(--primary)',
+                  width: 40,
+                  height: 40,
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--gold)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 4px 16px rgba(68, 60, 222, 0.4)'
+                  color: '#FFFFFF',
+                  flexShrink: 0
                 }}
               >
-                <GraduationCap size={26} color="#FFFFFF" />
+                <Building size={20} />
               </div>
               <div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.2 }}>
                   Kongu Engineering College
                 </h3>
-                <p style={{ fontSize: 11, color: 'var(--secondary)', letterSpacing: '0.08em', fontWeight: 600, marginTop: 2 }}>
-                  AUTONOMOUS INSTITUTION
+                <p style={{ fontSize: 11, color: 'var(--gold)', fontWeight: 700, letterSpacing: '0.04em', marginTop: 2 }}>
+                  DEPARTMENT OF COMPUTER SCIENCE & ENGINEERING
                 </p>
               </div>
+            </div>
+
+            <div style={{ marginTop: 28 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.3 }}>
+                Department Budget Management System
+              </h2>
+              <p style={{ fontSize: 13, color: '#A1A1AA', marginTop: 8, lineHeight: 1.6 }}>
+                Official internal administrative portal for managing departmental budget allocations, academic year quotas, faculty activity proposals, and audit disbursements.
+              </p>
             </div>
           </div>
 
           {/* Institutional Highlights */}
-          <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ marginTop: 36, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div
               style={{
-                padding: '18px 20px',
-                borderRadius: 14,
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                padding: '14px 16px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(197, 160, 89, 0.25)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 14
+                gap: 12
               }}
             >
-              <PieChart size={26} style={{ color: 'var(--primary)' }} />
+              <PieChart size={20} style={{ color: 'var(--gold)', flexShrink: 0 }} />
               <div>
-                <p style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF' }}>₹24.5 Lakhs Allocated</p>
-                <p style={{ fontSize: 12, color: '#ABA7CD' }}>CSE Department FY 2026-27 Budget</p>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: '#FFFFFF' }}>FY 2026-27 Academic Allocation</p>
+                <p style={{ fontSize: 12, color: '#A1A1AA' }}>CSE Departmental Quota Management</p>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20, fontSize: 13, color: '#ABA7CD', paddingTop: 8 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <CheckCircle2 size={16} style={{ color: '#10B981' }} /> Audit Ready
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 12, color: '#A1A1AA', paddingTop: 6 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <CheckCircle2 size={14} style={{ color: 'var(--gold)' }} /> Audit Compliant
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <ShieldCheck size={16} style={{ color: 'var(--primary)' }} /> Institutional Security
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <ShieldCheck size={14} style={{ color: 'var(--gold)' }} /> Institutional Access
               </span>
             </div>
           </div>
         </div>
 
         {/* Right Side: Login Form Panel */}
-        <div style={{ padding: 'clamp(28px, 5vw, 48px) clamp(20px, 4vw, 44px)', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ padding: '36px 32px', backgroundColor: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           
-          {/* Mobile Header */}
+          {/* Mobile Institutional Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }} className="md:hidden">
-            <GraduationCap size={28} color="var(--primary)" />
-            <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--dark)' }}>CSE Budget Management</span>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFFFFF'
+              }}
+            >
+              <Building size={16} />
+            </div>
+            <div>
+              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-heading)' }}>Kongu Engineering College</span>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>CSE Budget Portal</div>
+            </div>
           </div>
 
           {/* Segmented Switch (Admin / Faculty) */}
@@ -227,34 +239,15 @@ export const LoginPage = ({ initialMode }) => {
             role="tablist"
             aria-label="Login Role Selection"
             style={{
-              position: 'relative',
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              backgroundColor: '#F3F4F8',
-              borderRadius: 12,
-              padding: 4,
-              marginBottom: 28,
-              border: '1px solid #E5E3F0'
+              backgroundColor: 'var(--slate-100)',
+              borderRadius: 'var(--radius-sm)',
+              padding: 3,
+              marginBottom: 24,
+              border: '1px solid var(--border)'
             }}
           >
-            {/* Animated active sliding pill */}
-            <div
-              style={{
-                position: 'absolute',
-                top: 4,
-                bottom: 4,
-                left: 4,
-                width: 'calc(50% - 4px)',
-                backgroundColor: '#4F46E5',
-                borderRadius: 8,
-                transform: mode === 'admin' ? 'translateX(0%)' : 'translateX(100%)',
-                transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)',
-                zIndex: 1,
-                pointerEvents: 'none'
-              }}
-            />
-
             {/* Admin Option */}
             <button
               type="button"
@@ -266,25 +259,23 @@ export const LoginPage = ({ initialMode }) => {
                 setError('');
               }}
               style={{
-                position: 'relative',
-                zIndex: 2,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
-                padding: '10px 16px',
-                fontSize: 14.5,
-                fontWeight: mode === 'admin' ? 600 : 500,
-                color: mode === 'admin' ? '#FFFFFF' : '#4B4963',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: 8,
+                gap: 6,
+                padding: '8px 12px',
+                fontSize: 13,
+                fontWeight: mode === 'admin' ? 700 : 500,
+                color: mode === 'admin' ? 'var(--gold-text)' : 'var(--text-muted)',
+                backgroundColor: mode === 'admin' ? 'var(--bg-surface)' : 'transparent',
+                border: mode === 'admin' ? '1px solid var(--gold-border)' : '1px solid transparent',
+                borderRadius: 'var(--radius-sm)',
                 cursor: 'pointer',
-                transition: 'color 0.2s ease',
-                fontFamily: 'inherit'
+                boxShadow: mode === 'admin' ? 'var(--shadow-xs)' : 'none',
+                transition: 'all 0.15s ease'
               }}
             >
-              <ShieldCheck size={17} />
+              <ShieldCheck size={15} style={{ color: mode === 'admin' ? 'var(--gold)' : 'inherit' }} />
               <span>Admin</span>
             </button>
 
@@ -299,38 +290,36 @@ export const LoginPage = ({ initialMode }) => {
                 setError('');
               }}
               style={{
-                position: 'relative',
-                zIndex: 2,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
-                padding: '10px 16px',
-                fontSize: 14.5,
-                fontWeight: mode === 'faculty' ? 600 : 500,
-                color: mode === 'faculty' ? '#FFFFFF' : '#4B4963',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: 8,
+                gap: 6,
+                padding: '8px 12px',
+                fontSize: 13,
+                fontWeight: mode === 'faculty' ? 700 : 500,
+                color: mode === 'faculty' ? 'var(--gold-text)' : 'var(--text-muted)',
+                backgroundColor: mode === 'faculty' ? 'var(--bg-surface)' : 'transparent',
+                border: mode === 'faculty' ? '1px solid var(--gold-border)' : '1px solid transparent',
+                borderRadius: 'var(--radius-sm)',
                 cursor: 'pointer',
-                transition: 'color 0.2s ease',
-                fontFamily: 'inherit'
+                boxShadow: mode === 'faculty' ? 'var(--shadow-xs)' : 'none',
+                transition: 'all 0.15s ease'
               }}
             >
-              <GraduationCap size={17} />
+              <GraduationCap size={15} style={{ color: mode === 'faculty' ? 'var(--gold)' : 'inherit' }} />
               <span>Faculty</span>
             </button>
           </div>
 
           {/* Heading */}
-          <div style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 30, fontWeight: 800, color: 'var(--dark)', marginBottom: 8 }}>
-              Welcome Back
+          <div style={{ marginBottom: 20 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', marginBottom: 4 }}>
+              {mode === 'admin' ? 'Administrator Sign In' : 'Faculty Member Sign In'}
             </h2>
-            <p style={{ fontSize: 14.5, color: 'var(--dark-muted)' }}>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
               {mode === 'admin'
-                ? 'Sign in to manage your CSE department budget'
-                : 'Sign in to manage department proposals and activities'}
+                ? 'Sign in to access department budget allocations and proposal approvals'
+                : 'Sign in with your @kongu.edu institutional email to manage proposals'}
             </p>
           </div>
 
@@ -338,32 +327,33 @@ export const LoginPage = ({ initialMode }) => {
           {error && (
             <div
               style={{
-                padding: '14px 18px',
-                borderRadius: 10,
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'var(--danger-bg)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                border: '1px solid var(--danger-border)',
                 color: 'var(--danger-text)',
-                fontSize: 13.5,
-                fontWeight: 600,
-                marginBottom: 24,
+                fontSize: 12.5,
+                fontWeight: 500,
+                marginBottom: 18,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8
               }}
+              role="alert"
             >
-              <AlertCircle size={16} />
+              <AlertCircle size={15} style={{ flexShrink: 0 }} />
               <span>{error}</span>
             </div>
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Email Address */}
             <Input
               id="login-email"
-              label="Email Address"
+              label="Institutional Email Address"
               type="email"
-              placeholder={mode === 'admin' ? 'Enter your email address' : 'Enter your Kongu email'}
+              placeholder={mode === 'admin' ? 'admin@kongu.edu' : 'facultyname@kongu.edu'}
               icon={Mail}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -371,11 +361,11 @@ export const LoginPage = ({ initialMode }) => {
               autoComplete="username"
             />
 
-            {/* Password Input with show/hide toggle */}
+            {/* Password Input */}
             <div>
               <PasswordInput
                 id="login-password"
-                label="Password"
+                label="Account Password"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -384,7 +374,7 @@ export const LoginPage = ({ initialMode }) => {
               />
 
               {/* Forgot Password Link */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -397,7 +387,7 @@ export const LoginPage = ({ initialMode }) => {
                     background: 'none',
                     border: 'none',
                     color: 'var(--primary)',
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer',
                     padding: 0
@@ -414,15 +404,34 @@ export const LoginPage = ({ initialMode }) => {
               variant="primary"
               isLoading={isLoading}
               icon={ArrowRight}
-              style={{ marginTop: 8, height: 52, fontSize: 16, backgroundColor: '#4F46E5' }}
+              style={{ marginTop: 6, height: 42, fontSize: 13.5 }}
             >
               Sign In
             </Button>
           </form>
 
-          {/* Institutional footer note */}
-          <div style={{ marginTop: 36, textAlign: 'center', fontSize: 12.5, color: 'var(--secondary)', fontWeight: 500 }}>
-            Kongu Engineering College • CSE Department Portal
+          {/* Institutional footer note with Legal Policies trigger */}
+          <div style={{ marginTop: 24, paddingTop: 14, borderTop: '1px solid var(--border)', textAlign: 'center', fontSize: 11.5, color: 'var(--text-muted)' }}>
+            <p>Kongu Engineering College • Internal CSE System</p>
+            <button
+              type="button"
+              onClick={() => setShowLegalModal(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--primary)',
+                fontSize: 11.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+                marginTop: 4,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+            >
+              <Lock size={11} />
+              <span>Privacy Policy & Terms of Use</span>
+            </button>
           </div>
         </div>
       </div>
@@ -433,45 +442,56 @@ export const LoginPage = ({ initialMode }) => {
           isOpen={showForgotModal}
           onClose={() => setShowForgotModal(false)}
           title="Reset Account Password"
+          maxWidth="500px"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <p style={{ fontSize: 14, color: 'var(--dark-muted)' }}>
-              Enter your registered Kongu institutional email address. We will dispatch a password recovery link to your inbox.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              Enter your registered Kongu institutional email address. A password recovery link will be dispatched to your inbox.
             </p>
 
             {forgotError && (
               <div
                 style={{
-                  padding: '12px 16px',
-                  borderRadius: 8,
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
                   backgroundColor: 'var(--danger-bg)',
+                  border: '1px solid var(--danger-border)',
                   color: 'var(--danger-text)',
-                  fontSize: 13,
-                  fontWeight: 600
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
                 }}
               >
-                ⚠️ {forgotError}
+                <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                <span>{forgotError}</span>
               </div>
             )}
 
             {forgotSuccess && (
               <div
                 style={{
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                  color: '#047857',
-                  fontSize: 13,
-                  fontWeight: 600
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--success-bg)',
+                  border: '1px solid var(--success-border)',
+                  color: 'var(--success-text)',
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
                 }}
               >
-                ✓ {forgotSuccess}
+                <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
+                <span>{forgotSuccess}</span>
               </div>
             )}
 
-            <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <Input
-                label="Email Address"
+                label="Registered Email Address"
                 type="email"
                 placeholder="name@kongu.edu"
                 icon={Mail}
@@ -480,17 +500,25 @@ export const LoginPage = ({ initialMode }) => {
                 required
               />
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
-                <Button type="button" variant="outline" onClick={() => setShowForgotModal(false)}>
-                  Close
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+                <Button type="button" variant="outline" onClick={() => setShowForgotModal(false)} size="sm">
+                  Cancel
                 </Button>
-                <Button type="submit" variant="primary" isLoading={isSendingReset} icon={KeyRound}>
-                  Send Reset Link
+                <Button type="submit" variant="primary" isLoading={isSendingReset} icon={KeyRound} size="sm">
+                  Send Recovery Link
                 </Button>
               </div>
             </form>
           </div>
         </Modal>
+      )}
+
+      {/* Institutional Legal Modal */}
+      {showLegalModal && (
+        <LegalModal
+          isOpen={showLegalModal}
+          onClose={() => setShowLegalModal(false)}
+        />
       )}
     </div>
   );

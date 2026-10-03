@@ -15,12 +15,12 @@ export const MONTHLY_SPENDING_DATA = [
 ];
 
 export const CATEGORY_ALLOCATIONS = [
-  { id: 'csea', name: 'CSEA Association', allocated: 450000, spent: 320000, color: '#443CDE', percentage: 24.7 },
-  { id: 'ccc', name: 'CCC Coding Club', allocated: 350000, spent: 240000, color: '#635BFF', percentage: 19.2 },
-  { id: 'equip', name: 'Lab & Equipment', allocated: 520000, spent: 390000, color: '#3B82F6', percentage: 28.6 },
-  { id: 'workshops', name: 'Technical Workshops', allocated: 240000, spent: 165000, color: '#10B981', percentage: 13.2 },
-  { id: 'maint', name: 'Department Maintenance', allocated: 160000, spent: 95000, color: '#F59E0B', percentage: 8.8 },
-  { id: 'research', name: 'Academic Research', allocated: 100000, spent: 35000, color: '#8B5CF6', percentage: 5.5 },
+  { id: 'csea', name: 'CSEA Association', allocated: 450000, spent: 320000, color: '#C5A059', percentage: 24.7 },
+  { id: 'ccc', name: 'CCC Coding Club', allocated: 350000, spent: 240000, color: '#121212', percentage: 19.2 },
+  { id: 'equip', name: 'Lab & Equipment', allocated: 520000, spent: 390000, color: '#52525B', percentage: 28.6 },
+  { id: 'workshops', name: 'Technical Workshops', allocated: 240000, spent: 165000, color: '#3F3F46', percentage: 13.2 },
+  { id: 'maint', name: 'Department Maintenance', allocated: 160000, spent: 95000, color: '#71717A', percentage: 8.8 },
+  { id: 'research', name: 'Academic Research', allocated: 100000, spent: 35000, color: '#9E7A32', percentage: 5.5 },
 ];
 
 export const INITIAL_TRANSACTIONS = [

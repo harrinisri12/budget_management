@@ -1,18 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileSpreadsheet,
-  FilePlus,
+  PlusCircle,
   User,
   LogOut,
-  X
+  X,
+  Building2,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { LegalModal } from '../common/LegalModal';
 
 export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const [showLegalModal, setShowLegalModal] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -33,7 +37,7 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
     {
       label: 'New Proposal',
       path: '/faculty/proposal/new',
-      icon: FilePlus
+      icon: PlusCircle
     },
     {
       label: 'Profile',
@@ -51,103 +55,86 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(19, 20, 29, 0.4)',
-            backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(15, 23, 42, 0.4)',
             zIndex: 40
           }}
         />
       )}
 
-      <aside
-        style={{
-          width: 280,
-          backgroundColor: '#FFFFFF',
-          borderRight: '1px solid var(--border)',
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100vh',
-          position: 'sticky',
-          top: 0,
-          zIndex: 45,
-          transition: 'transform 0.3s ease',
-          flexShrink: 0
-        }}
-        className={`cbm-sidebar ${isMobileOpen ? 'mobile-show' : ''}`}
-      >
+      <aside className={`cbm-sidebar ${isMobileOpen ? 'mobile-show' : ''}`}>
         {/* Sidebar Brand Header */}
         <div
           style={{
-            padding: '24px 24px 20px',
+            padding: '16px 18px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid var(--border)'
+            borderBottom: '1px solid var(--border)',
+            flexShrink: 0
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                background: 'linear-gradient(135deg, var(--primary) 0%, #6366F1 100%)',
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#FFFFFF',
-                fontWeight: 900,
-                fontSize: 22,
-                boxShadow: '0 4px 12px rgba(68, 60, 222, 0.25)',
-                letterSpacing: '-0.02em'
+                flexShrink: 0
               }}
             >
-              K
+              <Building2 size={18} />
             </div>
             <div>
-              <h1 style={{ fontSize: 16, fontWeight: 800, color: 'var(--dark)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                CSE Budget
-              </h1>
-              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--secondary)', letterSpacing: '0.04em' }}>
-                FACULTY PORTAL
+              <h2 style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-heading)', lineHeight: 1.2 }}>
+                Faculty Portal
+              </h2>
+              <p style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.03em' }}>
+                KEC CSE DEPARTMENT
               </p>
             </div>
           </div>
           {setIsMobileOpen && (
             <button
               onClick={() => setIsMobileOpen(false)}
-              style={{ background: 'none', border: 'none', color: 'var(--secondary)', cursor: 'pointer', padding: 4 }}
+              style={{ background: 'none', border: 'none', color: 'var(--slate-400)', cursor: 'pointer', padding: 4 }}
               className="lg:hidden"
               aria-label="Close sidebar"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           )}
         </div>
 
         {/* User Card */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', backgroundColor: '#FAF9FE' }}>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                backgroundColor: 'rgba(68, 60, 222, 0.1)',
+                width: 32,
+                height: 32,
+                borderRadius: 4,
+                backgroundColor: 'var(--primary-subtle)',
                 color: 'var(--primary)',
+                border: '1px solid var(--primary-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 700,
-                fontSize: 14
+                fontSize: 13
               }}
             >
               {user?.name ? user.name.charAt(0) : 'F'}
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.name || 'Faculty Member'}
               </p>
-              <p style={{ fontSize: 11, color: 'var(--secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.designation || 'CSE Department'}
               </p>
             </div>
@@ -158,77 +145,102 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
         <nav
           className="cbm-sidebar-nav"
           style={{
-            padding: '20px 16px',
+            padding: '14px 10px',
             flex: 1,
-            minHeight: 0,
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            overscrollBehavior: 'contain',
             display: 'flex',
             flexDirection: 'column',
-            gap: 6,
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
+            gap: 3
           }}
         >
-          <div style={{ padding: '0 12px 8px', fontSize: 11, fontWeight: 700, color: '#A09CB8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Faculty Menu
-          </div>
-
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
-                onClick={() => setIsMobileOpen(false)}
-                className={({ isActive }) => `cbm-nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
                 style={({ isActive }) => ({
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 12,
-                  padding: '12px 16px',
-                  borderRadius: 12,
-                  fontSize: 14,
-                  fontWeight: isActive ? 700 : 600,
-                  color: isActive ? 'var(--primary)' : 'var(--dark-muted)',
-                  backgroundColor: isActive ? 'rgba(68, 60, 222, 0.08)' : 'transparent',
+                  gap: 10,
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 13,
+                  fontWeight: isActive ? 700 : 500,
+                  color: isActive ? 'var(--gold-text)' : 'var(--text-body)',
+                  backgroundColor: isActive ? 'var(--gold-subtle)' : 'transparent',
+                  borderLeft: isActive ? '3px solid var(--gold)' : '3px solid transparent',
                   textDecoration: 'none',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.15s ease'
                 })}
               >
-                <Icon size={20} style={{ opacity: 0.9 }} />
-                <span>{item.label}</span>
+                {({ isActive }) => (
+                  <>
+                    <Icon size={16} style={{ color: isActive ? 'var(--gold)' : 'var(--slate-500)' }} />
+                    <span>{item.label}</span>
+                  </>
+                )}
               </NavLink>
             );
           })}
         </nav>
 
-        {/* Logout Button */}
-        <div style={{ padding: '16px 20px 24px', borderTop: '1px solid var(--border)' }}>
+        {/* Logout Button & Policy */}
+        <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button
+            onClick={() => setShowLegalModal(true)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '6px 8px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 11.5,
+              fontWeight: 500,
+              color: 'var(--text-muted)',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <Lock size={12} />
+            <span>Privacy Policy & Terms</span>
+          </button>
+
           <button
             onClick={handleLogout}
             style={{
               width: '100%',
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              padding: '12px 16px',
-              borderRadius: 12,
-              fontSize: 14,
+              justifyContent: 'center',
+              gap: 8,
+              padding: '8px 12px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 13,
               fontWeight: 600,
-              color: '#EF4444',
-              backgroundColor: 'rgba(239, 68, 68, 0.06)',
-              border: 'none',
+              color: 'var(--danger)',
+              backgroundColor: 'var(--danger-bg)',
+              border: '1px solid var(--danger-border)',
               cursor: 'pointer',
-              transition: 'background 0.2s ease'
+              transition: 'all 0.15s ease'
             }}
           >
-            <LogOut size={18} />
+            <LogOut size={15} />
             <span>Logout</span>
           </button>
         </div>
       </aside>
+
+      {/* Institutional Legal Modal */}
+      {showLegalModal && (
+        <LegalModal
+          isOpen={showLegalModal}
+          onClose={() => setShowLegalModal(false)}
+        />
+      )}
     </>
   );
 };

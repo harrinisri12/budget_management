@@ -8,13 +8,13 @@ export const Toast = () => {
   if (!toast) return null;
 
   const icons = {
-    success: <CheckCircle2 size={20} style={{ color: '#10B981' }} />,
-    error: <AlertCircle size={20} style={{ color: '#EF4444' }} />,
-    info: <Info size={20} style={{ color: '#3B82F6' }} />
+    success: <CheckCircle2 size={18} style={{ color: '#4ADE80', flexShrink: 0 }} />,
+    error: <AlertCircle size={18} style={{ color: '#F87171', flexShrink: 0 }} />,
+    info: <Info size={18} style={{ color: 'var(--gold)', flexShrink: 0 }} />
   };
 
   return (
-    <div className="cbm-toast">
+    <div className="cbm-toast" role="status" aria-live="polite">
       {icons[toast.type] || icons.success}
       <span>{toast.message}</span>
     </div>

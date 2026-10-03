@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, AlertCircle, KeyRound } from 'lucide-react';
 import { PasswordInput } from '../components/common/PasswordInput';
 import { Button } from '../components/common/Button';
 import { useAuth } from '../context/AuthContext';
@@ -25,7 +25,7 @@ export const ResetPasswordPage = () => {
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError('Password must be at least 6 characters long.');
       return;
     }
 
@@ -43,7 +43,7 @@ export const ResetPasswordPage = () => {
       setSuccess(true);
       setTimeout(() => {
         navigate('/login');
-      }, 2500);
+      }, 2000);
     } else {
       setError(result.message || 'Failed to update password.');
     }
@@ -53,89 +53,94 @@ export const ResetPasswordPage = () => {
     <div
       style={{
         minHeight: '100vh',
+        position: 'relative',
         display: 'flex',
-        backgroundColor: '#F1EFFD',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 'clamp(16px, 3vw, 24px)'
+        padding: '24px 16px',
+        backgroundColor: 'var(--bg-page)'
       }}
     >
+      {/* Background College Campus Image with 60% Blur & Soft Translucent Overlay */}
+      <div className="cbm-bg-canvas" aria-hidden="true">
+        <div className="cbm-bg-image" />
+        <div className="cbm-bg-overlay" />
+      </div>
+
       <div
         className="cbm-card"
         style={{
           width: '100%',
-          maxWidth: 480,
-          padding: 'clamp(24px, 5vw, 44px)',
-          borderRadius: 24,
-          backgroundColor: '#FFFFFF',
-          boxShadow: '0 20px 50px -10px rgba(68, 60, 222, 0.12)',
-          border: '1px solid var(--border)'
+          maxWidth: 440,
+          padding: '32px 36px',
+          boxShadow: 'var(--shadow-modal)',
+          position: 'relative',
+          zIndex: 10
         }}
       >
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div
             style={{
-              width: 52,
-              height: 52,
-              borderRadius: 14,
-              backgroundColor: 'var(--primary)',
+              width: 44,
+              height: 44,
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: 'var(--gold)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#FFFFFF',
-              marginBottom: 16,
-              boxShadow: '0 4px 16px rgba(68, 60, 222, 0.3)'
+              marginBottom: 12
             }}
           >
-            <GraduationCap size={28} />
+            <KeyRound size={22} />
           </div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)' }}>
-            Reset Your Password
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)' }}>
+            Reset Account Password
           </h2>
-          <p style={{ fontSize: 13.5, color: 'var(--dark-muted)', marginTop: 4 }}>
-            Enter your new password for your Kongu Budget Management account.
+          <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
+            Enter your new credentials for the Kongu Budget Portal.
           </p>
         </div>
 
         {success ? (
           <div
             style={{
-              padding: '20px',
-              borderRadius: 12,
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              color: '#047857',
+              padding: '16px',
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: 'var(--success-bg)',
+              border: '1px solid var(--success-border)',
+              color: 'var(--success-text)',
               textAlign: 'center',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 10
+              gap: 8
             }}
           >
-            <CheckCircle2 size={32} color="#10B981" />
-            <p style={{ fontSize: 15, fontWeight: 700 }}>Password Updated Successfully!</p>
-            <p style={{ fontSize: 13, color: '#047857' }}>
-              Redirecting you to login page...
+            <CheckCircle2 size={26} color="var(--success)" />
+            <p style={{ fontSize: 13.5, fontWeight: 600 }}>Password Updated Successfully</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Redirecting to authentication portal...
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {error && (
               <div
                 style={{
-                  padding: '12px 16px',
-                  borderRadius: 10,
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
                   backgroundColor: 'var(--danger-bg)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  border: '1px solid var(--danger-border)',
                   color: 'var(--danger-text)',
-                  fontSize: 13.5,
-                  fontWeight: 600,
+                  fontSize: 12.5,
+                  fontWeight: 500,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8
                 }}
               >
-                <AlertCircle size={16} />
+                <AlertCircle size={15} style={{ flexShrink: 0 }} />
                 <span>{error}</span>
               </div>
             )}
@@ -143,7 +148,7 @@ export const ResetPasswordPage = () => {
             <PasswordInput
               id="new-password"
               label="New Password"
-              placeholder="Enter new password"
+              placeholder="Enter at least 6 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -163,12 +168,12 @@ export const ResetPasswordPage = () => {
               variant="primary"
               isLoading={isLoading}
               icon={ArrowRight}
-              style={{ height: 50, fontSize: 15, marginTop: 8 }}
+              style={{ height: 42, fontSize: 13.5, marginTop: 4 }}
             >
               Update Password
             </Button>
 
-            <div style={{ textAlign: 'center', marginTop: 12 }}>
+            <div style={{ textAlign: 'center', marginTop: 8 }}>
               <button
                 type="button"
                 onClick={() => navigate('/login')}
@@ -177,7 +182,7 @@ export const ResetPasswordPage = () => {
                   border: 'none',
                   color: 'var(--primary)',
                   fontWeight: 600,
-                  fontSize: 13.5,
+                  fontSize: 12.5,
                   cursor: 'pointer'
                 }}
               >
@@ -190,3 +195,5 @@ export const ResetPasswordPage = () => {
     </div>
   );
 };
+
+

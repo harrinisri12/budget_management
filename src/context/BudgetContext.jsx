@@ -7,11 +7,11 @@ import { CATEGORY_COLOR_MAP } from '../data/categories';
 const BudgetContext = createContext();
 
 const CATEGORY_COLORS = CATEGORY_COLOR_MAP || {
-  'CSEA': '#443CDE',
-  'CCC': '#635BFF',
-  'Research': '#8B5CF6',
-  'Lab and Equipment': '#3B82F6',
-  'Department Maintenance': '#F59E0B'
+  'CSEA': '#C5A059',
+  'CCC': '#121212',
+  'Research': '#3F3F46',
+  'Lab and Equipment': '#52525B',
+  'Department Maintenance': '#71717A'
 };
 
 const DEFAULT_ACADEMIC_YEARS = [
@@ -272,7 +272,7 @@ export const BudgetProvider = ({ children }) => {
           name: c.name,
           allocated: Number(c.allocated_amount),
           spent: Number(c.spent_amount),
-          color: CATEGORY_COLORS[c.name] || '#443CDE',
+          color: CATEGORY_COLORS[c.name] || '#C5A059',
           percentage: totalBudget > 0 ? Number(((Number(c.allocated_amount) / totalBudget) * 100).toFixed(1)) : 0
         }));
 

@@ -27,8 +27,8 @@ const AdminRoute = ({ children }) => {
   const { isAuthenticated, isFaculty, loading } = useAuth();
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1EFFD' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--primary)' }}>Loading CSE Portal...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-page)' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--gold-text)' }}>Loading CSE Portal...</div>
       </div>
     );
   }
@@ -46,8 +46,8 @@ const FacultyRoute = ({ children }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1EFFD' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--primary)' }}>Loading CSE Faculty Portal...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-page)' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--gold-text)' }}>Loading CSE Faculty Portal...</div>
       </div>
     );
   }
@@ -65,8 +65,8 @@ const PublicRoute = ({ children }) => {
   const { isAuthenticated, isFaculty, loading } = useAuth();
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1EFFD' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--primary)' }}>Loading CSE Portal...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-page)' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--gold-text)' }}>Loading CSE Portal...</div>
       </div>
     );
   }

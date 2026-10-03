@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { Badge } from '../components/common/Badge';
+import { TableSkeleton } from '../components/common/Skeleton';
 import { useBudget } from '../context/BudgetContext';
-import { CheckCircle2, XCircle, AlertCircle, Clock, Eye, Filter } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertCircle, Eye, Filter } from 'lucide-react';
 
 export const AdminProposalsPage = () => {
-  const { proposals, updateProposalStatus } = useBudget();
+  const { proposals, updateProposalStatus, loading } = useBudget();
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedProposal, setSelectedProposal] = useState(null);
 
@@ -13,115 +15,52 @@ export const AdminProposalsPage = () => {
     return p.status === filterStatus;
   });
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'Approved':
-        return (
-          <span
-            style={{
-              padding: '6px 14px',
-              borderRadius: 20,
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              color: '#10B981',
-              fontSize: 12.5,
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <CheckCircle2 size={15} /> Approved
-          </span>
-        );
-      case 'Rejected':
-        return (
-          <span
-            style={{
-              padding: '6px 14px',
-              borderRadius: 20,
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              color: '#EF4444',
-              fontSize: 12.5,
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <XCircle size={15} /> Rejected
-          </span>
-        );
-      case 'Under Review':
-        return (
-          <span
-            style={{
-              padding: '6px 14px',
-              borderRadius: 20,
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              color: '#3B82F6',
-              fontSize: 12.5,
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <AlertCircle size={15} /> Under Review
-          </span>
-        );
-      default:
-        return (
-          <span
-            style={{
-              padding: '6px 14px',
-              borderRadius: 20,
-              backgroundColor: 'rgba(245, 158, 11, 0.1)',
-              color: '#F59E0B',
-              fontSize: 12.5,
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <Clock size={15} /> Pending
-          </span>
-        );
-    }
-  };
-
   return (
-    <DashboardLayout pageTitle="Faculty Proposals">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-        {/* Header */}
+    <DashboardLayout pageTitle="Proposals">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Page Header */}
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--dark)' }}>Faculty Budget Proposals</h1>
-          <p style={{ fontSize: 14, color: 'var(--dark-muted)', marginTop: 4 }}>
-            Review, evaluate, and update approval decisions for CSE department faculty proposals.
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)' }}>Faculty Budget Proposals</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+            Review, evaluate, and record approval decisions for CSE department faculty proposals.
           </p>
         </div>
 
-        {/* Proposals List Card */}
-        <div className="cbm-card" style={{ padding: 'clamp(18px, 3vw, 28px)' }}>
+        <hr className="cbm-divider" />
+
+        {/* Proposals Register Section */}
+        <section className="cbm-section">
+          <div className="cbm-section-header">
+            <div>
+              <h2 className="cbm-section-title">Department Budget Proposals Register</h2>
+              <p className="cbm-section-subtitle">
+                Official register of departmental funding proposals submitted by faculty members
+              </p>
+            </div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)' }}>
+              Showing {filteredProposals.length} of {proposals.length} records
+            </div>
+          </div>
+
           {/* Status Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Filter size={16} /> Filter Status:
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Filter size={14} style={{ color: 'var(--slate-500)' }} /> Status:
             </span>
             {['All', 'Pending', 'Under Review', 'Approved', 'Rejected'].map((st) => (
               <button
                 key={st}
                 onClick={() => setFilterStatus(st)}
                 style={{
-                  padding: '7px 16px',
-                  borderRadius: 20,
-                  fontSize: 13,
-                  fontWeight: filterStatus === st ? 700 : 600,
-                  backgroundColor: filterStatus === st ? 'var(--primary)' : 'rgba(0,0,0,0.04)',
-                  color: filterStatus === st ? '#FFFFFF' : 'var(--dark-muted)',
-                  border: 'none',
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 12.5,
+                  fontWeight: filterStatus === st ? 600 : 500,
+                  backgroundColor: filterStatus === st ? 'var(--primary)' : 'var(--bg-surface)',
+                  color: filterStatus === st ? '#FFFFFF' : 'var(--text-body)',
+                  border: filterStatus === st ? '1px solid var(--primary)' : '1px solid var(--border)',
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.15s ease'
                 }}
               >
                 {st}
@@ -129,191 +68,185 @@ export const AdminProposalsPage = () => {
             ))}
           </div>
 
-          {filteredProposals.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--dark-muted)' }}>
-              No proposals found matching status filter "{filterStatus}".
-            </div>
-          ) : (
-            <div className="cbm-table-container">
-              <table className="cbm-table">
-                <thead>
-                  <tr>
-                    <th>Proposal ID</th>
-                    <th>Academic Year</th>
-                    <th>Faculty</th>
-                    <th>Category</th>
-                    <th>Program Title</th>
-                    <th>Program Date</th>
-                    <th>Proposed Amount</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
+          {/* Table */}
+          <div className="cbm-table-container">
+            <table className="cbm-table">
+              <thead>
+                <tr>
+                  <th>Proposal ID</th>
+                  <th>Academic Year</th>
+                  <th>Faculty Member</th>
+                  <th>Category</th>
+                  <th>Program Title</th>
+                  <th>Program Date</th>
+                  <th style={{ textAlign: 'right' }}>Proposed Amount</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'center' }}>Action</th>
+                </tr>
+              </thead>
+              {loading ? (
+                <TableSkeleton rows={5} />
+              ) : (
                 <tbody>
-                  {filteredProposals.map((prop) => (
-                    <tr key={prop.id}>
-                      <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{prop.id}</td>
-                      <td style={{ fontWeight: 600, color: 'var(--dark)' }}>
-                        <span style={{ padding: '3px 8px', borderRadius: 6, backgroundColor: '#F1EFFD', color: 'var(--primary)', fontSize: 12, fontWeight: 700 }}>
-                          {prop.academicYear || '2026-2027'}
-                        </span>
+                  {filteredProposals.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: 'center', padding: '36px 20px', color: 'var(--text-muted)' }}>
+                        No proposals found matching status filter "{filterStatus}".
                       </td>
-                      <td style={{ fontWeight: 700, color: 'var(--dark)' }}>
-                        {prop.facultyName || 'Faculty Member'}
-                        <div style={{ fontSize: 11, color: 'var(--dark-muted)', fontWeight: 500 }}>{prop.facultyEmail}</div>
-                      </td>
-                      <td style={{ color: 'var(--dark)', fontWeight: 600 }}>
-                        <div>{prop.category}</div>
-                        {prop.subCategory && (
-                          <div style={{ fontSize: 11, color: 'var(--secondary)', fontWeight: 600 }}>{prop.subCategory}</div>
-                        )}
-                      </td>
-                      <td style={{ color: 'var(--dark)', fontWeight: 700 }}>{prop.title}</td>
-                      <td style={{ color: 'var(--dark-muted)' }}>{prop.programDate}</td>
-                      <td style={{ fontWeight: 800, color: 'var(--dark)' }}>
-                        ₹{Number(prop.amount).toLocaleString('en-IN')}
-                      </td>
-                      <td>{getStatusBadge(prop.status)}</td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    </tr>
+                  ) : (
+                    filteredProposals.map((prop) => (
+                      <tr key={prop.id}>
+                        <td style={{ fontWeight: 600, color: 'var(--primary)' }}>{prop.id}</td>
+                        <td>
+                          <span style={{ padding: '2px 6px', borderRadius: 3, backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', color: 'var(--slate-700)', fontSize: 11.5, fontWeight: 600 }}>
+                            {prop.academicYear || '2026-2027'}
+                          </span>
+                        </td>
+                        <td style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
+                          {prop.facultyName || 'Faculty Member'}
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>{prop.facultyEmail}</div>
+                        </td>
+                        <td style={{ color: 'var(--text-body)', fontWeight: 500 }}>
+                          <div>{prop.category}</div>
+                          {prop.subCategory && (
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{prop.subCategory}</div>
+                          )}
+                        </td>
+                        <td style={{ color: 'var(--text-heading)', fontWeight: 600 }}>{prop.title}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>{prop.programDate}</td>
+                        <td style={{ fontWeight: 700, color: 'var(--text-heading)', textAlign: 'right' }}>
+                          ₹{Number(prop.amount).toLocaleString('en-IN')}
+                        </td>
+                        <td>
+                          <Badge status={prop.status} />
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
                           <button
                             onClick={() => setSelectedProposal(prop)}
                             style={{
-                              padding: '6px 12px',
-                              borderRadius: 8,
-                              backgroundColor: 'rgba(68, 60, 222, 0.08)',
-                              color: 'var(--primary)',
-                              border: 'none',
-                              fontWeight: 700,
-                              fontSize: 12.5,
+                              padding: '4px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              backgroundColor: 'var(--bg-surface)',
+                              color: 'var(--text-body)',
+                              border: '1px solid var(--border)',
+                              fontWeight: 600,
+                              fontSize: 12,
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 5,
+                              gap: 4,
                               cursor: 'pointer'
                             }}
                           >
-                            <Eye size={14} /> Review
+                            <Eye size={12} />
+                            <span>Review</span>
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+              )}
+            </table>
+          </div>
+        </section>
 
         {/* Admin Proposal Review Modal */}
         {selectedProposal && (
           <div
             onClick={() => setSelectedProposal(null)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              backgroundColor: 'rgba(19, 20, 29, 0.5)',
-              backdropFilter: 'blur(4px)',
-              zIndex: 60,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'clamp(12px, 3vw, 24px)'
-            }}
+            className="cbm-modal-backdrop"
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="cbm-card"
-              style={{
-                width: '100%',
-                maxWidth: 580,
-                padding: 'clamp(20px, 4vw, 32px)',
-                borderRadius: 20,
-                backgroundColor: '#FFFFFF',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
-                maxHeight: '90vh',
-                overflowY: 'auto'
-              }}
+              className="cbm-modal-content"
+              style={{ maxWidth: 540 }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
                 <div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>Admin Proposal Review</span>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--dark)', marginTop: 2 }}>{selectedProposal.id}</h2>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Proposal Evaluation</span>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-heading)', marginTop: 2 }}>{selectedProposal.id}</h2>
                 </div>
-                {getStatusBadge(selectedProposal.status)}
+                <Badge status={selectedProposal.status} />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 14, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
                   <div>
-                    <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Academic Year</span>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', marginTop: 2 }}>{selectedProposal.academicYear || '2026-2027'}</p>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Academic Year</span>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{selectedProposal.academicYear || '2026-2027'}</p>
                   </div>
                   <div>
-                    <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Proposal Date</span>
-                    <p style={{ fontSize: 13.5, color: 'var(--dark)', marginTop: 2 }}>{selectedProposal.proposalDate || selectedProposal.programDate}</p>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposal Date</span>
+                    <p style={{ fontSize: 13, color: 'var(--text-body)', marginTop: 1 }}>{selectedProposal.proposalDate || selectedProposal.programDate}</p>
                   </div>
                 </div>
 
-                <div style={{ paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Requested By</span>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', marginTop: 2 }}>
+                <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Applicant Faculty</span>
+                  <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>
                     {selectedProposal.facultyName} ({selectedProposal.facultyEmail})
                   </p>
                 </div>
 
-                <div style={{ paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Program Title</span>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', marginTop: 2 }}>{selectedProposal.title}</p>
+                <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Program Title</span>
+                  <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{selectedProposal.title}</p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 14, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
                   <div>
-                    <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Category</span>
-                    <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--dark)', marginTop: 2 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Category</span>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-body)', marginTop: 1 }}>
                       {selectedProposal.category} {selectedProposal.subCategory ? `— ${selectedProposal.subCategory}` : ''}
                     </p>
                   </div>
                   <div>
-                    <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Program Date</span>
-                    <p style={{ fontSize: 13.5, color: 'var(--dark)', marginTop: 2 }}>{selectedProposal.programDate}</p>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Program Date</span>
+                    <p style={{ fontSize: 13, color: 'var(--text-body)', marginTop: 1 }}>{selectedProposal.programDate}</p>
                   </div>
                 </div>
 
-                <div style={{ paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Guest Details</span>
-                  <p style={{ fontSize: 13.5, color: 'var(--dark-muted)', marginTop: 2 }}>{selectedProposal.guestDetails || 'None'}</p>
+                <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Guest Details</span>
+                  <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 1 }}>{selectedProposal.guestDetails || 'None specified'}</p>
                 </div>
 
                 <div>
-                  <span style={{ fontSize: 11.5, color: 'var(--secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Proposed Amount</span>
-                  <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary)', marginTop: 2 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposed Amount</span>
+                  <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-heading)', marginTop: 1 }}>
                     ₹{Number(selectedProposal.amount).toLocaleString('en-IN')}
                   </p>
                 </div>
 
                 {/* Admin Status Actions */}
-                <div style={{ marginTop: 12, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--dark)', display: 'block', marginBottom: 10 }}>
-                    Update Proposal Status:
+                <div style={{ marginTop: 6, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-heading)', display: 'block', marginBottom: 8 }}>
+                    Administrative Approval Decision:
                   </span>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 100px), 1fr))', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 8 }}>
                     <button
                       onClick={() => {
                         updateProposalStatus(selectedProposal.id, 'Approved');
                         setSelectedProposal(null);
                       }}
                       style={{
-                        padding: '10px',
-                        borderRadius: 10,
-                        backgroundColor: '#10B981',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        fontWeight: 700,
-                        fontSize: 13,
-                        cursor: 'pointer'
+                        padding: '8px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontWeight: 600,
+                        fontSize: 12.5,
+                        cursor: 'pointer',
+                        border: '1px solid var(--success-border)',
+                        backgroundColor: 'var(--success-bg)',
+                        color: 'var(--success-text)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4
                       }}
                     >
-                      Approve
+                      <CheckCircle2 size={13} />
+                      <span>Approve</span>
                     </button>
                     <button
                       onClick={() => {
@@ -321,17 +254,22 @@ export const AdminProposalsPage = () => {
                         setSelectedProposal(null);
                       }}
                       style={{
-                        padding: '10px',
-                        borderRadius: 10,
-                        backgroundColor: '#3B82F6',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        fontWeight: 700,
-                        fontSize: 13,
-                        cursor: 'pointer'
+                        padding: '8px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        backgroundColor: 'var(--info-bg)',
+                        color: 'var(--info-text)',
+                        border: '1px solid var(--info-border)',
+                        fontWeight: 600,
+                        fontSize: 12.5,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4
                       }}
                     >
-                      Under Review
+                      <AlertCircle size={13} />
+                      <span>Under Review</span>
                     </button>
                     <button
                       onClick={() => {
@@ -339,17 +277,22 @@ export const AdminProposalsPage = () => {
                         setSelectedProposal(null);
                       }}
                       style={{
-                        padding: '10px',
-                        borderRadius: 10,
-                        backgroundColor: '#EF4444',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        fontWeight: 700,
-                        fontSize: 13,
-                        cursor: 'pointer'
+                        padding: '8px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        backgroundColor: 'var(--danger-bg)',
+                        color: 'var(--danger-text)',
+                        border: '1px solid var(--danger-border)',
+                        fontWeight: 600,
+                        fontSize: 12.5,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4
                       }}
                     >
-                      Reject
+                      <XCircle size={13} />
+                      <span>Reject</span>
                     </button>
                   </div>
                 </div>
@@ -359,14 +302,14 @@ export const AdminProposalsPage = () => {
                 onClick={() => setSelectedProposal(null)}
                 style={{
                   width: '100%',
-                  padding: '12px',
-                  borderRadius: 12,
-                  backgroundColor: '#F1EFFD',
-                  color: 'var(--dark)',
-                  border: 'none',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  marginTop: 18,
+                  padding: '8px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--bg-surface)',
+                  color: 'var(--text-body)',
+                  border: '1px solid var(--border)',
+                  fontWeight: 600,
+                  fontSize: 12.5,
+                  marginTop: 14,
                   cursor: 'pointer'
                 }}
               >

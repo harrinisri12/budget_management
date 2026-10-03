@@ -7,51 +7,21 @@ export const FacultyLayout = ({ children, pageTitle = 'Faculty Dashboard' }) => 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div
-      className="cbm-admin-layout"
-      style={{
-        display: 'flex',
-        height: '100vh',
-        height: '100dvh',
-        maxHeight: '100vh',
-        maxHeight: '100dvh',
-        width: '100%',
-        overflow: 'hidden',
-        backgroundColor: 'var(--background)'
-      }}
-    >
-      {/* Faculty Sidebar - Independent Left Scroll Area */}
+    <div className="cbm-admin-layout">
+      {/* Subtle College Campus Watermark */}
+      <div className="cbm-bg-canvas" aria-hidden="true">
+        <div className="cbm-bg-image" />
+        <div className="cbm-bg-overlay" />
+      </div>
+
+      {/* Faculty Sidebar */}
       <FacultySidebar isMobileOpen={isMobileOpen} setIsMobileOpen={setIsMobileOpen} />
 
-      {/* Main Area - Independent Right Scroll Area */}
-      <div
-        className="cbm-main-area"
-        style={{
-          flex: 1,
-          minWidth: 0,
-          minHeight: 0,
-          height: '100vh',
-          height: '100dvh',
-          maxHeight: '100vh',
-          maxHeight: '100dvh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}
-      >
+      {/* Main Content Area */}
+      <div className="cbm-main-area">
         <Header pageTitle={pageTitle} onMenuToggle={() => setIsMobileOpen(!isMobileOpen)} />
 
-        <main
-          className="cbm-main-content"
-          style={{
-            flex: 1,
-            minHeight: 0,
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            overscrollBehavior: 'contain',
-            padding: '28px 32px'
-          }}
-        >
+        <main className="cbm-main-content">
           {children}
         </main>
       </div>

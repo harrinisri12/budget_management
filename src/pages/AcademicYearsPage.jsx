@@ -5,12 +5,11 @@ import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
 import { Modal } from '../components/common/Modal';
 import { Badge } from '../components/common/Badge';
+import { TableSkeleton } from '../components/common/Skeleton';
 import {
   CalendarRange,
   Plus,
   Edit2,
-  CheckCircle2,
-  XCircle,
   AlertCircle,
   Search,
   Check,
@@ -18,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const AcademicYearsPage = () => {
-  const { academicYears, addAcademicYear, updateAcademicYear, toggleAcademicYearStatus } = useBudget();
+  const { academicYears, addAcademicYear, updateAcademicYear, toggleAcademicYearStatus, loading } = useBudget();
 
   // Form State for Adding Academic Year
   const [newYear, setNewYear] = useState('');
@@ -145,41 +144,24 @@ export const AcademicYearsPage = () => {
 
   return (
     <DashboardLayout pageTitle="Academic Years">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Page Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <div style={{ fontSize: 13, color: 'var(--secondary)', fontWeight: 600, marginBottom: 2 }}>
-              INSTITUTIONAL BUDGET CYCLES
-            </div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--dark)' }}>Academic Years</h1>
-            <p style={{ fontSize: 14, color: 'var(--dark-muted)', marginTop: 4 }}>
-              Define academic calendar years, allocate allocated budgets, and control activation for faculty budget proposals.
-            </p>
-          </div>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)' }}>Academic Year Cycles</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+            Define academic calendar cycles, departmental budget allocations, and active status for proposal submission.
+          </p>
         </div>
 
-        {/* ADD ACADEMIC YEAR FORM CARD */}
-        <div className="cbm-card" style={{ padding: 'clamp(20px, 3vw, 28px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                backgroundColor: 'rgba(68, 60, 222, 0.1)',
-                color: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <CalendarRange size={20} />
-            </div>
+        <hr className="cbm-divider" />
+
+        {/* SECTION 1: CREATE ACADEMIC YEAR FORM */}
+        <section className="cbm-section">
+          <div className="cbm-section-header">
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--dark)' }}>Add Academic Year</h3>
-              <p style={{ fontSize: 12.5, color: 'var(--dark-muted)' }}>
-                Create a new academic cycle and set its departmental budget allocation.
+              <h2 className="cbm-section-title">Create Academic Year Cycle</h2>
+              <p className="cbm-section-subtitle">
+                Set up a new academic cycle and allocate total departmental budget quota
               </p>
             </div>
           </div>
@@ -187,63 +169,56 @@ export const AcademicYearsPage = () => {
           {addError && (
             <div
               style={{
-                padding: '12px 16px',
-                borderRadius: 10,
-                backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#EF4444',
-                fontSize: 13.5,
-                fontWeight: 600,
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--danger-bg)',
+                border: '1px solid var(--danger-border)',
+                color: 'var(--danger-text)',
+                fontSize: 12.5,
+                fontWeight: 500,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                marginBottom: 18
+                marginBottom: 16
               }}
+              role="alert"
             >
-              <AlertCircle size={16} />
+              <AlertCircle size={15} style={{ flexShrink: 0 }} />
               <span>{addError}</span>
             </div>
           )}
 
           <form onSubmit={handleAddSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 16, alignItems: 'flex-end' }}>
-              <div>
-                <label htmlFor="add-academic-year-input" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
-                  Academic Year <span style={{ color: '#EF4444' }}>*</span>
-                </label>
-                <Input
-                  id="add-academic-year-input"
-                  placeholder="e.g. 2026-2027"
-                  value={newYear}
-                  onChange={(e) => setNewYear(e.target.value)}
-                  required
-                />
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 14, alignItems: 'flex-end' }}>
+              <Input
+                id="add-academic-year-input"
+                label="Academic Year"
+                placeholder="e.g. 2026-2027"
+                value={newYear}
+                onChange={(e) => setNewYear(e.target.value)}
+                required
+              />
 
-              <div>
-                <label htmlFor="add-budget-input" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
-                  Budget (₹) <span style={{ color: '#EF4444' }}>*</span>
-                </label>
-                <Input
-                  id="add-budget-input"
-                  type="number"
-                  min="1"
-                  placeholder="e.g. 500000"
-                  value={newBudget}
-                  onChange={(e) => setNewBudget(e.target.value)}
-                  required
-                />
-              </div>
+              <Input
+                id="add-budget-input"
+                label="Budget Quota (₹)"
+                type="number"
+                min="1"
+                placeholder="e.g. 500000"
+                value={newBudget}
+                onChange={(e) => setNewBudget(e.target.value)}
+                required
+              />
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
                 <label
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
-                    fontSize: 13.5,
-                    fontWeight: 700,
-                    color: 'var(--dark)',
+                    gap: 6,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: 'var(--text-body)',
                     cursor: 'pointer',
                     userSelect: 'none'
                   }}
@@ -252,9 +227,9 @@ export const AcademicYearsPage = () => {
                     type="checkbox"
                     checked={newIsActive}
                     onChange={(e) => setNewIsActive(e.target.checked)}
-                    style={{ width: 18, height: 18, accentColor: 'var(--primary)', cursor: 'pointer' }}
+                    style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
                   />
-                  <span>Active & Available for Proposals</span>
+                  <span>Active for Proposals</span>
                 </label>
               </div>
 
@@ -264,52 +239,59 @@ export const AcademicYearsPage = () => {
                   variant="primary"
                   icon={Plus}
                   isLoading={isAdding}
-                  style={{ width: '100%', height: 44 }}
+                  style={{ width: '100%', height: 40 }}
                 >
-                  Add Academic Year
+                  Add Year
                 </Button>
               </div>
             </div>
           </form>
-        </div>
+        </section>
 
-        {/* ACADEMIC YEARS TABLE & LIST */}
-        <div className="cbm-card" style={{ padding: 'clamp(18px, 3vw, 28px)' }}>
+        <hr className="cbm-divider" />
+
+        {/* SECTION 2: ACADEMIC YEARS REGISTER */}
+        <section className="cbm-section">
+          <div className="cbm-section-header">
+            <div>
+              <h2 className="cbm-section-title">Academic Year Cycles Register</h2>
+              <p className="cbm-section-subtitle">
+                Comprehensive directory of institutional cycles, allocated balances, and submission status
+              </p>
+            </div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)' }}>
+              {filteredYears.length} Cycles Registered
+            </div>
+          </div>
+
           {/* Controls Bar: Search & Status Filter */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: 320 }}>
-              <Search size={16} style={{ position: 'absolute', left: 14, top: 14, color: 'var(--secondary)' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 280 }}>
+              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
               <input
                 type="text"
                 placeholder="Search academic year..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '11px 16px 11px 40px',
-                  borderRadius: 10,
-                  border: '1px solid var(--border)',
-                  backgroundColor: '#FAF9FE',
-                  fontSize: 14,
-                  outline: 'none'
-                }}
+                className="cbm-input"
+                style={{ height: 36, paddingLeft: 32, fontSize: 12.5 }}
               />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--secondary)' }}>Filter:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-heading)' }}>Filter:</span>
               {['All', 'Active', 'Inactive'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
                   style={{
-                    padding: '6px 14px',
-                    borderRadius: 20,
-                    fontSize: 12.5,
-                    fontWeight: statusFilter === status ? 700 : 600,
-                    backgroundColor: statusFilter === status ? 'var(--primary)' : 'rgba(0,0,0,0.04)',
-                    color: statusFilter === status ? '#FFFFFF' : 'var(--dark-muted)',
-                    border: 'none',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: 12,
+                    fontWeight: statusFilter === status ? 600 : 500,
+                    backgroundColor: statusFilter === status ? 'var(--primary)' : 'var(--bg-surface)',
+                    color: statusFilter === status ? '#FFFFFF' : 'var(--text-body)',
+                    border: statusFilter === status ? '1px solid var(--primary)' : '1px solid var(--border)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
@@ -321,116 +303,124 @@ export const AcademicYearsPage = () => {
           </div>
 
           {/* Table */}
-          {filteredYears.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--dark-muted)' }}>
-              No academic years found matching your search or filters.
-            </div>
-          ) : (
-            <div className="cbm-table-container">
-              <table className="cbm-table">
-                <thead>
-                  <tr>
-                    <th>Academic Year</th>
-                    <th style={{ textAlign: 'right' }}>Budget</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
+          <div className="cbm-table-container">
+            <table className="cbm-table">
+              <thead>
+                <tr>
+                  <th>Academic Year</th>
+                  <th style={{ textAlign: 'right' }}>Budget Allocation</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              {loading ? (
+                <TableSkeleton rows={3} />
+              ) : (
                 <tbody>
-                  {filteredYears.map((ay) => (
-                    <tr key={ay.id}>
-                      {/* Academic Year */}
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div
-                            style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: 8,
-                              backgroundColor: ay.isActive ? 'rgba(68, 60, 222, 0.1)' : 'rgba(100, 116, 139, 0.1)',
-                              color: ay.isActive ? 'var(--primary)' : '#64748B',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 700,
-                              fontSize: 13
-                            }}
-                          >
-                            <CalendarRange size={16} />
-                          </div>
-                          <div>
-                            <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--dark)' }}>
-                              {ay.academicYear}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Budget */}
-                      <td style={{ textAlign: 'right', fontWeight: 800, fontSize: 15, color: 'var(--dark)' }}>
-                        ₹{Number(ay.budget).toLocaleString('en-IN')}
-                      </td>
-
-                      {/* Status */}
-                      <td>
-                        <Badge status={ay.isActive ? 'Active' : 'Inactive'} />
-                      </td>
-
-                      {/* Actions */}
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-                          {/* Toggle Active Status */}
-                          <button
-                            onClick={() => toggleAcademicYearStatus(ay.id, !ay.isActive)}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: 8,
-                              backgroundColor: ay.isActive ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
-                              color: ay.isActive ? '#EF4444' : '#10B981',
-                              border: 'none',
-                              fontWeight: 700,
-                              fontSize: 12.5,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4
-                            }}
-                            title={ay.isActive ? 'Deactivate Academic Year' : 'Activate Academic Year'}
-                          >
-                            {ay.isActive ? <X size={14} /> : <Check size={14} />}
-                            <span>{ay.isActive ? 'Deactivate' : 'Activate'}</span>
-                          </button>
-
-                          {/* Edit Details */}
-                          <button
-                            onClick={() => handleOpenEdit(ay)}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: 8,
-                              backgroundColor: '#F1EFFD',
-                              color: 'var(--primary)',
-                              border: 'none',
-                              fontWeight: 700,
-                              fontSize: 12.5,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4
-                            }}
-                            title="Edit Academic Year Details"
-                          >
-                            <Edit2 size={13} />
-                            <span>Edit</span>
-                          </button>
-                        </div>
+                  {filteredYears.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '32px 20px', color: 'var(--text-muted)' }}>
+                        No academic years found matching your search.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredYears.map((ay) => (
+                      <tr key={ay.id}>
+                        {/* Academic Year */}
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: 'var(--slate-100)',
+                                border: '1px solid var(--border)',
+                                color: 'var(--slate-700)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifySelf: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 600,
+                                fontSize: 12
+                              }}
+                            >
+                              <CalendarRange size={14} />
+                            </div>
+                            <div>
+                              <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-heading)' }}>
+                                {ay.academicYear}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Budget */}
+                        <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 13.5, color: 'var(--text-heading)' }}>
+                          ₹{Number(ay.budget).toLocaleString('en-IN')}
+                        </td>
+
+                        {/* Status */}
+                        <td>
+                          <Badge status={ay.isActive ? 'Active' : 'Inactive'} />
+                        </td>
+
+                        {/* Actions */}
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                            {/* Toggle Active Status */}
+                            <button
+                              onClick={() => toggleAcademicYearStatus(ay.id, !ay.isActive)}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: 'var(--bg-surface)',
+                                color: ay.isActive ? 'var(--danger-text)' : 'var(--success-text)',
+                                border: '1px solid ' + (ay.isActive ? 'var(--danger-border)' : 'var(--success-border)'),
+                                fontWeight: 600,
+                                fontSize: 11.5,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}
+                              title={ay.isActive ? 'Deactivate Academic Year' : 'Activate Academic Year'}
+                            >
+                              {ay.isActive ? <X size={12} /> : <Check size={12} />}
+                              <span>{ay.isActive ? 'Deactivate' : 'Activate'}</span>
+                            </button>
+
+                            {/* Edit Details */}
+                            <button
+                              onClick={() => handleOpenEdit(ay)}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: 'var(--bg-surface)',
+                                color: 'var(--text-body)',
+                                border: '1px solid var(--border)',
+                                fontWeight: 600,
+                                fontSize: 11.5,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}
+                              title="Edit Academic Year Details"
+                            >
+                              <Edit2 size={12} />
+                              <span>Edit</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+              )}
+            </table>
+          </div>
+        </section>
 
         {/* EDIT ACADEMIC YEAR MODAL */}
         {editingYear && (
@@ -438,64 +428,58 @@ export const AcademicYearsPage = () => {
             isOpen={!!editingYear}
             onClose={() => setEditingYear(null)}
             title={`Edit Academic Year (${editingYear.academicYear})`}
+            maxWidth="500px"
           >
-            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {editError && (
                 <div
                   style={{
-                    padding: '10px 14px',
-                    borderRadius: 8,
-                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                    color: '#EF4444',
-                    fontSize: 13,
-                    fontWeight: 600,
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'var(--danger-bg)',
+                    border: '1px solid var(--danger-border)',
+                    color: 'var(--danger-text)',
+                    fontSize: 12.5,
+                    fontWeight: 500,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8
+                    gap: 6
                   }}
                 >
-                  <AlertCircle size={16} />
+                  <AlertCircle size={14} />
                   <span>{editError}</span>
                 </div>
               )}
 
-              <div>
-                <label htmlFor="edit-academic-year-field" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
-                  Academic Year <span style={{ color: '#EF4444' }}>*</span>
-                </label>
-                <Input
-                  id="edit-academic-year-field"
-                  placeholder="e.g. 2026-2027"
-                  value={editYearStr}
-                  onChange={(e) => setEditYearStr(e.target.value)}
-                  required
-                />
-              </div>
+              <Input
+                id="edit-academic-year-field"
+                label="Academic Year"
+                placeholder="e.g. 2026-2027"
+                value={editYearStr}
+                onChange={(e) => setEditYearStr(e.target.value)}
+                required
+              />
 
-              <div>
-                <label htmlFor="edit-budget-field" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
-                  Budget (₹) <span style={{ color: '#EF4444' }}>*</span>
-                </label>
-                <Input
-                  id="edit-budget-field"
-                  type="number"
-                  min="1"
-                  placeholder="e.g. 500000"
-                  value={editBudget}
-                  onChange={(e) => setEditBudget(e.target.value)}
-                  required
-                />
-              </div>
+              <Input
+                id="edit-budget-field"
+                label="Budget (₹)"
+                type="number"
+                min="1"
+                placeholder="e.g. 500000"
+                value={editBudget}
+                onChange={(e) => setEditBudget(e.target.value)}
+                required
+              />
 
               <div>
                 <label
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
-                    fontSize: 13.5,
-                    fontWeight: 700,
-                    color: 'var(--dark)',
+                    gap: 6,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--text-body)',
                     cursor: 'pointer'
                   }}
                 >
@@ -503,16 +487,17 @@ export const AcademicYearsPage = () => {
                     type="checkbox"
                     checked={editIsActive}
                     onChange={(e) => setEditIsActive(e.target.checked)}
-                    style={{ width: 18, height: 18, accentColor: 'var(--primary)', cursor: 'pointer' }}
+                    style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
                   />
-                  <span>Active (Allow proposals for this year)</span>
+                  <span>Active (Allow proposals for this academic cycle)</span>
                 </label>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
                   onClick={() => setEditingYear(null)}
                 >
                   Cancel
@@ -520,6 +505,7 @@ export const AcademicYearsPage = () => {
                 <Button
                   type="submit"
                   variant="primary"
+                  size="sm"
                   isLoading={isUpdating}
                 >
                   Save Changes

@@ -1,8 +1,8 @@
 import React from 'react';
 
 export const Badge = ({ status, text }) => {
-  const value = text || status;
-  const normalized = String(value).toLowerCase();
+  const value = text || status || 'Pending';
+  const normalized = String(value).toLowerCase().trim();
 
   let variantClass = 'cbm-badge-secondary';
   let dotClass = 'cbm-dot-secondary';
@@ -16,12 +16,15 @@ export const Badge = ({ status, text }) => {
   } else if (normalized === 'rejected' || normalized === 'inactive') {
     variantClass = 'cbm-badge-danger';
     dotClass = 'cbm-dot-danger';
+  } else if (normalized === 'under review' || normalized === 'in review') {
+    variantClass = 'cbm-badge-info';
+    dotClass = 'cbm-dot-info';
   }
 
   return (
     <span className={`cbm-badge ${variantClass}`}>
-      <span className={`cbm-dot ${dotClass}`} />
-      {value}
+      <span className={`cbm-dot ${dotClass}`} aria-hidden="true" />
+      <span>{value}</span>
     </span>
   );
 };

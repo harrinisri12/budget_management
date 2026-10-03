@@ -1,39 +1,39 @@
 import React from 'react';
 
-export const StatCard = ({ title, amount, supportingText, icon: Icon, color = 'var(--primary)', _isPositive = true }) => {
+export const StatCard = ({ title, amount, supportingText, icon: Icon, highlight = false }) => {
   // Format currency if number
   const formattedAmount = typeof amount === 'number'
     ? `₹${amount.toLocaleString('en-IN')}`
     : amount;
 
   return (
-    <div className="cbm-card cbm-card-hover" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+    <div className="cbm-card" style={{ padding: '18px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           {title}
         </span>
         <div
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 12,
-            backgroundColor: `${color}15`,
-            color: color,
+            width: 32,
+            height: 32,
+            borderRadius: 'var(--radius-sm)',
+            backgroundColor: highlight ? 'var(--primary-subtle)' : 'var(--slate-100)',
+            color: highlight ? 'var(--primary)' : 'var(--slate-600)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0
           }}
         >
-          {Icon && <Icon size={22} />}
+          {Icon && <Icon size={16} aria-hidden="true" />}
         </div>
       </div>
 
-      <div style={{ fontSize: 'clamp(22px, 3.5vw, 26px)', fontWeight: 800, color: 'var(--dark)', letterSpacing: '-0.02em', marginBottom: 8, wordBreak: 'break-word' }}>
+      <div style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 700, color: 'var(--text-heading)', letterSpacing: '-0.02em', marginBottom: 4, wordBreak: 'break-word' }}>
         {formattedAmount}
       </div>
 
-      <div style={{ fontSize: 13, color: 'var(--dark-muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
         <span>{supportingText}</span>
       </div>
     </div>

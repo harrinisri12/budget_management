@@ -1,9 +1,8 @@
 import React from 'react';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { StatCard } from '../components/dashboard/StatCard';
 import { Badge } from '../components/common/Badge';
 import { CSEA_DETAILS } from '../data/mockData';
-import { Users, Calendar, Trophy, Sparkles, Award } from 'lucide-react';
+import { UserCheck, Shield } from 'lucide-react';
 import { useBudget } from '../context/BudgetContext';
 
 export const CSEAPage = () => {
@@ -16,91 +15,91 @@ export const CSEAPage = () => {
 
   return (
     <DashboardLayout pageTitle="CSEA Association">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {/* Unit Title Header */}
-        <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 28px)', backgroundColor: '#FFFFFF' }}>
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 14,
-                backgroundColor: 'var(--primary)',
-                color: '#FFFFFF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 6px 16px rgba(68, 60, 222, 0.3)',
-                flexShrink: 0
-              }}
-            >
-              <Users size={28} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
-                CSE DEPARTMENT STUDENT ASSOCIATION
-              </span>
-              <h2 style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800, color: 'var(--dark)', wordBreak: 'break-word' }}>
-                {CSEA_DETAILS.fullName} ({CSEA_DETAILS.name})
-              </h2>
-            </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Page Header */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
+              CSE DEPARTMENT STUDENT ASSOCIATION
+            </span>
           </div>
-          <p style={{ fontSize: 14, color: 'var(--dark-muted)', lineHeight: 1.6, maxWidth: 850 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>
+            {CSEA_DETAILS.fullName} ({CSEA_DETAILS.name})
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2, maxWidth: 850 }}>
             {CSEA_DETAILS.description}
           </p>
+        </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', fontSize: 13 }}>
+        <hr className="cbm-divider" />
+
+        {/* SECTION 1: Unit Leadership & Budget Quota */}
+        <section className="cbm-section">
+          <div className="cbm-section-header">
             <div>
-              <span style={{ color: 'var(--secondary)', fontWeight: 600 }}>FACULTY IN-CHARGE: </span>
-              <strong style={{ color: 'var(--dark)' }}>{CSEA_DETAILS.facultyInCharge}</strong>
+              <h2 className="cbm-section-title">Association Quota & Leadership</h2>
+              <p className="cbm-section-subtitle">
+                Fiscal allocation and administrative leadership for Computer Science and Engineering Association
+              </p>
             </div>
-            <div>
-              <span style={{ color: 'var(--secondary)', fontWeight: 600 }}>STUDENT PRESIDENT: </span>
-              <strong style={{ color: 'var(--dark)' }}>{CSEA_DETAILS.studentPresident}</strong>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12.5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-heading)' }}>
+                <UserCheck size={14} style={{ color: 'var(--gold)' }} />
+                <span>Faculty: <strong>{CSEA_DETAILS.facultyInCharge}</strong></span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-heading)' }}>
+                <Shield size={14} style={{ color: 'var(--gold)' }} />
+                <span>President: <strong>{CSEA_DETAILS.studentPresident}</strong></span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* CSEA Budget KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 20 }}>
-          <StatCard
-            title="Allocated Budget"
-            amount={allocated}
-            supportingText="Annual CSEA FY 2026-27 Quota"
-            icon={Trophy}
-            color="#443CDE"
-          />
-          <StatCard
-            title="Amount Spent"
-            amount={spent}
-            supportingText={`${spentPercent}% of allocated funds utilized`}
-            icon={Calendar}
-            color="#10B981"
-          />
-          <StatCard
-            title="Remaining Balance"
-            amount={remaining}
-            supportingText="Available for Q4 activities"
-            icon={Award}
-            color="#F59E0B"
-          />
-        </div>
+          {/* Metric Strip */}
+          <div className="cbm-metric-strip">
+            <div className="cbm-metric-item">
+              <span className="cbm-metric-label">Allocated Budget</span>
+              <div className="cbm-metric-value">₹{allocated.toLocaleString('en-IN')}</div>
+              <span className="cbm-metric-supporting">Annual CSEA FY 2026-27 Quota</span>
+            </div>
 
-        {/* Recent Activities & Events Table */}
-        <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 28px)' }}>
-          <div style={{ marginBottom: 20 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>CSEA Key Activities & Expenditure</h3>
-            <p style={{ fontSize: 13, color: 'var(--secondary)' }}>Recent symposiums, workshops, and guest lectures hosted by CSEA</p>
+            <div className="cbm-metric-item">
+              <span className="cbm-metric-label">Amount Spent</span>
+              <div className="cbm-metric-value">₹{spent.toLocaleString('en-IN')}</div>
+              <span className="cbm-metric-supporting">{spentPercent}% of allocated funds utilized</span>
+            </div>
+
+            <div className="cbm-metric-item cbm-metric-item-highlight">
+              <span className="cbm-metric-label">Remaining Balance</span>
+              <div className="cbm-metric-value">₹{remaining.toLocaleString('en-IN')}</div>
+              <span className="cbm-metric-supporting">Available for association activities</span>
+            </div>
+          </div>
+        </section>
+
+        <hr className="cbm-divider" />
+
+        {/* SECTION 2: Activities & Expenditure Table */}
+        <section className="cbm-section">
+          <div className="cbm-section-header">
+            <div>
+              <h2 className="cbm-section-title">CSEA Activities & Expenditure</h2>
+              <p className="cbm-section-subtitle">
+                Departmental symposiums, workshops, and guest lectures hosted under CSEA
+              </p>
+            </div>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)' }}>
+              {CSEA_DETAILS.activities.length} Events Logged
+            </span>
           </div>
 
           <div className="cbm-table-container">
             <table className="cbm-table">
               <thead>
                 <tr>
-                  <th>Activity Event Name</th>
+                  <th>Activity / Event Name</th>
                   <th>Category</th>
                   <th>Date</th>
-                  <th>Expense Disbursed</th>
+                  <th style={{ textAlign: 'right' }}>Disbursed Amount</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -108,18 +107,17 @@ export const CSEAPage = () => {
                 {CSEA_DETAILS.activities.map((act, i) => (
                   <tr key={i}>
                     <td>
-                      <div style={{ fontWeight: 700, color: 'var(--dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Sparkles size={16} style={{ color: 'var(--primary)' }} />
-                        <span>{act.title}</span>
+                      <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
+                        {act.title}
                       </div>
                     </td>
                     <td>
-                      <span style={{ padding: '3px 8px', borderRadius: 6, backgroundColor: '#F1EFFD', color: 'var(--primary)', fontWeight: 600, fontSize: 12 }}>
+                      <span style={{ padding: '2px 8px', borderRadius: 4, backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', color: 'var(--slate-700)', fontWeight: 600, fontSize: 11.5 }}>
                         {act.category}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 500, color: 'var(--dark-muted)' }}>{act.date}</td>
-                    <td style={{ fontWeight: 700 }}>₹{act.amount.toLocaleString('en-IN')}</td>
+                    <td style={{ fontWeight: 500, color: 'var(--text-muted)', fontSize: 12.5 }}>{act.date}</td>
+                    <td style={{ fontWeight: 700, textAlign: 'right', color: 'var(--text-heading)' }}>₹{act.amount.toLocaleString('en-IN')}</td>
                     <td>
                       <Badge status={act.status} />
                     </td>
@@ -128,8 +126,10 @@ export const CSEAPage = () => {
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       </div>
     </DashboardLayout>
   );
 };
+
+

@@ -19,9 +19,9 @@ export const AddFacultyPage = () => {
             gap: 8,
             background: 'none',
             border: 'none',
-            color: 'var(--primary)',
+            color: 'var(--dark)',
             fontWeight: 600,
-            fontSize: 14,
+            fontSize: 13.5,
             cursor: 'pointer',
             alignSelf: 'flex-start'
           }}
@@ -31,25 +31,26 @@ export const AddFacultyPage = () => {
         </button>
 
         {/* Card Form Container */}
-        <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 32px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
+        <div className="cbm-card" style={{ padding: 'clamp(18px, 3vw, 32px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
             <div
               style={{
-                width: 46,
-                height: 46,
-                borderRadius: 12,
-                backgroundColor: '#F1EFFD',
-                color: 'var(--primary)',
+                width: 44,
+                height: 44,
+                borderRadius: 8,
+                backgroundColor: 'var(--gold-subtle)',
+                border: '1px solid var(--gold-border)',
+                color: 'var(--gold-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}
             >
-              <UserPlus size={24} />
+              <UserPlus size={20} />
             </div>
             <div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--dark)' }}>Add New Faculty</h2>
-              <p style={{ fontSize: 13, color: 'var(--dark-muted)' }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)' }}>Add New Faculty</h2>
+              <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
                 Register a new faculty member into the college departmental database
               </p>
             </div>

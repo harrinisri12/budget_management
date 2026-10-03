@@ -15,20 +15,21 @@ const CustomTooltip = ({ active, payload, label }) => {
     return (
       <div
         style={{
-          backgroundColor: '#FFFFFF',
-          padding: '12px 16px',
-          borderRadius: 12,
+          backgroundColor: 'var(--bg-surface)',
+          padding: '8px 12px',
+          borderRadius: 'var(--radius-sm)',
           border: '1px solid var(--border)',
-          boxShadow: 'var(--shadow-card)'
+          boxShadow: 'var(--shadow-dropdown)',
+          fontSize: 12
         }}
       >
-        <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: 'var(--dark)' }}>{label} 2026</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
-          <div style={{ color: 'var(--primary)', fontWeight: 600 }}>
-            Allocated Budget: ₹{payload[0]?.value?.toLocaleString('en-IN')}
+        <p style={{ fontWeight: 700, marginBottom: 4, color: 'var(--text-heading)' }}>{label} 2026</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ color: 'var(--gold-text)', fontWeight: 600 }}>
+            Allocated: ₹{payload[0]?.value?.toLocaleString('en-IN')}
           </div>
-          <div style={{ color: '#ABA7CD', fontWeight: 600 }}>
-            Actual Spending: ₹{payload[1]?.value?.toLocaleString('en-IN')}
+          <div style={{ color: 'var(--text-body)', fontWeight: 600 }}>
+            Disbursed: ₹{payload[1]?.value?.toLocaleString('en-IN')}
           </div>
         </div>
       </div>
@@ -41,41 +42,42 @@ export const BudgetChart = () => {
   const { monthlySpending } = useBudget();
 
   return (
-    <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 24px)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+    <div className="cbm-card" style={{ padding: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--dark)' }}>Budget vs Spending</h3>
-          <p style={{ fontSize: 13, color: 'var(--secondary)' }}>Monthly comparisons for H1 Academic Year 2026-27</p>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-heading)' }}>Monthly Budget & Expenditure</h3>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Comparison for Academic Year 2026-27</p>
         </div>
-        <div style={{ display: 'flex', gap: 16, fontSize: 13, fontWeight: 600, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 14, fontSize: 12, fontWeight: 600 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: 'var(--primary)' }} />
-            <span>Budget</span>
+            <span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: '#C5A059' }} />
+            <span style={{ color: 'var(--text-body)' }}>Allocated Budget</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: 'var(--secondary)' }} />
-            <span>Actual Spending</span>
+            <span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: '#27272A' }} />
+            <span style={{ color: 'var(--text-body)' }}>Actual Spending</span>
           </div>
         </div>
       </div>
 
-      <div style={{ width: '100%', height: 310, minHeight: 260 }}>
+      <div style={{ width: '100%', height: 260 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={monthlySpending} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E3F0" />
-            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#4B4963', fontSize: 12 }} />
+          <BarChart data={monthlySpending} margin={{ top: 8, right: 8, left: -14, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E4E4E7" />
+            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#71717A', fontSize: 11.5, fontWeight: 500 }} />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#4B4963', fontSize: 12 }}
+              tick={{ fill: '#71717A', fontSize: 11.5, fontWeight: 500 }}
               tickFormatter={(val) => `₹${val / 1000}k`}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="budget" name="Budget" fill="var(--primary)" radius={[6, 6, 0, 0]} maxBarSize={32} />
-            <Bar dataKey="spending" name="Actual Spending" fill="var(--secondary)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+            <Bar dataKey="budget" name="Budget" fill="#C5A059" radius={[3, 3, 0, 0]} maxBarSize={22} />
+            <Bar dataKey="spending" name="Actual Spending" fill="#27272A" radius={[3, 3, 0, 0]} maxBarSize={22} />
           </BarChart>
         </ResponsiveContainer>
       </div>
     </div>
   );
 };
+

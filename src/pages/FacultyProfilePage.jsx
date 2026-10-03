@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FacultyLayout } from '../components/layout/FacultyLayout';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Shield, Building, Phone, Key, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, Shield, Building, UserCheck, AlertCircle, CheckCircle } from 'lucide-react';
 import { PasswordInput } from '../components/common/PasswordInput';
 import { Button } from '../components/common/Button';
 
@@ -22,7 +22,7 @@ export const FacultyProfilePage = () => {
       return;
     }
     if (newPassword.length < 6) {
-      setMessage({ text: 'Password must be at least 6 characters.', type: 'error' });
+      setMessage({ text: 'Password must be at least 6 characters long.', type: 'error' });
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -35,7 +35,7 @@ export const FacultyProfilePage = () => {
     setLoading(false);
 
     if (result.success) {
-      setMessage({ text: 'Your account password has been updated successfully!', type: 'success' });
+      setMessage({ text: 'Your account password has been updated successfully.', type: 'success' });
       setNewPassword('');
       setConfirmPassword('');
     } else {
@@ -45,90 +45,89 @@ export const FacultyProfilePage = () => {
 
   return (
     <FacultyLayout pageTitle="Faculty Profile">
-      <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
+      <div style={{ maxWidth: 840, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--dark)' }}>Faculty Profile</h1>
-          <p style={{ fontSize: 14, color: 'var(--dark-muted)', marginTop: 4 }}>
-            Your official Kongu Engineering College faculty portal record & account settings.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
+              OFFICIAL FACULTY RECORD
+            </span>
+          </div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>Faculty Profile & Credentials</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+            Your official Kongu Engineering College faculty portal record and account security settings.
           </p>
         </div>
 
-        {/* Profile Info Card */}
-        <div className="cbm-card" style={{ padding: 'clamp(20px, 4vw, 36px)' }}>
-          {/* Header info */}
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 16, paddingBottom: 24, borderBottom: '1px solid var(--border)' }}>
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 18,
-                backgroundColor: 'rgba(68, 60, 222, 0.1)',
-                color: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 26,
-                fontWeight: 800,
-                flexShrink: 0
-              }}
-            >
-              {user?.name ? user.name.charAt(0) : 'F'}
-            </div>
+        <hr className="cbm-divider" />
+
+        {/* SECTION 1: Profile Info */}
+        <section className="cbm-section">
+          <div className="cbm-section-header">
             <div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--dark)' }}>{user?.name || 'Faculty Member'}</h2>
-              <p style={{ fontSize: 13.5, color: 'var(--primary)', fontWeight: 700, marginTop: 2 }}>
-                {user?.designation || 'Professor'} • {user?.employeeId || 'FAC001'}
+              <h2 className="cbm-section-title">Faculty Member Record</h2>
+              <p className="cbm-section-subtitle">
+                Departmental affiliation and official contact credentials
               </p>
             </div>
           </div>
 
           {/* Details Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 20, paddingTop: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-              <Mail size={20} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 6, backgroundColor: 'var(--gold-subtle)', color: 'var(--gold-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--gold-border)', flexShrink: 0 }}>
+                <UserCheck size={16} />
+              </div>
               <div>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Email Address</span>
-                <p style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--dark)', marginTop: 2, wordBreak: 'break-all' }}>{user?.email || 'faculty@kongu.edu'}</p>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Faculty Name</span>
+                <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-heading)', marginTop: 1 }}>{user?.name || 'Faculty Member'}</p>
+                <span style={{ fontSize: 12, color: 'var(--gold-text)', fontWeight: 600 }}>{user?.designation || 'Faculty Member'}</span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-              <Building size={20} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 6, backgroundColor: 'var(--gold-subtle)', color: 'var(--gold-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--gold-border)', flexShrink: 0 }}>
+                <Mail size={16} />
+              </div>
               <div>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Department</span>
-                <p style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--dark)', marginTop: 2 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Institutional Email</span>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1, wordBreak: 'break-all' }}>{user?.email || 'faculty@kongu.edu'}</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 6, backgroundColor: 'var(--gold-subtle)', color: 'var(--gold-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--gold-border)', flexShrink: 0 }}>
+                <Building size={16} />
+              </div>
+              <div>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Department</span>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>
                   {user?.department || 'Computer Science and Engineering (CSE)'}
                 </p>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-              <Shield size={20} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
-              <div>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Institution</span>
-                <p style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--dark)', marginTop: 2 }}>Kongu Engineering College</p>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 6, backgroundColor: 'var(--gold-subtle)', color: 'var(--gold-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--gold-border)', flexShrink: 0 }}>
+                <Shield size={16} />
               </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-              <Phone size={20} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
               <div>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase' }}>Phone</span>
-                <p style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--dark)', marginTop: 2 }}>{user?.phone || '+91 98421 12345'}</p>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Employee ID</span>
+                <p style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-heading)', marginTop: 1 }}>{user?.employeeId || 'FAC001'}</p>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Change Password Card */}
-        <div className="cbm-card" style={{ padding: 'clamp(20px, 4vw, 36px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <div style={{ padding: 10, borderRadius: 10, backgroundColor: 'rgba(68, 60, 222, 0.1)', color: 'var(--primary)', flexShrink: 0 }}>
-              <Key size={20} />
-            </div>
+        <hr className="cbm-divider" />
+
+        {/* SECTION 2: Change Password */}
+        <section className="cbm-section">
+          <div className="cbm-section-header">
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>Security & Password</h3>
-              <p style={{ fontSize: 13, color: 'var(--secondary)' }}>Update your faculty account password for security</p>
+              <h2 className="cbm-section-title">Security & Account Password</h2>
+              <p className="cbm-section-subtitle">
+                Update your faculty portal authentication password
+              </p>
             </div>
           </div>
 
@@ -139,15 +138,16 @@ export const FacultyProfilePage = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
-                  padding: '12px 16px',
-                  borderRadius: 10,
-                  backgroundColor: message.type === 'error' ? '#FEE2E2' : '#DCFCE7',
-                  color: message.type === 'error' ? '#DC2626' : '#16A34A',
+                  padding: '12px 14px',
+                  borderRadius: 6,
+                  backgroundColor: message.type === 'error' ? 'var(--danger-bg)' : '#F0FDF4',
+                  border: message.type === 'error' ? '1px solid rgba(220, 38, 38, 0.2)' : '1px solid rgba(22, 163, 74, 0.2)',
+                  color: message.type === 'error' ? 'var(--danger-text)' : '#16A34A',
                   fontSize: 13.5,
                   fontWeight: 600
                 }}
               >
-                {message.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
+                {message.type === 'error' ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
                 <span>{message.text}</span>
               </div>
             )}
@@ -174,8 +174,9 @@ export const FacultyProfilePage = () => {
               </Button>
             </div>
           </form>
-        </div>
+        </section>
       </div>
     </FacultyLayout>
   );
 };
+

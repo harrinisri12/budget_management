@@ -3,30 +3,36 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileSpreadsheet,
+  Users,
   UserPlus,
   ShieldCheck,
   CalendarRange,
+  FileText,
   Settings,
   LogOut,
   ChevronDown,
   ChevronRight,
-  X
+  X,
+  Building2,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { LegalModal } from '../common/LegalModal';
 
 export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [addMemberOpen, setAddMemberOpen] = useState(true);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const isAddMemberPath = location.pathname.startsWith('/admin/add') || location.pathname.startsWith('/faculty/add');
+  const isAddMemberPath = location.pathname.startsWith('/admin/add') || location.pathname.startsWith('/faculty/add') || location.pathname.startsWith('/add-admin');
 
   return (
     <>
@@ -37,36 +43,17 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(19, 20, 29, 0.4)',
-            backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(15, 23, 42, 0.4)',
             zIndex: 40
           }}
         />
       )}
 
-      <aside
-        style={{
-          width: 280,
-          backgroundColor: '#FFFFFF',
-          borderRight: '1px solid var(--border)',
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100vh',
-          maxHeight: '100vh',
-          position: 'sticky',
-          top: 0,
-          zIndex: 45,
-          transition: 'transform 0.3s ease',
-          flexShrink: 0,
-          overflow: 'hidden',
-          overscrollBehavior: 'contain'
-        }}
-        className={`cbm-sidebar ${isMobileOpen ? 'mobile-show' : ''}`}
-      >
+      <aside className={`cbm-sidebar ${isMobileOpen ? 'mobile-show' : ''}`}>
         {/* Sidebar Brand Header */}
         <div
           style={{
-            padding: '24px 24px 20px',
+            padding: '16px 18px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -74,61 +61,46 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
             flexShrink: 0
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                background: 'linear-gradient(135deg, var(--primary) 0%, #6366F1 100%)',
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#FFFFFF',
-                fontWeight: 900,
-                fontSize: 22,
-                boxShadow: '0 4px 12px rgba(68, 60, 222, 0.25)',
-                letterSpacing: '-0.02em'
+                flexShrink: 0
               }}
             >
-              K
+              <Building2 size={18} />
             </div>
             <div>
-              <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--dark)', lineHeight: 1.2 }}>
-                CSE Budget Mgmt
+              <h2 style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-heading)', lineHeight: 1.2 }}>
+                Budget Management
               </h2>
-              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--secondary)', letterSpacing: '0.04em' }}>
-                KONGU CSE DEPT
+              <p style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.03em' }}>
+                KEC CSE DEPARTMENT
               </p>
             </div>
           </div>
           {setIsMobileOpen && (
             <button
               onClick={() => setIsMobileOpen(false)}
-              style={{ background: 'none', border: 'none', color: 'var(--secondary)', cursor: 'pointer', padding: 4 }}
+              style={{ background: 'none', border: 'none', color: 'var(--slate-400)', cursor: 'pointer', padding: 4 }}
               className="lg:hidden"
               aria-label="Close sidebar"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           )}
         </div>
 
         {/* Navigation Section */}
-        <div
-          className="cbm-sidebar-nav"
-          style={{
-            padding: '16px 14px',
-            flex: 1,
-            minHeight: 0,
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            overscrollBehavior: 'contain',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="cbm-sidebar-nav" style={{ padding: '14px 10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* 1. Dashboard */}
             <NavLink
               to="/dashboard"
@@ -136,20 +108,24 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
+                gap: 10,
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 13,
+                fontWeight: isActive ? 700 : 500,
                 textDecoration: 'none',
-                color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
-                backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none',
+                color: isActive ? 'var(--gold-text)' : 'var(--text-body)',
+                backgroundColor: isActive ? 'var(--gold-subtle)' : 'transparent',
+                borderLeft: isActive ? '3px solid var(--gold)' : '3px solid transparent',
                 transition: 'all 0.15s ease'
               })}
             >
-              <LayoutDashboard size={19} />
-              <span>Dashboard</span>
+              {({ isActive }) => (
+                <>
+                  <LayoutDashboard size={16} style={{ color: isActive ? 'var(--gold)' : 'var(--slate-500)' }} />
+                  <span>Dashboard</span>
+                </>
+              )}
             </NavLink>
 
             {/* 2. Proposals */}
@@ -159,23 +135,54 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
+                gap: 10,
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 13,
+                fontWeight: isActive ? 700 : 500,
                 textDecoration: 'none',
-                color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
-                backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none',
+                color: isActive ? 'var(--gold-text)' : 'var(--text-body)',
+                backgroundColor: isActive ? 'var(--gold-subtle)' : 'transparent',
+                borderLeft: isActive ? '3px solid var(--gold)' : '3px solid transparent',
                 transition: 'all 0.15s ease'
               })}
             >
-              <FileSpreadsheet size={19} />
-              <span>Proposals</span>
+              {({ isActive }) => (
+                <>
+                  <FileSpreadsheet size={16} style={{ color: isActive ? 'var(--gold)' : 'var(--slate-500)' }} />
+                  <span>Proposals</span>
+                </>
+              )}
             </NavLink>
 
-            {/* 3. Add Member (Expandable/Collapsible Menu) */}
+            {/* 3. Faculty Directory */}
+            <NavLink
+              to="/faculty"
+              onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 13,
+                fontWeight: isActive ? 700 : 500,
+                textDecoration: 'none',
+                color: isActive ? 'var(--gold-text)' : 'var(--text-body)',
+                backgroundColor: isActive ? 'var(--gold-subtle)' : 'transparent',
+                borderLeft: isActive ? '3px solid var(--gold)' : '3px solid transparent',
+                transition: 'all 0.15s ease'
+              })}
+            >
+              {({ isActive }) => (
+                <>
+                  <Users size={16} style={{ color: isActive ? 'var(--gold)' : 'var(--slate-500)' }} />
+                  <span>Faculty Directory</span>
+                </>
+              )}
+            </NavLink>
+
+            {/* 4. Add Member (Expandable) */}
             <div>
               <button
                 type="button"
@@ -185,148 +192,221 @@ export const Sidebar = ({ isMobileOpen, setIsMobileOpen }) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 600,
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 13,
+                  fontWeight: isAddMemberPath ? 700 : 500,
                   border: 'none',
-                  background: isAddMemberPath ? 'var(--primary-light)' : 'transparent',
-                  color: isAddMemberPath ? 'var(--primary)' : 'var(--dark-muted)',
+                  backgroundColor: isAddMemberPath ? 'var(--gold-subtle)' : 'transparent',
+                  color: isAddMemberPath ? 'var(--gold-text)' : 'var(--text-body)',
+                  borderLeft: isAddMemberPath ? '3px solid var(--gold)' : '3px solid transparent',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <UserPlus size={19} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <UserPlus size={16} style={{ color: isAddMemberPath ? 'var(--gold)' : 'var(--slate-500)' }} />
                   <span>Add Member</span>
                 </div>
-                {addMemberOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                {addMemberOpen ? <ChevronDown size={14} style={{ color: 'var(--slate-400)' }} /> : <ChevronRight size={14} style={{ color: 'var(--slate-400)' }} />}
               </button>
 
               {addMemberOpen && (
-                <div style={{ paddingLeft: 34, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {/* Add Member > Add Admin */}
+                <div style={{ paddingLeft: 18, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {/* Add Admin */}
                   <NavLink
                     to="/admin/add"
                     onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
                     style={({ isActive }) => ({
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 10,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      fontSize: 13.5,
-                      fontWeight: 500,
+                      gap: 8,
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 12.5,
+                      fontWeight: isActive ? 600 : 500,
                       textDecoration: 'none',
-                      color: isActive ? 'var(--primary)' : 'var(--dark-muted)',
-                      backgroundColor: isActive ? '#F1EFFD' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent',
+                      color: isActive ? 'var(--gold-text)' : 'var(--text-muted)',
+                      backgroundColor: isActive ? 'var(--gold-subtle)' : 'transparent',
                       transition: 'all 0.15s ease'
                     })}
                   >
-                    <ShieldCheck size={15} />
-                    <span>Add Admin</span>
+                    {({ isActive }) => (
+                      <>
+                        <ShieldCheck size={14} style={{ color: isActive ? 'var(--gold)' : 'var(--slate-400)' }} />
+                        <span>Add Admin</span>
+                      </>
+                    )}
                   </NavLink>
 
-                  {/* Add Member > Add Faculty */}
+                  {/* Add Faculty */}
                   <NavLink
                     to="/faculty/add"
                     onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
                     style={({ isActive }) => ({
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 10,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      fontSize: 13.5,
-                      fontWeight: 500,
+                      gap: 8,
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 12.5,
+                      fontWeight: isActive ? 600 : 500,
                       textDecoration: 'none',
-                      color: isActive ? 'var(--primary)' : 'var(--dark-muted)',
-                      backgroundColor: isActive ? '#F1EFFD' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent',
+                      color: isActive ? 'var(--gold-text)' : 'var(--text-muted)',
+                      backgroundColor: isActive ? 'var(--gold-subtle)' : 'transparent',
                       transition: 'all 0.15s ease'
                     })}
                   >
-                    <UserPlus size={15} />
-                    <span>Add Faculty</span>
+                    {({ isActive }) => (
+                      <>
+                        <UserPlus size={14} style={{ color: isActive ? 'var(--gold)' : 'var(--slate-400)' }} />
+                        <span>Add Faculty</span>
+                      </>
+                    )}
                   </NavLink>
                 </div>
               )}
             </div>
 
-            {/* 4. Academic Year */}
+            {/* 5. Academic Year */}
             <NavLink
               to="/academic-years"
               onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
+                gap: 10,
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 13,
+                fontWeight: isActive ? 700 : 500,
                 textDecoration: 'none',
-                color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
-                backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none',
+                color: isActive ? 'var(--gold-text)' : 'var(--text-body)',
+                backgroundColor: isActive ? 'var(--gold-subtle)' : 'transparent',
+                borderLeft: isActive ? '3px solid var(--gold)' : '3px solid transparent',
                 transition: 'all 0.15s ease'
               })}
             >
-              <CalendarRange size={19} />
-              <span>Academic Year</span>
+              {({ isActive }) => (
+                <>
+                  <CalendarRange size={16} style={{ color: isActive ? 'var(--gold)' : 'var(--slate-500)' }} />
+                  <span>Academic Year</span>
+                </>
+              )}
             </NavLink>
 
-            {/* 5. Settings */}
+            {/* 6. Reports */}
+            <NavLink
+              to="/reports"
+              onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 13,
+                fontWeight: isActive ? 700 : 500,
+                textDecoration: 'none',
+                color: isActive ? 'var(--gold-text)' : 'var(--text-body)',
+                backgroundColor: isActive ? 'var(--gold-subtle)' : 'transparent',
+                borderLeft: isActive ? '3px solid var(--gold)' : '3px solid transparent',
+                transition: 'all 0.15s ease'
+              })}
+            >
+              {({ isActive }) => (
+                <>
+                  <FileText size={16} style={{ color: isActive ? 'var(--gold)' : 'var(--slate-500)' }} />
+                  <span>Reports</span>
+                </>
+              )}
+            </NavLink>
+
+            {/* 7. Settings */}
             <NavLink
               to="/settings"
               onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
+                gap: 10,
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 13,
+                fontWeight: isActive ? 700 : 500,
                 textDecoration: 'none',
-                color: isActive ? '#FFFFFF' : 'var(--dark-muted)',
-                backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                boxShadow: isActive ? '0 4px 12px rgba(68, 60, 222, 0.2)' : 'none',
+                color: isActive ? 'var(--gold-text)' : 'var(--text-body)',
+                backgroundColor: isActive ? 'var(--gold-subtle)' : 'transparent',
+                borderLeft: isActive ? '3px solid var(--gold)' : '3px solid transparent',
                 transition: 'all 0.15s ease'
               })}
             >
-              <Settings size={19} />
-              <span>Settings</span>
+              {({ isActive }) => (
+                <>
+                  <Settings size={16} style={{ color: isActive ? 'var(--gold)' : 'var(--slate-500)' }} />
+                  <span>Settings</span>
+                </>
+              )}
             </NavLink>
           </div>
         </div>
 
-        {/* 6. Logout / Sidebar Footer */}
-        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+        {/* Sidebar Footer */}
+        <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button
+            onClick={() => setShowLegalModal(true)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '6px 8px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 11.5,
+              fontWeight: 500,
+              color: 'var(--text-muted)',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <Lock size={12} />
+            <span>Privacy Policy & Terms</span>
+          </button>
+
           <button
             onClick={handleLogout}
             style={{
               width: '100%',
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              padding: '12px 14px',
-              borderRadius: 10,
-              fontSize: 14,
+              justifyContent: 'center',
+              gap: 8,
+              padding: '8px 12px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 13,
               fontWeight: 600,
-              color: 'var(--danger-text)',
+              color: 'var(--danger)',
               backgroundColor: 'var(--danger-bg)',
-              border: 'none',
+              border: '1px solid var(--danger-border)',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
           >
-            <LogOut size={18} />
+            <LogOut size={15} />
             <span>Logout</span>
           </button>
         </div>
       </aside>
+
+      {/* Institutional Legal Modal */}
+      {showLegalModal && (
+        <LegalModal
+          isOpen={showLegalModal}
+          onClose={() => setShowLegalModal(false)}
+        />
+      )}
     </>
   );
 };

@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { Search, ArrowUpDown, Eye, FileDown } from 'lucide-react';
 import { Badge } from '../common/Badge';
+import { TableSkeleton } from '../common/Skeleton';
 import { TransactionDetailModal } from './TransactionDetailModal';
 import { useBudget } from '../../context/BudgetContext';
 
 const STATUS_OPTIONS = ['All Statuses', 'Approved', 'Pending', 'Rejected'];
 
 export const TransactionTable = () => {
-  const { transactions, categories } = useBudget();
+  const { transactions, categories, loading } = useBudget();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
@@ -28,7 +29,8 @@ export const TransactionTable = () => {
       const matchesSearch =
         txn.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         txn.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        txn.requestedBy.toLowerCase().includes(searchTerm.toLowerCase());
+        txn.requestedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        txn.id.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCat =
         selectedCategory === 'All Categories' || txn.category === selectedCategory;
@@ -57,39 +59,38 @@ export const TransactionTable = () => {
   };
 
   return (
-    <div className="cbm-card" style={{ padding: 'clamp(16px, 3vw, 24px)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Table Title & Filter Controls Header */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>Recent CSE Transactions</h3>
-            <p style={{ fontSize: 13, color: 'var(--secondary)' }}>Real-time CSE department disbursements & activity requests</p>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>Transaction Journal & Audit Trail</span>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Financial disbursements and departmental expenditure records</p>
           </div>
 
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             <button
-              onClick={() => alert('Exporting CSE PDF audit log...')}
-              className="cbm-btn cbm-btn-outline"
-              style={{ height: 40, fontSize: 13, padding: '0 14px' }}
+              onClick={() => alert('Exporting CSE departmental audit report (CSV)...')}
+              className="cbm-btn cbm-btn-outline cbm-btn-sm"
             >
-              <FileDown size={16} />
-              <span>Export CSE Audit</span>
+              <FileDown size={14} />
+              <span>Export Audit</span>
             </button>
           </div>
         </div>
 
         {/* Filter Controls Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
           {/* Search Box */}
           <div className="cbm-input-wrapper">
-            <Search size={16} style={{ position: 'absolute', left: 14, color: 'var(--secondary)' }} />
+            <Search size={14} style={{ position: 'absolute', left: 10, color: 'var(--slate-400)' }} />
             <input
               type="text"
-              placeholder="Search CSEA, CCC, equipment..."
+              placeholder="Search ID, purpose, faculty..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="cbm-input"
-              style={{ height: 42, paddingLeft: 38, fontSize: 13.5 }}
+              style={{ height: 36, paddingLeft: 32, fontSize: 12.5 }}
             />
           </div>
 
@@ -98,7 +99,7 @@ export const TransactionTable = () => {
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="cbm-select"
-            style={{ height: 42, fontSize: 13.5 }}
+            style={{ height: 36, fontSize: 12.5 }}
           >
             {categoryFilterOptions.map(c => (
               <option key={c} value={c}>{c}</option>
@@ -110,7 +111,7 @@ export const TransactionTable = () => {
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="cbm-select"
-            style={{ height: 42, fontSize: 13.5 }}
+            style={{ height: 36, fontSize: 12.5 }}
           >
             {STATUS_OPTIONS.map(s => (
               <option key={s} value={s}>{s}</option>
@@ -121,10 +122,10 @@ export const TransactionTable = () => {
           <button
             onClick={() => toggleSort('amount')}
             className="cbm-btn cbm-btn-outline"
-            style={{ height: 42, fontSize: 13.5, justifyContent: 'space-between' }}
+            style={{ height: 36, fontSize: 12.5, justifyContent: 'space-between' }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ArrowUpDown size={16} /> Sort by Amount
+              <ArrowUpDown size={14} /> Amount
             </span>
             <span>{sortField === 'amount' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}</span>
           </button>
@@ -140,72 +141,91 @@ export const TransactionTable = () => {
                 Date {sortField === 'date' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
               </th>
               <th>Department</th>
-              <th>Activity / Category</th>
-              <th onClick={() => toggleSort('amount')} style={{ cursor: 'pointer' }}>
+              <th>Category</th>
+              <th onClick={() => toggleSort('amount')} style={{ cursor: 'pointer', textAlign: 'right' }}>
                 Amount {sortField === 'amount' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
               </th>
               <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Action</th>
+              <th style={{ textAlign: 'center' }}>Action</th>
             </tr>
           </thead>
-          <tbody>
-            {filteredTransactions.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: 36, color: 'var(--secondary)' }}>
-                  No matching CSE transactions found.
-                </td>
-              </tr>
-            ) : (
-              filteredTransactions.map((txn) => (
-                <tr key={txn.id}>
-                  <td style={{ fontWeight: 600, color: 'var(--dark)' }}>{txn.date}</td>
-                  <td>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        padding: '3px 8px',
-                        borderRadius: 6,
-                        backgroundColor: '#F1EFFD',
-                        color: 'var(--primary)',
-                        fontWeight: 700,
-                        fontSize: 12
-                      }}
-                    >
-                      CSE
-                    </span>
-                  </td>
-                  <td style={{ color: 'var(--dark-muted)', fontWeight: 600 }}>{txn.category}</td>
-                  <td style={{ fontWeight: 700, color: 'var(--dark)' }}>
-                    ₹{txn.amount.toLocaleString('en-IN')}
-                  </td>
-                  <td>
-                    <Badge status={txn.status} />
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button
-                      onClick={() => setSelectedTxn(txn)}
-                      style={{
-                        background: 'none',
-                        border: '1px solid var(--border)',
-                        borderRadius: 8,
-                        padding: '6px 12px',
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        color: 'var(--primary)',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4
-                      }}
-                    >
-                      <Eye size={14} />
-                      <span>Details</span>
-                    </button>
+          {loading ? (
+            <TableSkeleton rows={5} />
+          ) : (
+            <tbody>
+              {filteredTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+                    No matching transactions found.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
+              ) : (
+                filteredTransactions.map((txn) => (
+                  <tr key={txn.id}>
+                    <td style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{txn.date}</td>
+                    <td>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 6px',
+                          borderRadius: 3,
+                          backgroundColor: 'var(--slate-100)',
+                          color: 'var(--slate-700)',
+                          border: '1px solid var(--border)',
+                          fontWeight: 600,
+                          fontSize: 11
+                        }}
+                      >
+                        CSE
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-body)', fontWeight: 500 }}>
+                      {txn.category}
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>
+                        {txn.requestedBy}
+                      </div>
+                    </td>
+                    <td style={{ fontWeight: 700, color: 'var(--text-heading)', textAlign: 'right' }}>
+                      ₹{txn.amount.toLocaleString('en-IN')}
+                    </td>
+                    <td>
+                      <Badge status={txn.status} />
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        onClick={() => setSelectedTxn(txn)}
+                        style={{
+                          background: 'var(--bg-surface)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '4px 10px',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: 'var(--text-body)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          transition: 'background-color 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'var(--bg-page)';
+                          e.currentTarget.style.borderColor = 'var(--slate-300)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                          e.currentTarget.style.borderColor = 'var(--border)';
+                        }}
+                      >
+                        <Eye size={13} />
+                        <span>Details</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          )}
         </table>
       </div>
 
