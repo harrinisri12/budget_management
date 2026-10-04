@@ -510,11 +510,6 @@ export const BudgetProvider = ({ children }) => {
   // Faculty: Add Proposal
   const addProposal = async (proposalData) => {
     try {
-      const cleanProposalId = (proposalData.proposalId || proposalData.id || '').trim();
-      if (!cleanProposalId) {
-        return { success: false, error: 'Proposal ID is required.' };
-      }
-
       if (!proposalData.academicYearId && !proposalData.academicYear) {
         return { success: false, error: 'Please select an Academic Year.' };
       }
@@ -528,7 +523,7 @@ export const BudgetProvider = ({ children }) => {
       }
 
       const res = await api.post('/api/proposals', {
-        proposalId: cleanProposalId,
+        proposalId: proposalData.proposalId,
         academicYearId: proposalData.academicYearId,
         academicYear: proposalData.academicYear,
         category: proposalData.category,
@@ -537,7 +532,8 @@ export const BudgetProvider = ({ children }) => {
         title: proposalData.title,
         programDate: proposalData.programDate,
         proposalDate: proposalData.proposalDate,
-        guestDetails: proposalData.guestDetails,
+        guestDetails: proposalData.guestDetails || '',
+        eventDetails: proposalData.eventDetails || {},
         amount: proposalData.amount
       });
 

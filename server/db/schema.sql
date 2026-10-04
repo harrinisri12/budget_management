@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS public.budget_categories (
 CREATE TABLE IF NOT EXISTS public.proposals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     proposal_number TEXT UNIQUE NOT NULL,
+    event_number BIGINT UNIQUE,
     faculty_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     academic_year_id UUID REFERENCES public.academic_years(id) ON DELETE SET NULL,
     category_id UUID REFERENCES public.budget_categories(id) ON DELETE SET NULL,
@@ -84,12 +85,70 @@ CREATE TABLE IF NOT EXISTS public.proposals (
     proposal_date DATE DEFAULT CURRENT_DATE NOT NULL,
     program_date DATE NOT NULL,
     guest_details TEXT,
+    event_details JSONB DEFAULT '{}'::jsonb,
     amount NUMERIC(14, 2) NOT NULL DEFAULT 0,
     status TEXT NOT NULL CHECK (status IN ('Pending', 'Under Review', 'Approved', 'Rejected')) DEFAULT 'Pending',
     admin_remarks TEXT,
     created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+-- Sequence for global system-wide continuous event numbering
+CREATE SEQUENCE IF NOT EXISTS public.proposal_event_number_seq START WITH 1 INCREMENT BY 1;
+
+-- Helper function to slugify names (e.g., 'Lab and Equipment' -> 'Lab-and-Equipment')
+CREATE OR REPLACE FUNCTION public.slugify_text(input_text TEXT)
+RETURNS TEXT AS $$
+BEGIN
+  IF input_text IS NULL OR trim(input_text) = '' THEN
+    RETURN '';
+  END IF;
+  RETURN trim(both '-' from regexp_replace(input_text, '[^a-zA-Z0-9]+', '-', 'g'));
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Trigger function for automatic proposal_number generation: KEC/{ACADEMIC_YEAR}/{CATEGORY}/{SUBCATEGORY}/{EVENT_NUMBER}
+CREATE OR REPLACE FUNCTION public.generate_proposal_id_trigger()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_ay_label TEXT;
+  v_cat_slug TEXT;
+  v_subcat_slug TEXT;
+  v_next_num BIGINT;
+BEGIN
+  -- 1. Fetch academic year text if available
+  IF NEW.academic_year_id IS NOT NULL THEN
+    SELECT academic_year INTO v_ay_label FROM public.academic_years WHERE id = NEW.academic_year_id;
+  END IF;
+  IF v_ay_label IS NULL OR trim(v_ay_label) = '' THEN
+    v_ay_label := '2027-2028';
+  END IF;
+
+  -- 2. Slugify category & subcategory
+  v_cat_slug := public.slugify_text(COALESCE(NEW.category, 'GENERAL'));
+  v_subcat_slug := public.slugify_text(NEW.sub_category);
+
+  -- 3. Atomically acquire next continuous global sequence value
+  v_next_num := nextval('public.proposal_event_number_seq');
+  NEW.event_number := v_next_num;
+
+  -- 4. Construct DB proposal_number ignoring client-supplied values
+  IF v_subcat_slug <> '' THEN
+    NEW.proposal_number := 'KEC/' || v_ay_label || '/' || v_cat_slug || '/' || v_subcat_slug || '/' || v_next_num::text;
+  ELSE
+    NEW.proposal_number := 'KEC/' || v_ay_label || '/' || v_cat_slug || '/' || v_next_num::text;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS tr_generate_proposal_id ON public.proposals;
+CREATE TRIGGER tr_generate_proposal_id
+  BEFORE INSERT ON public.proposals
+  FOR EACH ROW
+  EXECUTE FUNCTION public.generate_proposal_id_trigger();
+
 
 -- ------------------------------------------------------------------------------
 -- 7. TRANSACTIONS TABLE

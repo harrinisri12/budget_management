@@ -5,13 +5,15 @@ import { useAuth } from '../context/AuthContext';
 import { useBudget } from '../context/BudgetContext';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
-import { AlertCircle, ArrowRight, Calendar, AlertTriangle, Calculator, FileCheck } from 'lucide-react';
+import { AlertCircle, ArrowRight, Calendar, AlertTriangle, Calculator, FileCheck, Lock, UserCheck } from 'lucide-react';
 import { CATEGORY_LIST, getSubcategoriesForCategory } from '../data/categories';
+import { getEventConfig, FIELD_GROUPS } from '../config/eventFormConfig';
+import { slugify } from '../utils/slugify';
 
 export const NewProposalPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { academicYears, addProposal, getFacultyMetrics, generateProposalId } = useBudget();
+  const { academicYears, addProposal, getFacultyMetrics } = useBudget();
 
   // Active academic years created by Admin
   const activeAcademicYears = (academicYears || []).filter(ay => ay.isActive !== false);
@@ -20,34 +22,33 @@ export const NewProposalPage = () => {
   const metrics = getFacultyMetrics(user?.email);
   const currentAvailableBalance = metrics.remainingBalance;
 
-  // Form Fields State
+  // ---------------------------------------------------------------------------
+  // Form State
+  // ---------------------------------------------------------------------------
   const [academicYearId, setAcademicYearId] = useState(() => {
     return activeAcademicYears.length > 0 ? activeAcademicYears[0].id : '';
   });
 
-  // Effective academic year ID
   const effectiveAcademicYearId = academicYearId || (activeAcademicYears.length > 0 ? activeAcademicYears[0].id : '');
 
-  // Field 2: Date (Auto proposal date)
+  // Submission / System Date
   const [proposalDateStr] = useState(() => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
   const [todayIso] = useState(() => new Date().toISOString().split('T')[0]);
 
-  // Field 3: Category
+  // Category & Sub Category State
   const [category, setCategory] = useState(CATEGORY_LIST[0] || 'CSEA');
 
-  // Field 4: Sub Category
   const [subCategory, setSubCategory] = useState(() => {
     const subs = getSubcategoriesForCategory(CATEGORY_LIST[0] || 'CSEA');
     return subs.length > 0 ? subs[0] : '';
   });
 
-  // Field 5: Proposal ID (Manual text entry)
-  const [proposalId, setProposalId] = useState(() => generateProposalId());
+  // Dynamic Event-Specific State Object (cleared on event switch)
+  const [eventData, setEventData] = useState({});
 
-  // Additional Proposal Fields
+  // Common Proposal Fields State
   const [title, setTitle] = useState('');
   const [programDate, setProgramDate] = useState('');
-  const [guestDetails, setGuestDetails] = useState('');
   const [proposedAmount, setProposedAmount] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,24 +56,59 @@ export const NewProposalPage = () => {
   // Available subcategories for currently selected category
   const availableSubcategories = getSubcategoriesForCategory(category);
 
-  // Handle Category change - resets subcategory
+  // Active event configuration
+  const activeEventConfig = getEventConfig(subCategory);
+  const activeFieldGroupIds = activeEventConfig.fieldGroupIds || [];
+
+  // Selected academic year object & label
+  const selectedAcademicYearObj = activeAcademicYears.find(ay => ay.id === effectiveAcademicYearId);
+  const selectedAcademicYearLabel = selectedAcademicYearObj ? selectedAcademicYearObj.academicYear : '2027-2028';
+
+  // ---------------------------------------------------------------------------
+  // Automatic Global Proposal ID Preview (Read-only UI Preview)
+  // Format: KEC/{ACADEMIC_YEAR}/{CATEGORY}/{SUBCATEGORY}/(assigned on submit)
+  // ---------------------------------------------------------------------------
+  const categorySlug = slugify(category);
+  const subCategorySlug = slugify(subCategory);
+  const proposalIdPreview = subCategorySlug
+    ? `KEC/${selectedAcademicYearLabel}/${categorySlug}/${subCategorySlug}/(assigned on submit)`
+    : `KEC/${selectedAcademicYearLabel}/${categorySlug}/(assigned on submit)`;
+
+  // ---------------------------------------------------------------------------
+  // Category / Sub Category Change Handlers (Clears eventData dynamic state)
+  // ---------------------------------------------------------------------------
   const handleCategoryChange = (e) => {
     const newCat = e.target.value;
     setCategory(newCat);
     const newSubs = getSubcategoriesForCategory(newCat);
     setSubCategory(newSubs.length > 0 ? newSubs[0] : '');
+    setEventData({});
+    setError('');
   };
 
-  // Selected academic year object
-  const selectedAcademicYearObj = activeAcademicYears.find(ay => ay.id === effectiveAcademicYearId);
-  const selectedAcademicYearLabel = selectedAcademicYearObj ? selectedAcademicYearObj.academicYear : 'None Selected';
+  const handleSubCategoryChange = (e) => {
+    const newSub = e.target.value;
+    setSubCategory(newSub);
+    setEventData({});
+    setError('');
+  };
 
-  // Live financial calculations
+  const handleEventDataChange = (key, value) => {
+    setEventData(prev => ({
+      ...prev,
+      [key]: value
+    }));
+    setError('');
+  };
+
+  // ---------------------------------------------------------------------------
+  // Live Financial Calculations
+  // ---------------------------------------------------------------------------
   const parsedAmount = Number(proposedAmount) || 0;
   const remainingBalance = currentAvailableBalance - parsedAmount;
   const isOverBudget = parsedAmount > currentAvailableBalance;
 
-  // Format program date for display
+  // Date Formatter
   const formatDisplayDate = (dateIso) => {
     if (!dateIso) return '';
     const d = new Date(dateIso);
@@ -81,6 +117,9 @@ export const NewProposalPage = () => {
       : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  // ---------------------------------------------------------------------------
+  // Form Submission Handler
+  // ---------------------------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -104,24 +143,37 @@ export const NewProposalPage = () => {
       return;
     }
 
-    const cleanProposalId = proposalId.trim();
-    if (!cleanProposalId) {
-      setError('Please enter a valid Proposal ID.');
-      return;
-    }
-
     if (!title.trim()) {
       setError('Please enter the Program / Proposal Title.');
       return;
     }
+
     if (!programDate) {
       setError('Please select the Date of Program.');
       return;
     }
+
+    // Dynamic Event-Specific Validation (only active fields checked)
+    for (const groupId of activeFieldGroupIds) {
+      const group = FIELD_GROUPS[groupId];
+      if (group && group.fields) {
+        for (const field of group.fields) {
+          if (field.required) {
+            const val = (eventData[field.key] || '').trim();
+            if (!val) {
+              setError(`Please enter the required field: ${field.label}.`);
+              return;
+            }
+          }
+        }
+      }
+    }
+
     if (parsedAmount <= 0) {
       setError('Please enter a valid proposed amount greater than ₹0.');
       return;
     }
+
     if (isOverBudget) {
       setError('Insufficient available balance. Proposed amount exceeds your remaining balance.');
       return;
@@ -129,10 +181,27 @@ export const NewProposalPage = () => {
 
     setIsSubmitting(true);
 
+    // Build event-specific payload & formatted guest string if guest fields active
+    const activePayloadEventData = { ...eventData };
+    let formattedGuestDetails = '';
+
+    if (activeFieldGroupIds.includes('guestFields')) {
+      const { guestName, guestDesignation, guestOrg, guestDetails } = eventData;
+      const parts = [];
+      if (guestName) parts.push(guestName.trim());
+      if (guestDesignation) parts.push(guestDesignation.trim());
+      if (guestOrg) parts.push(guestOrg.trim());
+
+      let baseStr = parts.join(', ');
+      if (guestDetails && guestDetails.trim()) {
+        baseStr += baseStr ? ` — ${guestDetails.trim()}` : guestDetails.trim();
+      }
+      formattedGuestDetails = baseStr;
+    }
+
     try {
       const result = await addProposal({
-        proposalId: cleanProposalId,
-        id: cleanProposalId,
+        proposalId: proposalIdPreview,
         academicYearId: effectiveAcademicYearId,
         academicYear: selectedAcademicYearLabel,
         proposalDate: todayIso,
@@ -142,7 +211,8 @@ export const NewProposalPage = () => {
         subCategory: availableSubcategories.length > 0 ? subCategory : '',
         title: title.trim(),
         programDate,
-        guestDetails: guestDetails.trim() || 'None',
+        guestDetails: formattedGuestDetails,
+        eventDetails: activePayloadEventData,
         amount: parsedAmount
       });
 
@@ -315,7 +385,7 @@ export const NewProposalPage = () => {
                     <select
                       id="subcategory-select"
                       value={subCategory}
-                      onChange={(e) => setSubCategory(e.target.value)}
+                      onChange={handleSubCategoryChange}
                       required
                       className="cbm-select"
                     >
@@ -337,22 +407,46 @@ export const NewProposalPage = () => {
                 </div>
               </div>
 
-              {/* FIELD 5: PROPOSAL ID */}
-              <Input
-                id="proposal-id-input"
-                label="Proposal ID"
-                required
-                placeholder="e.g. PROP-2026-005"
-                value={proposalId}
-                onChange={(e) => setProposalId(e.target.value)}
-              />
+              {/* FIELD 5: PROPOSAL ID (Automatic Global System Sequence Preview) */}
+              <div className="cbm-input-group">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label className="cbm-label" htmlFor="proposal-id-preview">
+                    Proposal ID <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(Auto-Generated System ID)</span>
+                  </label>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Lock size={11} /> Auto Sequence
+                  </span>
+                </div>
+                <div
+                  id="proposal-id-preview"
+                  style={{
+                    height: 40,
+                    padding: '0 12px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'var(--bg-page)',
+                    border: '1px solid var(--border)',
+                    fontWeight: 600,
+                    color: 'var(--primary)',
+                    fontSize: 13,
+                    fontFamily: 'monospace',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justify: 'space-between'
+                  }}
+                >
+                  <span>{proposalIdPreview}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--text-muted)', fontStyle: 'italic', fontFamily: 'sans-serif' }}>
+                    Read-only
+                  </span>
+                </div>
+              </div>
 
               {/* Program Title */}
               <Input
                 id="program-title-input"
                 label="Program / Proposal Title"
                 required
-                placeholder="e.g. CSEA Technical Symposium"
+                placeholder="e.g. CSEA Technical Symposium / AI Guest Talk"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -373,21 +467,78 @@ export const NewProposalPage = () => {
                 />
               </div>
 
-              {/* Guest Details */}
-              <div className="cbm-input-group">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <label htmlFor="guest-details-input" className="cbm-label">Guest Details</label>
-                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Optional</span>
-                </div>
-                <textarea
-                  id="guest-details-input"
-                  placeholder="Enter guest name, designation, organization, etc."
-                  value={guestDetails}
-                  onChange={(e) => setGuestDetails(e.target.value)}
-                  rows={2}
-                  className="cbm-textarea"
-                />
-              </div>
+              {/* DYNAMIC EVENT-SPECIFIC FIELD GROUPS (Conditionally Rendered) */}
+              {activeFieldGroupIds.map((groupId) => {
+                const group = FIELD_GROUPS[groupId];
+                if (!group) return null;
+
+                return (
+                  <div
+                    key={groupId}
+                    style={{
+                      padding: '16px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--bg-page)',
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 14
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <UserCheck size={16} color="var(--primary)" />
+                      <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
+                        {group.title} <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>(Required for {subCategory})</span>
+                      </h4>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+                      {group.fields.map((field) => {
+                        const fieldValue = eventData[field.key] || '';
+
+                        if (field.type === 'textarea') {
+                          return (
+                            <div key={field.key} className="cbm-input-group" style={{ gridColumn: '1 / -1' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label htmlFor={`dynamic-${field.key}`} className="cbm-label">
+                                  {field.label} {field.required && <span style={{ color: 'var(--danger)' }}>*</span>}
+                                </label>
+                                {!field.required && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Optional</span>}
+                              </div>
+                              <textarea
+                                id={`dynamic-${field.key}`}
+                                placeholder={field.placeholder}
+                                value={fieldValue}
+                                onChange={(e) => handleEventDataChange(field.key, e.target.value)}
+                                rows={field.rows || 2}
+                                required={field.required}
+                                className="cbm-textarea"
+                              />
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div key={field.key} className="cbm-input-group">
+                            <label htmlFor={`dynamic-${field.key}`} className="cbm-label">
+                              {field.label} {field.required && <span style={{ color: 'var(--danger)' }}>*</span>}
+                            </label>
+                            <input
+                              id={`dynamic-${field.key}`}
+                              type="text"
+                              placeholder={field.placeholder}
+                              value={fieldValue}
+                              onChange={(e) => handleEventDataChange(field.key, e.target.value)}
+                              required={field.required}
+                              className="cbm-input"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
 
               {/* Proposed Amount */}
               <Input
@@ -459,7 +610,7 @@ export const NewProposalPage = () => {
                 icon={ArrowRight}
                 style={{ height: 42, fontSize: 14, marginTop: 4 }}
               >
-                Submit Proposal
+                {isSubmitting ? 'Submitting Proposal...' : 'Submit Proposal'}
               </Button>
             </form>
           </div>
@@ -497,8 +648,8 @@ export const NewProposalPage = () => {
               </div>
 
               <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposal ID</span>
-                <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)', marginTop: 1 }}>{proposalId || '—'}</p>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposal ID Preview</span>
+                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace', marginTop: 1 }}>{proposalIdPreview}</p>
               </div>
 
               <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
@@ -511,10 +662,25 @@ export const NewProposalPage = () => {
                 <p style={{ fontSize: 13, color: 'var(--text-body)', marginTop: 1 }}>{formatDisplayDate(programDate) || '—'}</p>
               </div>
 
-              <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Guest Details</span>
-                <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 1 }}>{guestDetails.trim() || 'None'}</p>
-              </div>
+              {/* DYNAMIC EVENT DETAILS PREVIEW (Only displayed if active fields have values) */}
+              {activeFieldGroupIds.includes('guestFields') && (eventData.guestName || eventData.guestDesignation || eventData.guestOrg) && (
+                <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Guest Information</span>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-body)', marginTop: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {eventData.guestName && <p style={{ margin: 0, fontWeight: 600 }}>{eventData.guestName}</p>}
+                    {(eventData.guestDesignation || eventData.guestOrg) && (
+                      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)' }}>
+                        {[eventData.guestDesignation, eventData.guestOrg].filter(Boolean).join(' • ')}
+                      </p>
+                    )}
+                    {eventData.guestDetails && (
+                      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 2 }}>
+                        {eventData.guestDetails}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposed Amount</span>
