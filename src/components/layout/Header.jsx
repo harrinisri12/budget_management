@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Search, Menu, ChevronDown, LogOut, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useBudget } from '../../context/BudgetContext';
 import { useNavigate } from 'react-router-dom';
 import { LegalModal } from '../common/LegalModal';
 
 export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
   const { user, logout, isFaculty } = useAuth();
+  const { proposals } = useBudget();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -35,11 +37,31 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
     };
   }, []);
 
-  const notifications = [
-    { id: 1, title: 'CSEA Budget Approved', time: '10m ago', text: '₹45,000 allocated for National Technical Symposium 2026.' },
-    { id: 2, title: 'CCC Coding Contest Proposal', time: '1h ago', text: 'Proposal of ₹12,500 submitted for algorithmic coding competition.' },
-    { id: 3, title: 'CSE Lab Equipment Audit', time: '1d ago', text: 'Annual academic hardware maintenance audit due on Sep 30.' }
-  ];
+  // Real database-driven notifications from recent proposals
+  const notifications = (proposals || []).slice(0, 5).map((p) => {
+    let title = p.title || 'Proposal Update';
+    let text = `${p.category || 'General'} • Requested: ₹${Number(p.amount || 0).toLocaleString('en-IN')}`;
+    let time = p.proposalDate || p.date ? new Date(p.proposalDate || p.date).toLocaleDateString() : 'Recent';
+
+    if (p.status === 'Approved') {
+      title = `Approved: ${p.title}`;
+      text = `₹${Number(p.amount || 0).toLocaleString('en-IN')} approved for ${p.category || 'department'}.`;
+    } else if (p.status === 'Pending') {
+      title = `Pending: ${p.title}`;
+      text = `Awaiting evaluation by HOD / Budget Coordinator.`;
+    } else if (p.status === 'Rejected') {
+      title = `Rejected: ${p.title}`;
+      text = p.adminRemarks ? `Remarks: ${p.adminRemarks}` : `Proposal was rejected.`;
+    }
+
+    return {
+      id: p.dbId || p.id || p.proposalNumber,
+      title,
+      time,
+      text,
+      status: p.status
+    };
+  });
 
   const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : (isFaculty ? 'F' : 'A');
   const userName = user?.name || (isFaculty ? 'Faculty Member' : 'Admin User');
@@ -127,18 +149,20 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
               aria-label="Notifications"
             >
               <Bell size={16} />
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 6,
-                  right: 6,
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--primary)',
-                  border: '1px solid var(--bg-surface)'
-                }}
-              />
+              {notifications.length > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 6,
+                    right: 6,
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--primary)',
+                    border: '1px solid var(--bg-surface)'
+                  }}
+                />
+              )}
             </button>
 
             {/* Notifications Popover */}
@@ -159,19 +183,27 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
                   <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>Department Notifications</h4>
-                  <span style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, backgroundColor: 'var(--primary-subtle)', padding: '2px 6px', borderRadius: 4 }}>3 Updates</span>
+                  <span style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, backgroundColor: 'var(--primary-subtle)', padding: '2px 6px', borderRadius: 4 }}>
+                    {notifications.length} {notifications.length === 1 ? 'Update' : 'Updates'}
+                  </span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {notifications.map(n => (
-                    <div key={n.id} style={{ padding: '8px 10px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-page)', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600 }}>
-                        <span style={{ color: 'var(--text-heading)' }}>{n.title}</span>
-                        <span style={{ color: 'var(--text-subtle)', fontSize: 11 }}>{n.time}</span>
+                {notifications.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '16px 8px', color: 'var(--text-muted)', fontSize: 12.5 }}>
+                    No new proposal or department notifications.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
+                    {notifications.map(n => (
+                      <div key={n.id} style={{ padding: '8px 10px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-page)', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600 }}>
+                          <span style={{ color: 'var(--text-heading)' }}>{n.title}</span>
+                          <span style={{ color: 'var(--text-subtle)', fontSize: 11 }}>{n.time}</span>
+                        </div>
+                        <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{n.text}</p>
                       </div>
-                      <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{n.text}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

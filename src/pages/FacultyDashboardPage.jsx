@@ -10,10 +10,13 @@ import { Wallet, FileText, ArrowUpRight, Plus, Eye, Building } from 'lucide-reac
 export const FacultyDashboardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getFacultyMetrics, loading } = useBudget();
+  const { getFacultyMetrics, loading, activeAcademicYear } = useBudget();
   const [selectedProposal, setSelectedProposal] = useState(null);
 
   const metrics = getFacultyMetrics(user?.email);
+  const ayLabel = activeAcademicYear
+    ? (activeAcademicYear.name || activeAcademicYear.academicYear || `${activeAcademicYear.startYear} - ${activeAcademicYear.endYear}`)
+    : 'No Active Session';
 
   return (
     <FacultyLayout pageTitle="Faculty Dashboard">
@@ -56,11 +59,11 @@ export const FacultyDashboardPage = () => {
                 Financial Quota & Activity Summary
               </h2>
               <p className="cbm-section-subtitle">
-                Individual faculty activity allocation and proposal expenditure breakdown for Academic Year 2026-27
+                Individual faculty activity allocation and proposal expenditure breakdown for Academic Year {ayLabel}
               </p>
             </div>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold-text)', backgroundColor: 'var(--gold-subtle)', padding: '3px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--gold-border)' }}>
-              AY 2026-27 Quota
+              AY {ayLabel} Quota
             </span>
           </div>
 
@@ -154,54 +157,40 @@ export const FacultyDashboardPage = () => {
             </button>
           </div>
 
-          {loading ? (
-            <div className="cbm-table-container">
-              <table className="cbm-table">
-                <thead>
+          <div className="cbm-table-container">
+            <table className="cbm-table">
+              <thead>
+                <tr>
+                  <th>Proposal ID</th>
+                  <th>Date</th>
+                  <th>Category</th>
+                  <th>Program Title</th>
+                  <th>Program Date</th>
+                  <th style={{ textAlign: 'right' }}>Proposed Amount</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'center' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <TableSkeleton rows={3} columns={8} />
+                ) : metrics.proposals.length === 0 ? (
                   <tr>
-                    <th>Proposal ID</th>
-                    <th>Date</th>
-                    <th>Category</th>
-                    <th>Program Title</th>
-                    <th>Program Date</th>
-                    <th style={{ textAlign: 'right' }}>Proposed Amount</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'center' }}>Action</th>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '36px 20px', color: 'var(--text-muted)' }}>
+                      <p style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>No proposals submitted yet.</p>
+                      <button
+                        onClick={() => navigate('/faculty/proposal/new')}
+                        className="cbm-btn cbm-btn-primary cbm-btn-sm"
+                      >
+                        <Plus size={14} />
+                        <span>Create Your First Proposal</span>
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <TableSkeleton rows={3} />
-              </table>
-            </div>
-          ) : metrics.proposals.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '36px 20px', color: 'var(--text-muted)' }}>
-              <p style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>No proposals submitted yet.</p>
-              <button
-                onClick={() => navigate('/faculty/proposal/new')}
-                className="cbm-btn cbm-btn-primary cbm-btn-sm"
-              >
-                <Plus size={14} />
-                <span>Create Your First Proposal</span>
-              </button>
-            </div>
-          ) : (
-            <div className="cbm-table-container">
-              <table className="cbm-table">
-                <thead>
-                  <tr>
-                    <th>Proposal ID</th>
-                    <th>Date</th>
-                    <th>Category</th>
-                    <th>Program Title</th>
-                    <th>Program Date</th>
-                    <th style={{ textAlign: 'right' }}>Proposed Amount</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'center' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {metrics.proposals.slice(0, 5).map((prop) => (
-                    <tr key={prop.id}>
-                      <td style={{ fontWeight: 600, color: 'var(--primary)' }}>{prop.id}</td>
+                ) : (
+                  metrics.proposals.slice(0, 5).map((prop) => (
+                    <tr key={prop.dbId || prop.id}>
+                      <td style={{ fontWeight: 600, color: 'var(--primary)' }}>{prop.proposalNumber || prop.proposalId || prop.id}</td>
                       <td style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>{prop.proposalDate}</td>
                       <td style={{ color: 'var(--text-body)', fontWeight: 500 }}>{prop.category}</td>
                       <td style={{ color: 'var(--text-heading)', fontWeight: 600 }}>{prop.title}</td>
@@ -234,11 +223,11 @@ export const FacultyDashboardPage = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         {/* Details Modal */}
@@ -255,7 +244,7 @@ export const FacultyDashboardPage = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
                 <div>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Proposal Record</span>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-heading)', marginTop: 2 }}>{selectedProposal.id}</h2>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-heading)', marginTop: 2 }}>{selectedProposal.proposalNumber || selectedProposal.proposalId || selectedProposal.id}</h2>
                 </div>
                 <Badge status={selectedProposal.status} />
               </div>
@@ -264,7 +253,7 @@ export const FacultyDashboardPage = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
                   <div>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Academic Year</span>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{selectedProposal.academicYear || '2026-2027'}</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{selectedProposal.academicYear || '—'}</p>
                   </div>
                   <div>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposal Date</span>
@@ -301,6 +290,13 @@ export const FacultyDashboardPage = () => {
                     ₹{Number(selectedProposal.amount).toLocaleString('en-IN')}
                   </p>
                 </div>
+
+                {selectedProposal.adminRemarks && (
+                  <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--gold-subtle)', border: '1px solid var(--gold-border)', marginTop: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--gold-text)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Admin Review Remarks</span>
+                    <p style={{ fontSize: 12.5, color: 'var(--text-heading)', marginTop: 2, lineHeight: 1.4 }}>{selectedProposal.adminRemarks}</p>
+                  </div>
+                )}
               </div>
 
               <button

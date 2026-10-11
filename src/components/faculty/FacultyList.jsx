@@ -1,21 +1,31 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Eye, Edit2, Trash2, Key } from 'lucide-react';
+import { Search, Plus, Eye, Edit2, Trash2, Key, UserCheck, Shield, Award } from 'lucide-react';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { PasswordInput } from '../common/PasswordInput';
 import { TableSkeleton } from '../common/Skeleton';
+import { AddFacultyForm } from './AddFacultyForm';
 import { useBudget } from '../../context/BudgetContext';
 
 export const FacultyList = () => {
   const navigate = useNavigate();
-  const { facultyList, deleteFaculty, updateFacultyStatus, updateFacultyPassword, loading } = useBudget();
+  const { facultyList, deleteFaculty, updateFacultyStatus, updateFacultyPassword, refreshFaculty, loading } = useBudget();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [editFaculty, setEditFaculty] = useState(null);
+
+  // Add User Modal State
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addModalConfig, setAddModalConfig] = useState({
+    initialRole: 'faculty',
+    lockRole: true,
+    title: 'Add New Faculty Member'
+  });
 
   // Change Password state
   const [passwordFaculty, setPasswordFaculty] = useState(null);
@@ -23,6 +33,38 @@ export const FacultyList = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  // Refresh directory on mount
+  useEffect(() => {
+    refreshFaculty?.();
+  }, [refreshFaculty]);
+
+  const openAddFacultyModal = () => {
+    setAddModalConfig({
+      initialRole: 'faculty',
+      lockRole: true,
+      title: 'Add New Faculty Member'
+    });
+    setAddModalOpen(true);
+  };
+
+  const openAddHodModal = () => {
+    setAddModalConfig({
+      initialRole: 'hod',
+      lockRole: false,
+      title: 'Add Department Head (HOD)'
+    });
+    setAddModalOpen(true);
+  };
+
+  const openAddAdminModal = () => {
+    setAddModalConfig({
+      initialRole: 'admin',
+      lockRole: false,
+      title: 'Add Admin / Budget Coordinator'
+    });
+    setAddModalOpen(true);
+  };
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
@@ -57,41 +99,132 @@ export const FacultyList = () => {
 
   const filteredFaculty = useMemo(() => {
     return facultyList.filter(f => {
+      const q = searchTerm.toLowerCase();
       const matchesSearch =
-        f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.department.toLowerCase().includes(searchTerm.toLowerCase());
+        (f.name || '').toLowerCase().includes(q) ||
+        (f.email || '').toLowerCase().includes(q) ||
+        (f.employeeId || '').toLowerCase().includes(q) ||
+        (f.department || '').toLowerCase().includes(q) ||
+        (f.designation || '').toLowerCase().includes(q);
+
+      const normalizedRole = (f.role || 'faculty').toLowerCase();
+      const matchesRole =
+        roleFilter === 'All' ||
+        (roleFilter === 'faculty' && normalizedRole === 'faculty') ||
+        (roleFilter === 'hod' && normalizedRole === 'hod') ||
+        (roleFilter === 'admin' && normalizedRole === 'admin');
 
       const matchesStatus = statusFilter === 'All' || f.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [facultyList, searchTerm, statusFilter]);
+  }, [facultyList, searchTerm, roleFilter, statusFilter]);
+
+  const renderRoleBadge = (role) => {
+    const r = (role || 'faculty').toLowerCase();
+    if (r === 'hod') {
+      return (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '3px 9px',
+            borderRadius: 6,
+            fontSize: 11.5,
+            fontWeight: 700,
+            backgroundColor: '#F3E8FF',
+            color: '#6B21A8',
+            border: '1px solid #E9D5FF'
+          }}
+        >
+          <Award size={12} />
+          HOD
+        </span>
+      );
+    }
+    if (r === 'admin') {
+      return (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '3px 9px',
+            borderRadius: 6,
+            fontSize: 11.5,
+            fontWeight: 700,
+            backgroundColor: 'var(--gold-subtle)',
+            color: 'var(--gold-text)',
+            border: '1px solid var(--gold-border)'
+          }}
+        >
+          <Shield size={12} />
+          Admin (Budget Coordinator)
+        </span>
+      );
+    }
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '3px 9px',
+          borderRadius: 6,
+          fontSize: 11.5,
+          fontWeight: 600,
+          backgroundColor: '#EFF6FF',
+          color: '#1D4ED8',
+          border: '1px solid #DBEAFE'
+        }}
+      >
+        <UserCheck size={12} />
+        Faculty
+      </span>
+    );
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Header & Primary CTA */}
+      {/* Header & Centralized User Management CTAs */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
-              DEPARTMENT FACULTY ROSTER
+              DEPARTMENT USER MANAGEMENT
             </span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>CSE Faculty Directory</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>Faculty & User Directory</h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-            Manage teaching faculty, designations, employee IDs, and account access credentials.
+            Manage departmental faculty roster, Head of Department (HOD), and Budget Coordinators.
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          icon={Plus}
-          onClick={() => navigate('/faculty/add')}
-        >
-          Add Faculty Member
-        </Button>
+        {/* Action Buttons for User Creation */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <Button
+            variant="outline"
+            icon={Plus}
+            onClick={openAddHodModal}
+          >
+            Add HOD
+          </Button>
+          <Button
+            variant="outline"
+            icon={Plus}
+            onClick={openAddAdminModal}
+          >
+            Add Admin / Budget Coordinator
+          </Button>
+          <Button
+            variant="primary"
+            icon={Plus}
+            onClick={openAddFacultyModal}
+          >
+            Add Faculty Member
+          </Button>
+        </div>
       </div>
 
       <hr className="cbm-divider" />
@@ -100,29 +233,58 @@ export const FacultyList = () => {
       <section className="cbm-section">
         <div className="cbm-section-header">
           <div>
-            <h2 className="cbm-section-title">Faculty Member Directory</h2>
+            <h2 className="cbm-section-title">Department Personnel Directory</h2>
             <p className="cbm-section-subtitle">
-              Active departmental roster, institutional email identifiers, and status records
+              Active departmental roster, roles (HOD, Faculty, Admin), institutional email identifiers, and credentials
             </p>
           </div>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)' }}>
-            Showing {filteredFaculty.length} of {facultyList.length} faculty members
+            Showing {filteredFaculty.length} of {facultyList.length} members
           </div>
         </div>
 
-        {/* Filter and Search Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
+        {/* Filters and Search Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
           {/* Search Box */}
-          <div style={{ position: 'relative', flex: 1, minWidth: 260, maxWidth: 400 }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 260, maxWidth: 380 }}>
             <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
             <input
               type="text"
-              placeholder="Search by faculty name, email, employee ID..."
+              placeholder="Search by name, email, ID, designation..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="cbm-input"
               style={{ height: 38, paddingLeft: 34, fontSize: 12.5 }}
             />
+          </div>
+
+          {/* Role Filter Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-heading)' }}>Role:</span>
+            {[
+              { label: 'All', value: 'All' },
+              { label: 'Faculty', value: 'faculty' },
+              { label: 'HOD', value: 'hod' },
+              { label: 'Admin (Coordinator)', value: 'admin' }
+            ].map((r) => (
+              <button
+                key={r.value}
+                onClick={() => setRoleFilter(r.value)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 12,
+                  fontWeight: roleFilter === r.value ? 600 : 500,
+                  backgroundColor: roleFilter === r.value ? 'var(--primary)' : 'var(--bg-surface)',
+                  color: roleFilter === r.value ? '#FFFFFF' : 'var(--text-body)',
+                  border: roleFilter === r.value ? '1px solid var(--primary)' : '1px solid var(--border)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {r.label}
+              </button>
+            ))}
           </div>
 
           {/* Status Filter Buttons */}
@@ -150,31 +312,31 @@ export const FacultyList = () => {
           </div>
         </div>
 
-        {loading ? (
-          <TableSkeleton rows={5} columns={6} />
-        ) : (
-          <div className="cbm-table-container">
-            <table className="cbm-table">
-              <thead>
+        <div className="cbm-table-container">
+          <table className="cbm-table">
+            <thead>
+              <tr>
+                <th>Member Name</th>
+                <th>Institutional Email</th>
+                <th>Department</th>
+                <th>Role</th>
+                <th>Designation</th>
+                <th>Employee ID</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <TableSkeleton rows={5} columns={8} />
+              ) : filteredFaculty.length === 0 ? (
                 <tr>
-                  <th>Faculty Name</th>
-                  <th>Institutional Email</th>
-                  <th>Department</th>
-                  <th>Designation</th>
-                  <th>Employee ID</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: 48, color: 'var(--dark-muted)' }}>
+                    No members found matching your search criteria.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredFaculty.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: 'var(--dark-muted)' }}>
-                      No faculty members found matching your search criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredFaculty.map((f) => (
+              ) : (
+                filteredFaculty.map((f) => (
                     <tr key={f.id}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -183,17 +345,17 @@ export const FacultyList = () => {
                               width: 34,
                               height: 34,
                               borderRadius: 6,
-                              backgroundColor: 'var(--gold-subtle)',
-                              color: 'var(--gold-text)',
+                              backgroundColor: f.role === 'hod' ? '#F3E8FF' : f.role === 'admin' ? 'var(--gold-subtle)' : '#EFF6FF',
+                              color: f.role === 'hod' ? '#6B21A8' : f.role === 'admin' ? 'var(--gold-text)' : '#1D4ED8',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontWeight: 700,
                               fontSize: 13,
-                              border: '1px solid var(--gold-border)'
+                              border: f.role === 'hod' ? '1px solid #E9D5FF' : f.role === 'admin' ? '1px solid var(--gold-border)' : '1px solid #DBEAFE'
                             }}
                           >
-                            {f.name.charAt(0)}
+                            {(f.name || 'U').charAt(0)}
                           </div>
                           <div>
                             <div style={{ fontWeight: 600, color: 'var(--dark)' }}>{f.name}</div>
@@ -217,6 +379,9 @@ export const FacultyList = () => {
                         >
                           CSE
                         </span>
+                      </td>
+                      <td>
+                        {renderRoleBadge(f.role)}
                       </td>
                       <td style={{ fontWeight: 500, fontSize: 13.5 }}>{f.designation}</td>
                       <td style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: 13, color: 'var(--dark)' }}>
@@ -243,7 +408,7 @@ export const FacultyList = () => {
                               fontSize: 12,
                               fontWeight: 500
                             }}
-                            title="View Faculty Profile"
+                            title="View Profile"
                           >
                             <Eye size={14} />
                             <span>View</span>
@@ -315,7 +480,7 @@ export const FacultyList = () => {
                               display: 'inline-flex',
                               alignItems: 'center'
                             }}
-                            title="Delete Faculty"
+                            title="Delete User"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -327,15 +492,33 @@ export const FacultyList = () => {
               </tbody>
             </table>
           </div>
-        )}
-      </section>
+        </section>
+
+      {/* Centralized Add Member Modal */}
+      {addModalOpen && (
+        <Modal
+          isOpen={addModalOpen}
+          onClose={() => setAddModalOpen(false)}
+          title={addModalConfig.title}
+        >
+          <AddFacultyForm
+            initialRole={addModalConfig.initialRole}
+            lockRole={addModalConfig.lockRole}
+            onCancel={() => setAddModalOpen(false)}
+            onSuccess={() => {
+              setAddModalOpen(false);
+              refreshFaculty?.();
+            }}
+          />
+        </Modal>
+      )}
 
       {/* View Faculty Detail Modal */}
       {selectedFaculty && (
         <Modal
           isOpen={!!selectedFaculty}
           onClose={() => setSelectedFaculty(null)}
-          title="Faculty Profile Record"
+          title="Personnel Record"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, backgroundColor: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)' }}>
@@ -353,11 +536,15 @@ export const FacultyList = () => {
                   fontSize: 20
                 }}
               >
-                {selectedFaculty.name.charAt(0)}
+                {(selectedFaculty.name || 'U').charAt(0)}
               </div>
               <div>
                 <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>{selectedFaculty.name}</h3>
-                <p style={{ fontSize: 13, color: 'var(--gold-text)', fontWeight: 600 }}>{selectedFaculty.designation}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                  {renderRoleBadge(selectedFaculty.role)}
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>•</span>
+                  <span style={{ fontSize: 13, color: 'var(--gold-text)', fontWeight: 600 }}>{selectedFaculty.designation}</span>
+                </div>
               </div>
             </div>
 
@@ -386,7 +573,7 @@ export const FacultyList = () => {
               </div>
               <div>
                 <p style={{ fontSize: 11.5, color: 'var(--dark-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Date Joined</p>
-                <p style={{ fontSize: 14, fontWeight: 600, marginTop: 2 }}>{selectedFaculty.joinedDate || '12 Aug 2021'}</p>
+                <p style={{ fontSize: 14, fontWeight: 600, marginTop: 2 }}>{selectedFaculty.joinedDate || (selectedFaculty.created_at ? new Date(selectedFaculty.created_at).toLocaleDateString() : 'N/A')}</p>
               </div>
             </div>
 
@@ -408,7 +595,7 @@ export const FacultyList = () => {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <p style={{ fontSize: 13.5, color: 'var(--dark-muted)' }}>
-              Update administrative roster status for faculty member <strong style={{ color: 'var(--dark)' }}>{editFaculty.employeeId}</strong>.
+              Update administrative roster status for member <strong style={{ color: 'var(--dark)' }}>{editFaculty.employeeId}</strong>.
             </p>
             <div className="cbm-input-group">
               <label className="cbm-label">Status</label>
@@ -506,4 +693,3 @@ export const FacultyList = () => {
     </div>
   );
 };
-

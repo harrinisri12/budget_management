@@ -8,11 +8,11 @@ export const AddFacultyPage = () => {
   const navigate = useNavigate();
 
   return (
-    <DashboardLayout pageTitle="Add Faculty">
+    <DashboardLayout pageTitle="Add Faculty Member">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 900, margin: '0 auto' }}>
         {/* Back Link */}
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/faculty')}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -27,12 +27,12 @@ export const AddFacultyPage = () => {
           }}
         >
           <ArrowLeft size={16} />
-          <span>Back to Dashboard</span>
+          <span>Back to Faculty Directory</span>
         </button>
 
         {/* Card Form Container */}
         <div className="cbm-card" style={{ padding: 'clamp(18px, 3vw, 32px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'gap', gap: 14, marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
             <div
               style={{
                 width: 44,
@@ -49,14 +49,19 @@ export const AddFacultyPage = () => {
               <UserPlus size={20} />
             </div>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)' }}>Add New Faculty</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)' }}>Add New Faculty Member</h2>
               <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                Register a new faculty member into the college departmental database
+                Register a new teaching faculty member. The Faculty role is automatically assigned.
               </p>
             </div>
           </div>
 
-          <AddFacultyForm onCancel={() => navigate('/dashboard')} />
+          <AddFacultyForm
+            initialRole="faculty"
+            lockRole={true}
+            onCancel={() => navigate('/faculty')}
+            onSuccess={() => navigate('/faculty')}
+          />
         </div>
       </div>
     </DashboardLayout>

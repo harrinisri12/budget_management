@@ -5,7 +5,8 @@ export const Skeleton = ({
   width,
   height,
   className = '',
-  style = {}
+  style = {},
+  colSpan = 10
 }) => {
   const customStyle = {
     ...(width ? { width } : {}),
@@ -16,7 +17,7 @@ export const Skeleton = ({
   if (variant === 'table-row') {
     return (
       <tr>
-        <td colSpan={10} style={{ padding: '16px' }}>
+        <td colSpan={colSpan} style={{ padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="cbm-skeleton cbm-skeleton-avatar" style={{ width: 28, height: 28 }} />
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -55,12 +56,14 @@ export const Skeleton = ({
   return <div className={`cbm-skeleton cbm-skeleton-text ${className}`} style={customStyle} />;
 };
 
-export const TableSkeleton = ({ rows = 5 }) => {
+export const TableSkeleton = ({ rows = 5, columns, cols, colSpan }) => {
+  const effectiveColSpan = colSpan || cols || columns || 10;
+
   return (
-    <tbody>
+    <>
       {Array.from({ length: rows }).map((_, idx) => (
-        <Skeleton key={idx} variant="table-row" />
+        <Skeleton key={idx} variant="table-row" colSpan={effectiveColSpan} />
       ))}
-    </tbody>
+    </>
   );
 };

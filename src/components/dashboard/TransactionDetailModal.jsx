@@ -6,8 +6,10 @@ import { Calendar, Building, Tag, User, Store, FileText, CheckCircle2 } from 'lu
 export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
   if (!transaction) return null;
 
+  const isProposal = Boolean(transaction.id?.startsWith('PROP-') || transaction.proposalNumber || transaction.programDate);
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Transaction Record Details" maxWidth="560px">
+    <Modal isOpen={isOpen} onClose={onClose} title={isProposal ? "Proposal Activity Details" : "Transaction Record Details"} maxWidth="560px">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Top Header Information */}
         <div
@@ -22,7 +24,9 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
           }}
         >
           <div>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>TRANSACTION NUMBER</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {isProposal ? 'PROPOSAL IDENTIFIER' : 'TRANSACTION NUMBER'}
+            </span>
             <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-heading)', marginTop: 2 }}>{transaction.id}</p>
           </div>
           <Badge status={transaction.status} />
@@ -30,7 +34,9 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
 
         {/* Amount Display */}
         <div style={{ textAlign: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>DISBURSED EXPENDITURE</span>
+          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {isProposal ? 'PROPOSED BUDGET ALLOCATION' : 'DISBURSED EXPENDITURE'}
+          </span>
           <h2 style={{ fontSize: 26, fontWeight: 800, color: 'var(--text-heading)', marginTop: 2 }}>
             ₹{transaction.amount?.toLocaleString('en-IN')}
           </h2>
@@ -41,8 +47,10 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <Calendar size={15} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
             <div>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>DATE</p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{transaction.date}</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
+                {isProposal ? 'SUBMISSION DATE' : 'TRANSACTION DATE'}
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{transaction.date || '—'}</p>
             </div>
           </div>
 
@@ -50,7 +58,7 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
             <Building size={15} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
             <div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>DEPARTMENT</p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{transaction.department}</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>Computer Science & Engineering (CSE)</p>
             </div>
           </div>
 
@@ -58,7 +66,10 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
             <Tag size={15} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
             <div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>CATEGORY</p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{transaction.category}</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>
+                {transaction.category}
+                {transaction.subCategory ? ` • ${transaction.subCategory}` : ''}
+              </p>
             </div>
           </div>
 
@@ -66,37 +77,63 @@ export const TransactionDetailModal = ({ transaction, isOpen, onClose }) => {
             <User size={15} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
             <div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>REQUESTED BY</p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{transaction.requestedBy}</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{transaction.requestedBy || 'CSE Faculty'}</p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            <Store size={15} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
-            <div>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>VENDOR / SUPPLIER</p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{transaction.vendor}</p>
+          {transaction.programDate && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <Calendar size={15} style={{ color: 'var(--gold)', marginTop: 2, flexShrink: 0 }} />
+              <div>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>PROGRAM DATE</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{transaction.programDate}</p>
+              </div>
             </div>
-          </div>
+          )}
+
+          {(transaction.guestDetails || transaction.vendor) && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <Store size={15} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
+              <div>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
+                  {isProposal ? 'RESOURCE / GUEST' : 'VENDOR / SUPPLIER'}
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>
+                  {transaction.guestDetails || transaction.vendor}
+                </p>
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <CheckCircle2 size={15} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
             <div>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>APPROVAL LEVEL</p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>HOD / Budget Officer</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>EVALUATION STAGE</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>
+                {transaction.status === 'Approved' ? 'HOD & Dean Approved' : transaction.status === 'Rejected' ? 'Evaluation Declined' : 'Under Review'}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Description */}
+        {/* Description / Purpose */}
         <div style={{ backgroundColor: 'var(--bg-page)', padding: 12, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, color: 'var(--text-heading)' }}>
             <FileText size={14} style={{ color: 'var(--primary)' }} />
             <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>PURPOSE & JUSTIFICATION</span>
           </div>
           <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            {transaction.description}
+            {transaction.title || transaction.description || 'No additional details provided.'}
           </p>
         </div>
+
+        {/* Admin Remarks if any */}
+        {transaction.adminRemarks && (
+          <div style={{ backgroundColor: 'var(--gold-subtle)', padding: 12, borderRadius: 'var(--radius-sm)', border: '1px solid var(--gold-border)' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-text)', textTransform: 'uppercase' }}>ADMIN REMARKS</span>
+            <p style={{ fontSize: 12.5, color: 'var(--text-body)', marginTop: 3 }}>{transaction.adminRemarks}</p>
+          </div>
+        )}
 
         {/* Close Button */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>

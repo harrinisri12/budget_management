@@ -12,12 +12,44 @@ import {
 } from 'lucide-react';
 
 export const DashboardPage = () => {
-  const { kpis, proposals } = useBudget();
+  const { kpis, proposals, activeAcademicYear, categories } = useBudget();
 
-  // Derive pending metrics
-  const pendingProposals = proposals.filter((p) => p.status === 'Pending');
+  // 1. TOTAL BUDGET: Active academic year real database budget
+  const totalBudget = Number(activeAcademicYear?.budget ?? activeAcademicYear?.annualBudget ?? kpis.totalBudget ?? 0);
+
+  // 2. ALLOCATED QUOTA: SUM(budget_categories.allocated_amount) for active academic year
+  const activeAyCategories = (categories || []).filter(c => !activeAcademicYear || c.academic_year_id === activeAcademicYear.id || c.academicYearId === activeAcademicYear.id);
+  const allocatedQuota = (activeAyCategories.length > 0 ? activeAyCategories : (categories || [])).reduce(
+    (sum, c) => sum + Number(c.allocated_amount || c.allocatedAmount || c.allocated || 0),
+    0
+  ) || kpis.allocated || 0;
+
+  // 3. REMAINING BALANCE: totalBudget - totalSpent from actual database category spent amounts
+  const categorySpent = (activeAyCategories.length > 0 ? activeAyCategories : (categories || [])).reduce(
+    (sum, c) => sum + Number(c.spent_amount || c.spentAmount || c.spent || 0),
+    0
+  );
+  const remainingBalance = Math.max(0, totalBudget - categorySpent);
+
+  // 4. PENDING PROPOSALS: Count and sum of proposals for active academic year with status 'Pending'
+  const activeYearProposals = (proposals || []).filter(
+    (p) => !activeAcademicYear || p.academicYearId === activeAcademicYear.id || p.academicYear === activeAcademicYear.academicYear || p.academicYear === activeAcademicYear.name
+  );
+  const pendingProposals = activeYearProposals.filter(
+    (p) => p.status === 'Pending'
+  );
   const pendingCount = pendingProposals.length;
-  const pendingTotal = pendingProposals.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const pendingTotal = pendingProposals.reduce(
+    (sum, p) => sum + (Number(p.amount) || 0),
+    0
+  );
+
+  const ayLabel = activeAcademicYear
+    ? (activeAcademicYear.name || activeAcademicYear.academicYear || `${activeAcademicYear.startYear} - ${activeAcademicYear.endYear}`)
+    : 'No Active Academic Year';
+  const allocationPercent = totalBudget > 0
+    ? ((allocatedQuota / totalBudget) * 100).toFixed(1)
+    : '0';
 
   return (
     <DashboardLayout pageTitle="Dashboard">
@@ -28,7 +60,7 @@ export const DashboardPage = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <Building size={16} style={{ color: 'var(--gold)' }} />
               <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--gold-text)', letterSpacing: '0.04em' }}>
-                ADMINISTRATIVE PORTAL • ACADEMIC YEAR 2026-27
+                {activeAcademicYear ? `ADMINISTRATIVE PORTAL • ACADEMIC YEAR ${ayLabel}` : 'ADMINISTRATIVE PORTAL • NO ACTIVE ACADEMIC YEAR CONFIGURED'}
               </span>
             </div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>
@@ -55,7 +87,7 @@ export const DashboardPage = () => {
               </p>
             </div>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold-text)', backgroundColor: 'var(--gold-subtle)', padding: '3px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--gold-border)' }}>
-              Fiscal FY 2026-27
+              Fiscal Session {ayLabel}
             </span>
           </div>
 
@@ -70,7 +102,7 @@ export const DashboardPage = () => {
                 </div>
               </div>
               <div>
-                <div className="cbm-metric-value">₹{kpis.totalBudget.toLocaleString('en-IN')}</div>
+                <div className="cbm-metric-value">₹{totalBudget.toLocaleString('en-IN')}</div>
                 <div className="cbm-metric-supporting">Academic Year Quota</div>
               </div>
             </div>
@@ -84,8 +116,8 @@ export const DashboardPage = () => {
                 </div>
               </div>
               <div>
-                <div className="cbm-metric-value">₹{kpis.allocated.toLocaleString('en-IN')}</div>
-                <div className="cbm-metric-supporting">74.3% of Total Budget</div>
+                <div className="cbm-metric-value">₹{allocatedQuota.toLocaleString('en-IN')}</div>
+                <div className="cbm-metric-supporting">{allocationPercent}% of Total Budget</div>
               </div>
             </div>
 
@@ -98,7 +130,7 @@ export const DashboardPage = () => {
                 </div>
               </div>
               <div>
-                <div className="cbm-metric-value">₹{kpis.remaining.toLocaleString('en-IN')}</div>
+                <div className="cbm-metric-value">₹{remainingBalance.toLocaleString('en-IN')}</div>
                 <div className="cbm-metric-supporting">Department Available Surplus</div>
               </div>
             </div>
@@ -112,7 +144,7 @@ export const DashboardPage = () => {
                 </div>
               </div>
               <div>
-                <div className="cbm-metric-value">{pendingCount} Requests</div>
+                <div className="cbm-metric-value">{pendingCount} Request{pendingCount === 1 ? '' : 's'}</div>
                 <div className="cbm-metric-supporting">
                   {pendingTotal > 0 ? `₹${pendingTotal.toLocaleString('en-IN')} awaiting review` : 'All proposals evaluated'}
                 </div>
@@ -135,7 +167,7 @@ export const DashboardPage = () => {
                 </h2>
               </div>
               <p className="cbm-section-subtitle">
-                Real-time financial disbursements, vendor vouchers, and departmental expenditure records
+                Real-time departmental proposals, category allocations, and activity audit trail
               </p>
             </div>
           </div>

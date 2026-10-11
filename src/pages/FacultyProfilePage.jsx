@@ -90,7 +90,7 @@ export const FacultyProfilePage = () => {
               </div>
               <div>
                 <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Institutional Email</span>
-                <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1, wordBreak: 'break-all' }}>{user?.email || 'faculty@kongu.edu'}</p>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1, wordBreak: 'break-all' }}>{user?.email || '—'}</p>
               </div>
             </div>
 
@@ -112,7 +112,7 @@ export const FacultyProfilePage = () => {
               </div>
               <div>
                 <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Employee ID</span>
-                <p style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-heading)', marginTop: 1 }}>{user?.employeeId || 'FAC001'}</p>
+                <p style={{ fontSize: 13.5, fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-heading)', marginTop: 1 }}>{user?.employeeId || user?.employee_id || '—'}</p>
               </div>
             </div>
           </div>

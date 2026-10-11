@@ -1,29 +1,71 @@
 import React from 'react';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { CSE_UNITS_OVERVIEW } from '../data/mockData';
 import { Badge } from '../components/common/Badge';
 import { Download } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { useBudget } from '../context/BudgetContext';
 
 export const BudgetOverviewPage = () => {
-  const { categories, showToast } = useBudget();
+  const { categories, activeAcademicYear, proposals, showToast } = useBudget();
 
-  const unitsData = CSE_UNITS_OVERVIEW.map(item => {
-    const matched = categories.find(c => c.name.toLowerCase().includes(item.unit.toLowerCase().slice(0, 5)));
-    const allocated = matched ? Number(matched.allocated_amount) : item.allocated;
-    const spent = matched ? Number(matched.spent_amount) : item.spent;
-    const utilization = allocated > 0 ? Math.round((spent / allocated) * 100) : item.utilization;
+  const ayCategories = activeAcademicYear?.categories || categories || [];
+  const ayLabel = activeAcademicYear
+    ? (activeAcademicYear.name || activeAcademicYear.academicYear || `${activeAcademicYear.startYear} - ${activeAcademicYear.endYear}`)
+    : 'No Active Academic Year';
+
+  const unitsData = ayCategories.map(cat => {
+    const allocated = Number(cat.budget || cat.allocated_amount || 0);
+
+    // Calculate approved expenditure from proposals under this category
+    const catProposals = proposals.filter(p =>
+      (p.categoryId === cat.id) ||
+      (p.category && p.category.toLowerCase() === cat.name.toLowerCase())
+    );
+
+    const spent = catProposals
+      .filter(p => p.status === 'Approved')
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+    const utilization = allocated > 0 ? Math.min(100, Math.round((spent / allocated) * 100)) : 0;
+    const subCount = cat.subcategories?.length || 0;
+
     return {
-      ...item,
+      id: cat.id,
+      unit: cat.name,
       allocated,
       spent,
-      utilization
+      utilization,
+      subCount,
+      proposalsCount: catProposals.length
     };
   });
 
+  const totalAllocated = unitsData.reduce((sum, u) => sum + u.allocated, 0);
+  const totalSpent = unitsData.reduce((sum, u) => sum + u.spent, 0);
+
   const handleExport = () => {
-    showToast?.('Exporting CSE departmental budget quota worksheet (CSV)...', 'info');
+    const headers = ['Category / Unit', 'Subcategories Count', 'Allocated Quota (INR)', 'Disbursed Amount (INR)', 'Remaining Quota (INR)', 'Utilization %', 'Proposals Logged'];
+    const rows = unitsData.map(u => [
+      `"${u.unit.replace(/"/g, '""')}"`,
+      u.subCount,
+      u.allocated,
+      u.spent,
+      Math.max(0, u.allocated - u.spent),
+      `${u.utilization}%`,
+      u.proposalsCount
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `KEC_CSE_Category_Allocations_${ayLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast?.(`Exported CSE departmental budget quota worksheet for ${ayLabel}.`, 'success');
   };
 
   return (
@@ -34,12 +76,12 @@ export const BudgetOverviewPage = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
-                DEPARTMENTAL ALLOCATIONS
+                DEPARTMENTAL ALLOCATIONS • {ayLabel}
               </span>
             </div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>CSE Department Unit Allocations</h1>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>CSE Department Category Allocations</h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-              Annual budget quotas and utilization ratios across CSE activity units, laboratories, and chapters.
+              Annual budget quotas and utilization ratios across active departmental categories, associations, and laboratories.
             </p>
           </div>
           <Button variant="outline" icon={Download} onClick={handleExport}>
@@ -53,13 +95,13 @@ export const BudgetOverviewPage = () => {
         <section className="cbm-section">
           <div className="cbm-section-header">
             <div>
-              <h2 className="cbm-section-title">Departmental Budget Quotas & Utilization</h2>
+              <h2 className="cbm-section-title">Category Budget Quotas & Utilization ({ayLabel})</h2>
               <p className="cbm-section-subtitle">
-                Fiscal year 2026-27 allocations for all academic associations, laboratories, and functional units
+                Category allocations for all academic associations, laboratories, and functional units
               </p>
             </div>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)' }}>
-              {unitsData.length} Units Monitored
+              {unitsData.length} Categories Monitored
             </div>
           </div>
 
@@ -67,48 +109,76 @@ export const BudgetOverviewPage = () => {
             <table className="cbm-table">
               <thead>
                 <tr>
-                  <th>CSE Activity Unit / Category</th>
-                  <th>Faculty In-Charge</th>
-                  <th>Allocated Quota</th>
-                  <th>Amount Spent</th>
+                  <th>Category / Unit</th>
+                  <th>Subcategories</th>
+                  <th style={{ textAlign: 'right' }}>Allocated Quota</th>
+                  <th style={{ textAlign: 'right' }}>Disbursed Amount</th>
                   <th>Utilization %</th>
-                  <th>Activities / Assets</th>
+                  <th>Proposals Logged</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {unitsData.map((item) => (
-                  <tr key={item.unit}>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
-                        {item.unit}
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: 500, color: 'var(--text-body)' }}>{item.head}</td>
-                    <td style={{ fontWeight: 700, color: 'var(--text-heading)' }}>₹{item.allocated.toLocaleString('en-IN')}</td>
-                    <td style={{ fontWeight: 500, color: 'var(--text-muted)' }}>₹{item.spent.toLocaleString('en-IN')}</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ flex: 1, height: 6, minWidth: 70, borderRadius: 3, backgroundColor: 'var(--border)', overflow: 'hidden' }}>
-                          <div
-                            style={{
-                              height: '100%',
-                              width: `${Math.min(100, item.utilization)}%`,
-                              backgroundColor: item.utilization > 80 ? 'var(--warning)' : 'var(--primary)',
-                              borderRadius: 3
-                            }}
-                          />
-                        </div>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-heading)', minWidth: 32 }}>{item.utilization}%</span>
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: 500, color: 'var(--text-body)' }}>{item.eventsCount} items</td>
-                    <td>
-                      <Badge status="Active" />
+                {unitsData.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      No categories configured for the active academic year yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  unitsData.map((item) => (
+                    <tr key={item.id || item.unit}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
+                          {item.unit}
+                        </div>
+                      </td>
+                      <td style={{ fontWeight: 500, color: 'var(--text-body)' }}>
+                        {item.subCount > 0 ? `${item.subCount} Subcategories` : 'Direct Category'}
+                      </td>
+                      <td style={{ fontWeight: 700, textAlign: 'right', color: 'var(--text-heading)' }}>
+                        ₹{item.allocated.toLocaleString('en-IN')}
+                      </td>
+                      <td style={{ fontWeight: 500, textAlign: 'right', color: 'var(--text-muted)' }}>
+                        ₹{item.spent.toLocaleString('en-IN')}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ flex: 1, height: 6, minWidth: 70, borderRadius: 3, backgroundColor: 'var(--border)', overflow: 'hidden' }}>
+                            <div
+                              style={{
+                                height: '100%',
+                                width: `${item.utilization}%`,
+                                backgroundColor: item.utilization > 80 ? 'var(--warning)' : 'var(--primary)',
+                                borderRadius: 3
+                              }}
+                            />
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-heading)', minWidth: 32 }}>{item.utilization}%</span>
+                        </div>
+                      </td>
+                      <td style={{ fontWeight: 500, color: 'var(--text-body)' }}>{item.proposalsCount} proposals</td>
+                      <td>
+                        <Badge status="Active" />
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
+              {unitsData.length > 0 && (
+                <tfoot>
+                  <tr style={{ backgroundColor: 'var(--bg-page)', fontWeight: 800 }}>
+                    <td colSpan={2} style={{ textAlign: 'right' }}>TOTAL:</td>
+                    <td style={{ textAlign: 'right', fontSize: 15, color: 'var(--gold-text)' }}>
+                      ₹{totalAllocated.toLocaleString('en-IN')}
+                    </td>
+                    <td style={{ textAlign: 'right', fontSize: 14 }}>
+                      ₹{totalSpent.toLocaleString('en-IN')}
+                    </td>
+                    <td colSpan={3}></td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </section>
@@ -116,4 +186,3 @@ export const BudgetOverviewPage = () => {
     </DashboardLayout>
   );
 };
-

@@ -5,13 +5,15 @@ import { requireAdmin } from '../middleware/roles.js';
 
 const router = express.Router();
 
-// GET /api/faculty - Get all faculty members
+const VALID_ROLES = ['faculty', 'hod', 'admin'];
+
+// GET /api/faculty - Get all directory members (Faculty, HOD, and Admin)
 router.get('/', authenticateUser, async (req, res) => {
   try {
     const { data: facultyList, error } = await supabaseAdmin
       .from('profiles')
       .select('*, departments(id, name, code)')
-      .eq('role', 'faculty')
+      .in('role', VALID_ROLES)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -19,18 +21,25 @@ router.get('/', authenticateUser, async (req, res) => {
     }
 
     // Format for frontend convenience
-    const formatted = facultyList.map(f => ({
-      id: f.id,
-      name: f.name,
-      email: f.email,
-      role: f.role,
-      department: f.departments?.name || 'Computer Science and Engineering (CSE)',
-      designation: f.designation || 'Faculty Member',
-      employeeId: f.employee_id || 'FAC000',
-      phone: f.phone || '+91 98765 43210',
-      status: f.status || 'Active',
-      joinedDate: new Date(f.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    }));
+    const formatted = facultyList.map(f => {
+      let displayRole = 'Faculty';
+      if (f.role === 'hod') displayRole = 'HOD';
+      if (f.role === 'admin') displayRole = 'Admin (Budget Coordinator)';
+
+      return {
+        id: f.id,
+        name: f.name,
+        email: f.email,
+        role: f.role || 'faculty',
+        displayRole,
+        department: f.departments?.name || 'Computer Science and Engineering (CSE)',
+        designation: f.designation || (f.role === 'hod' ? 'Department Head / HOD' : f.role === 'admin' ? 'Budget Coordinator' : 'Assistant Professor'),
+        employeeId: f.employee_id || '',
+        phone: f.phone || '',
+        status: f.status || 'Active',
+        joinedDate: f.created_at ? new Date(f.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''
+      };
+    });
 
     return res.json({ success: true, faculty: formatted });
   } catch (err) {
@@ -39,14 +48,15 @@ router.get('/', authenticateUser, async (req, res) => {
   }
 });
 
-// POST /api/faculty - Admin creates a new faculty member (Auth user + Profile)
+// POST /api/faculty - Admin creates a new user account (Faculty, HOD, or Admin)
 router.post('/', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const {
       name,
       email,
       department = 'Computer Science and Engineering (CSE)',
-      designation = 'Assistant Professor',
+      designation,
+      role = 'faculty',
       employeeId,
       phone,
       password = 'kongu@123',
@@ -56,12 +66,12 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
 
     // 1. Validations
     if (!name || !name.trim()) {
-      return res.status(400).json({ success: false, error: 'Faculty Name is required.' });
+      return res.status(400).json({ success: false, error: 'Full Name is required.' });
     }
 
     const cleanEmail = (email || '').trim().toLowerCase();
     if (!cleanEmail) {
-      return res.status(400).json({ success: false, error: 'Faculty Email is required.' });
+      return res.status(400).json({ success: false, error: 'Institutional Email is required.' });
     }
 
     if (!cleanEmail.endsWith('@kongu.edu')) {
@@ -76,6 +86,19 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Passwords do not match.' });
     }
 
+    const targetRole = String(role || 'faculty').trim().toLowerCase();
+    if (!VALID_ROLES.includes(targetRole)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid role '${role}'. Role must be one of: 'faculty', 'hod', or 'admin'.`
+      });
+    }
+
+    const resolvedDesignation = designation?.trim() || (
+      targetRole === 'hod' ? 'Department Head / HOD' :
+      targetRole === 'admin' ? 'Budget Coordinator' : 'Assistant Professor'
+    );
+
     // Check if email already exists in profiles
     const { data: existingEmail } = await supabaseAdmin
       .from('profiles')
@@ -84,7 +107,7 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
       .maybeSingle();
 
     if (existingEmail) {
-      return res.status(400).json({ success: false, error: `Faculty with email ${cleanEmail} already exists.` });
+      return res.status(400).json({ success: false, error: `A user with email ${cleanEmail} already exists.` });
     }
 
     // Check if employeeId already exists
@@ -112,7 +135,7 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
       email_confirm: true,
       user_metadata: {
         name: name.trim(),
-        role: 'faculty',
+        role: targetRole,
         employee_id: employeeId.trim()
       }
     });
@@ -130,11 +153,11 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
         id: userId,
         name: name.trim(),
         email: cleanEmail,
-        role: 'faculty',
+        role: targetRole,
         employee_id: employeeId.trim(),
-        designation: designation.trim(),
+        designation: resolvedDesignation,
         department_id: dept?.id || null,
-        phone: phone || '+91 98765 43210',
+        phone: phone || '',
         status: status || 'Active'
       })
       .select('*, departments(name, code)')
@@ -146,11 +169,16 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
       return res.status(400).json({ success: false, error: profileErr.message });
     }
 
+    let displayRole = 'Faculty';
+    if (newProfile.role === 'hod') displayRole = 'HOD';
+    if (newProfile.role === 'admin') displayRole = 'Admin (Budget Coordinator)';
+
     const formattedFaculty = {
       id: newProfile.id,
       name: newProfile.name,
       email: newProfile.email,
       role: newProfile.role,
+      displayRole,
       department: newProfile.departments?.name || department,
       designation: newProfile.designation,
       employeeId: newProfile.employee_id,
@@ -161,26 +189,32 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: `Faculty ${newProfile.name} added successfully!`,
+      message: `${displayRole} ${newProfile.name} added successfully!`,
       faculty: formattedFaculty
     });
   } catch (err) {
-    console.error('Error creating faculty:', err);
-    return res.status(500).json({ success: false, error: 'Server error creating faculty record.' });
+    console.error('Error creating user account:', err);
+    return res.status(500).json({ success: false, error: 'Server error creating user account record.' });
   }
 });
 
-// PATCH /api/faculty/:id - Admin updates faculty status/details
+// PATCH /api/faculty/:id - Admin updates user status/details/role
 router.patch('/:id', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, designation, phone, name } = req.body;
+    const { status, designation, phone, name, role } = req.body;
 
     const updates = {};
     if (status !== undefined) updates.status = status;
     if (designation !== undefined) updates.designation = designation;
     if (phone !== undefined) updates.phone = phone;
     if (name !== undefined) updates.name = name;
+    if (role !== undefined) {
+      const cleanRole = String(role).trim().toLowerCase();
+      if (VALID_ROLES.includes(cleanRole)) {
+        updates.role = cleanRole;
+      }
+    }
 
     const { data: updated, error } = await supabaseAdmin
       .from('profiles')
@@ -195,16 +229,16 @@ router.patch('/:id', authenticateUser, requireAdmin, async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Faculty profile updated successfully.',
+      message: 'Profile updated successfully.',
       faculty: updated
     });
   } catch (err) {
-    console.error('Error updating faculty:', err);
-    return res.status(500).json({ success: false, error: 'Server error updating faculty.' });
+    console.error('Error updating user profile:', err);
+    return res.status(500).json({ success: false, error: 'Server error updating profile.' });
   }
 });
 
-// PATCH /api/faculty/:id/password - Admin updates faculty member password
+// PATCH /api/faculty/:id/password - Admin updates member password
 router.patch('/:id/password', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -224,15 +258,15 @@ router.patch('/:id/password', authenticateUser, requireAdmin, async (req, res) =
 
     return res.json({
       success: true,
-      message: 'Faculty password updated successfully.'
+      message: 'Password updated successfully.'
     });
   } catch (err) {
-    console.error('Error updating faculty password:', err);
-    return res.status(500).json({ success: false, error: 'Server error updating faculty password.' });
+    console.error('Error updating password:', err);
+    return res.status(500).json({ success: false, error: 'Server error updating password.' });
   }
 });
 
-// DELETE /api/faculty/:id - Admin removes faculty member
+// DELETE /api/faculty/:id - Admin removes member
 router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -267,11 +301,11 @@ router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Faculty member removed successfully.'
+      message: 'User account removed successfully.'
     });
   } catch (err) {
-    console.error('Error deleting faculty:', err);
-    return res.status(500).json({ success: false, error: 'Server error deleting faculty.' });
+    console.error('Error deleting user:', err);
+    return res.status(500).json({ success: false, error: 'Server error deleting user.' });
   }
 });
 

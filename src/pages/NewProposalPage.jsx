@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FacultyLayout } from '../components/layout/FacultyLayout';
 import { useAuth } from '../context/AuthContext';
@@ -6,17 +6,38 @@ import { useBudget } from '../context/BudgetContext';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
 import { AlertCircle, ArrowRight, Calendar, AlertTriangle, Calculator, FileCheck, Lock, UserCheck } from 'lucide-react';
-import { CATEGORY_LIST, getSubcategoriesForCategory } from '../data/categories';
 import { getEventConfig, FIELD_GROUPS } from '../config/eventFormConfig';
 import { slugify } from '../utils/slugify';
 
 export const NewProposalPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { academicYears, addProposal, getFacultyMetrics } = useBudget();
+  const {
+    academicYears,
+    activeAcademicYear,
+    fetchActiveAcademicYearConfig,
+    addProposal,
+    getFacultyMetrics
+  } = useBudget();
 
-  // Active academic years created by Admin
-  const activeAcademicYears = (academicYears || []).filter(ay => ay.isActive !== false);
+  // Load active academic year config on mount
+  useEffect(() => {
+    fetchActiveAcademicYearConfig();
+  }, [fetchActiveAcademicYearConfig]);
+
+  // Determine active academic year object
+  const activeAy = useMemo(() => {
+    if (activeAcademicYear && (activeAcademicYear.status === 'ACTIVE' || activeAcademicYear.isActive)) {
+      return activeAcademicYear;
+    }
+    return (academicYears || []).find(ay => ay.status === 'ACTIVE' || ay.isActive) || null;
+  }, [activeAcademicYear, academicYears]);
+
+  // Dynamic Categories belonging to the active academic year
+  const dynamicCategories = useMemo(() => {
+    if (!activeAy) return [];
+    return activeAy.categories || [];
+  }, [activeAy]);
 
   // Faculty balance metrics
   const metrics = getFacultyMetrics(user?.email);
@@ -25,25 +46,32 @@ export const NewProposalPage = () => {
   // ---------------------------------------------------------------------------
   // Form State
   // ---------------------------------------------------------------------------
-  const [academicYearId, setAcademicYearId] = useState(() => {
-    return activeAcademicYears.length > 0 ? activeAcademicYears[0].id : '';
-  });
+  // Category Selection
+  const [selectedCategoryName, setSelectedCategoryName] = useState('');
+  const [selectedSubCategoryName, setSelectedSubCategoryName] = useState('');
 
-  const effectiveAcademicYearId = academicYearId || (activeAcademicYears.length > 0 ? activeAcademicYears[0].id : '');
+  // Effective category and subcategory
+  const effectiveCategoryName = selectedCategoryName || (dynamicCategories.length > 0 ? dynamicCategories[0].name : '');
 
-  // Submission / System Date
+  // Selected Category Object
+  const selectedCategoryObj = useMemo(() => {
+    return dynamicCategories.find(c => c.name === effectiveCategoryName) || null;
+  }, [dynamicCategories, effectiveCategoryName]);
+
+  // Dynamic Subcategories for currently selected category
+  const availableSubcategories = useMemo(() => {
+    return selectedCategoryObj?.subcategories || [];
+  }, [selectedCategoryObj]);
+
+  const effectiveSubCategoryName = selectedSubCategoryName !== ''
+    ? selectedSubCategoryName
+    : (availableSubcategories.length > 0 ? availableSubcategories[0].name : '');
+
+  // Dates
   const [proposalDateStr] = useState(() => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
   const [todayIso] = useState(() => new Date().toISOString().split('T')[0]);
 
-  // Category & Sub Category State
-  const [category, setCategory] = useState(CATEGORY_LIST[0] || 'CSEA');
-
-  const [subCategory, setSubCategory] = useState(() => {
-    const subs = getSubcategoriesForCategory(CATEGORY_LIST[0] || 'CSEA');
-    return subs.length > 0 ? subs[0] : '';
-  });
-
-  // Dynamic Event-Specific State Object (cleared on event switch)
+  // Dynamic Event-Specific State Object (cleared on category / subcategory change)
   const [eventData, setEventData] = useState({});
 
   // Common Proposal Fields State
@@ -53,42 +81,46 @@ export const NewProposalPage = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Available subcategories for currently selected category
-  const availableSubcategories = getSubcategoriesForCategory(category);
-
   // Active event configuration
-  const activeEventConfig = getEventConfig(subCategory);
+  const activeEventConfig = getEventConfig(effectiveSubCategoryName || effectiveCategoryName);
   const activeFieldGroupIds = activeEventConfig.fieldGroupIds || [];
 
-  // Selected academic year object & label
-  const selectedAcademicYearObj = activeAcademicYears.find(ay => ay.id === effectiveAcademicYearId);
-  const selectedAcademicYearLabel = selectedAcademicYearObj ? selectedAcademicYearObj.academicYear : '2027-2028';
+  // Academic year label
+  const selectedAcademicYearLabel = activeAy
+    ? (activeAy.name || activeAy.academicYear || `${activeAy.startYear}-${activeAy.endYear}`)
+    : 'No Active Academic Year';
 
   // ---------------------------------------------------------------------------
   // Automatic Global Proposal ID Preview (Read-only UI Preview)
   // Format: KEC/{ACADEMIC_YEAR}/{CATEGORY}/{SUBCATEGORY}/(assigned on submit)
   // ---------------------------------------------------------------------------
-  const categorySlug = slugify(category);
-  const subCategorySlug = slugify(subCategory);
-  const proposalIdPreview = subCategorySlug
-    ? `KEC/${selectedAcademicYearLabel}/${categorySlug}/${subCategorySlug}/(assigned on submit)`
-    : `KEC/${selectedAcademicYearLabel}/${categorySlug}/(assigned on submit)`;
+  const categorySlug = slugify(effectiveCategoryName || 'GENERAL');
+  const subCategorySlug = slugify(effectiveSubCategoryName);
+  const compactAyLabel = selectedAcademicYearLabel.replace(/\s+/g, '');
+
+  const proposalIdPreview = activeAy
+    ? (subCategorySlug
+      ? `KEC/${compactAyLabel}/${categorySlug}/${subCategorySlug}/(assigned on submit)`
+      : `KEC/${compactAyLabel}/${categorySlug}/(assigned on submit)`)
+    : 'KEC/NO-SESSION/(pending active session configuration)';
 
   // ---------------------------------------------------------------------------
-  // Category / Sub Category Change Handlers (Clears eventData dynamic state)
+  // Category / Sub Category Change Handlers
   // ---------------------------------------------------------------------------
   const handleCategoryChange = (e) => {
-    const newCat = e.target.value;
-    setCategory(newCat);
-    const newSubs = getSubcategoriesForCategory(newCat);
-    setSubCategory(newSubs.length > 0 ? newSubs[0] : '');
+    const newCatName = e.target.value;
+    setSelectedCategoryName(newCatName);
+
+    const catObj = dynamicCategories.find(c => c.name === newCatName);
+    const subs = catObj?.subcategories || [];
+    setSelectedSubCategoryName(subs.length > 0 ? subs[0].name : '');
     setEventData({});
     setError('');
   };
 
   const handleSubCategoryChange = (e) => {
-    const newSub = e.target.value;
-    setSubCategory(newSub);
+    const newSubName = e.target.value;
+    setSelectedSubCategoryName(newSubName);
     setEventData({});
     setError('');
   };
@@ -124,22 +156,18 @@ export const NewProposalPage = () => {
     e.preventDefault();
     setError('');
 
-    if (activeAcademicYears.length === 0) {
+    if (!activeAy) {
       setError('No active academic year available. Please contact the administrator.');
       return;
     }
-    if (!effectiveAcademicYearId) {
-      setError('Please select an Academic Year.');
-      return;
-    }
 
-    if (!category) {
+    if (!effectiveCategoryName) {
       setError('Please select a Category.');
       return;
     }
 
-    if (availableSubcategories.length > 0 && !subCategory) {
-      setError(`Please select a Sub Category for ${category}.`);
+    if (availableSubcategories.length > 0 && !effectiveSubCategoryName) {
+      setError(`Please select a Sub Category for ${effectiveCategoryName}.`);
       return;
     }
 
@@ -153,7 +181,7 @@ export const NewProposalPage = () => {
       return;
     }
 
-    // Dynamic Event-Specific Validation (only active fields checked)
+    // Dynamic Event-Specific Validation
     for (const groupId of activeFieldGroupIds) {
       const group = FIELD_GROUPS[groupId];
       if (group && group.fields) {
@@ -199,16 +227,21 @@ export const NewProposalPage = () => {
       formattedGuestDetails = baseStr;
     }
 
+    // Find selected subcategory ID
+    const selectedSubObj = availableSubcategories.find(s => s.name === effectiveSubCategoryName);
+
     try {
       const result = await addProposal({
         proposalId: proposalIdPreview,
-        academicYearId: effectiveAcademicYearId,
+        academicYearId: activeAy.id,
         academicYear: selectedAcademicYearLabel,
         proposalDate: todayIso,
         facultyName: user?.name || 'Faculty Member',
         facultyEmail: user?.email || 'faculty@kongu.edu',
-        category,
-        subCategory: availableSubcategories.length > 0 ? subCategory : '',
+        category: effectiveCategoryName,
+        categoryId: selectedCategoryObj?.id || null,
+        subCategory: availableSubcategories.length > 0 ? effectiveSubCategoryName : '',
+        subcategoryId: selectedSubObj?.id || null,
         title: title.trim(),
         programDate,
         guestDetails: formattedGuestDetails,
@@ -269,8 +302,8 @@ export const NewProposalPage = () => {
                 </div>
               )}
 
-              {/* Warning if no Academic Years available */}
-              {activeAcademicYears.length === 0 && (
+              {/* Warning if no Active Academic Year */}
+              {!activeAy && (
                 <div
                   style={{
                     padding: '10px 14px',
@@ -286,49 +319,40 @@ export const NewProposalPage = () => {
                   }}
                 >
                   <AlertTriangle size={15} style={{ flexShrink: 0 }} />
-                  <span>No active academic year available. Please contact the administrator.</span>
+                  <span>No active academic year available for proposals. Please contact the administrator.</span>
                 </div>
               )}
 
-              {/* FIELD 1: ACADEMIC YEAR & FIELD 2: DATE */}
+              {/* FIELD 1: ACADEMIC YEAR (Active Cycle) & FIELD 2: SUBMISSION DATE */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-                {/* Field 1 — Academic Year Dropdown */}
+                {/* Field 1 — Active Academic Year Display */}
                 <div className="cbm-input-group">
-                  <label htmlFor="academic-year-select" className="cbm-label">
-                    Academic Year <span style={{ color: 'var(--danger)' }}>*</span>
+                  <label className="cbm-label">
+                    Active Academic Year <span style={{ color: 'var(--danger)' }}>*</span>
                   </label>
-                  {activeAcademicYears.length > 0 ? (
-                    <select
-                      id="academic-year-select"
-                      value={effectiveAcademicYearId}
-                      onChange={(e) => setAcademicYearId(e.target.value)}
-                      required
-                      className="cbm-select"
-                    >
-                      {activeAcademicYears.map((ay) => (
-                        <option key={ay.id} value={ay.id}>
-                          {ay.academicYear} (Budget: ₹{Number(ay.budget).toLocaleString('en-IN')})
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        backgroundColor: 'var(--danger-bg)',
-                        border: '1px solid var(--danger-border)',
-                        color: 'var(--danger-text)',
-                        fontSize: 12.5,
-                        fontWeight: 500
-                      }}
-                    >
-                      No academic year available.
-                    </div>
-                  )}
+                  <div
+                    style={{
+                      height: 40,
+                      padding: '0 12px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--bg-page)',
+                      border: '1px solid var(--border)',
+                      fontWeight: 600,
+                      color: 'var(--text-heading)',
+                      fontSize: 13,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <span>{selectedAcademicYearLabel}</span>
+                    <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 3, backgroundColor: 'var(--success-bg)', color: 'var(--success-text)', fontWeight: 700 }}>
+                      ACTIVE
+                    </span>
+                  </div>
                 </div>
 
-                {/* Field 2 — Date (System / Proposal Date) */}
+                {/* Field 2 — Date of Submission */}
                 <div className="cbm-input-group">
                   <label className="cbm-label">
                     Date of Submission <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>(System Date)</span>
@@ -354,60 +378,65 @@ export const NewProposalPage = () => {
                 </div>
               </div>
 
-              {/* FIELD 3: CATEGORY & FIELD 4: SUB CATEGORY */}
+              {/* FIELD 3: DYNAMIC CATEGORY & FIELD 4: DYNAMIC SUB CATEGORY */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-                {/* Field 3 — Category Dropdown */}
+                {/* Field 3 — Category Dropdown (Driven by Active Academic Year) */}
                 <div className="cbm-input-group">
                   <label htmlFor="category-select" className="cbm-label">
                     Category <span style={{ color: 'var(--danger)' }}>*</span>
                   </label>
-                  <select
-                    id="category-select"
-                    value={category}
-                    onChange={handleCategoryChange}
-                    required
-                    className="cbm-select"
-                  >
-                    {CATEGORY_LIST.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                  {dynamicCategories.length > 0 ? (
+                    <select
+                      id="category-select"
+                      value={effectiveCategoryName}
+                      onChange={handleCategoryChange}
+                      required
+                      className="cbm-select"
+                    >
+                      {dynamicCategories.map((cat) => (
+                        <option key={cat.id || cat.name} value={cat.name}>
+                          {cat.name} {cat.budget ? `(₹${Number(cat.budget).toLocaleString('en-IN')})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--text-muted)' }}>
+                      No categories configured for this cycle.
+                    </div>
+                  )}
                 </div>
 
-                {/* Field 4 — Sub Category */}
-                <div className="cbm-input-group">
-                  <label htmlFor="subcategory-select" className="cbm-label">
-                    Sub Category {availableSubcategories.length > 0 && <span style={{ color: 'var(--danger)' }}>*</span>}
-                  </label>
-                  {availableSubcategories.length > 0 ? (
+                {/* Field 4 — Dynamic Sub Category (Shown only if category has subcategories) */}
+                {availableSubcategories.length > 0 ? (
+                  <div className="cbm-input-group">
+                    <label htmlFor="subcategory-select" className="cbm-label">
+                      Sub Category <span style={{ color: 'var(--danger)' }}>*</span>
+                    </label>
                     <select
                       id="subcategory-select"
-                      value={subCategory}
+                      value={effectiveSubCategoryName}
                       onChange={handleSubCategoryChange}
                       required
                       className="cbm-select"
                     >
                       {availableSubcategories.map((sub) => (
-                        <option key={sub} value={sub}>
-                          {sub}
+                        <option key={sub.id || sub.name} value={sub.name}>
+                          {sub.name}
                         </option>
                       ))}
                     </select>
-                  ) : (
-                    <select
-                      id="subcategory-select"
-                      disabled
-                      className="cbm-select"
-                    >
-                      <option value="">None for {category}</option>
-                    </select>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="cbm-input-group">
+                    <label className="cbm-label">Sub Category</label>
+                    <div style={{ height: 40, padding: '0 12px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                      No subcategories available (Direct Category)
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* FIELD 5: PROPOSAL ID (Automatic Global System Sequence Preview) */}
+              {/* FIELD 5: PROPOSAL ID (Automatic Global Sequence Preview) */}
               <div className="cbm-input-group">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <label className="cbm-label" htmlFor="proposal-id-preview">
@@ -431,7 +460,7 @@ export const NewProposalPage = () => {
                     fontFamily: 'monospace',
                     display: 'flex',
                     alignItems: 'center',
-                    justify: 'space-between'
+                    justifyContent: 'space-between'
                   }}
                 >
                   <span>{proposalIdPreview}</span>
@@ -446,7 +475,7 @@ export const NewProposalPage = () => {
                 id="program-title-input"
                 label="Program / Proposal Title"
                 required
-                placeholder="e.g. CSEA Technical Symposium / AI Guest Talk"
+                placeholder="e.g. Technical Symposium / AI Guest Talk / Hackathon"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -467,7 +496,7 @@ export const NewProposalPage = () => {
                 />
               </div>
 
-              {/* DYNAMIC EVENT-SPECIFIC FIELD GROUPS (Conditionally Rendered) */}
+              {/* DYNAMIC EVENT-SPECIFIC FIELD GROUPS */}
               {activeFieldGroupIds.map((groupId) => {
                 const group = FIELD_GROUPS[groupId];
                 if (!group) return null;
@@ -488,7 +517,7 @@ export const NewProposalPage = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <UserCheck size={16} color="var(--primary)" />
                       <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
-                        {group.title} <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>(Required for {subCategory})</span>
+                        {group.title} <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>(Required for {selectedSubCategoryName || selectedCategoryName})</span>
                       </h4>
                     </div>
 
@@ -606,7 +635,7 @@ export const NewProposalPage = () => {
                 type="submit"
                 variant="primary"
                 isLoading={isSubmitting}
-                disabled={isOverBudget || isSubmitting || activeAcademicYears.length === 0}
+                disabled={isOverBudget || isSubmitting || !activeAy}
                 icon={ArrowRight}
                 style={{ height: 42, fontSize: 14, marginTop: 4 }}
               >
@@ -643,7 +672,7 @@ export const NewProposalPage = () => {
               <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Category</span>
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-body)', marginTop: 1 }}>
-                  {category} {subCategory ? `— ${subCategory}` : ''}
+                  {effectiveCategoryName || '—'} {effectiveSubCategoryName ? `— ${effectiveSubCategoryName}` : ''}
                 </p>
               </div>
 
@@ -662,7 +691,7 @@ export const NewProposalPage = () => {
                 <p style={{ fontSize: 13, color: 'var(--text-body)', marginTop: 1 }}>{formatDisplayDate(programDate) || '—'}</p>
               </div>
 
-              {/* DYNAMIC EVENT DETAILS PREVIEW (Only displayed if active fields have values) */}
+              {/* Dynamic Event Details Preview */}
               {activeFieldGroupIds.includes('guestFields') && (eventData.guestName || eventData.guestDesignation || eventData.guestOrg) && (
                 <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Guest Information</span>

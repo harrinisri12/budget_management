@@ -8,8 +8,28 @@ export const requireAdmin = (req, res, next) => {
   next();
 };
 
+export const requireHod = (req, res, next) => {
+  if (!req.profile || req.profile.role !== 'hod') {
+    return res.status(403).json({
+      success: false,
+      error: 'Forbidden: HOD access required.'
+    });
+  }
+  next();
+};
+
+export const requireAdminOrHod = (req, res, next) => {
+  if (!req.profile || (req.profile.role !== 'admin' && req.profile.role !== 'hod')) {
+    return res.status(403).json({
+      success: false,
+      error: 'Forbidden: Admin or HOD access required.'
+    });
+  }
+  next();
+};
+
 export const requireFaculty = (req, res, next) => {
-  if (!req.profile || (req.profile.role !== 'faculty' && req.profile.role !== 'admin')) {
+  if (!req.profile || (req.profile.role !== 'faculty' && req.profile.role !== 'admin' && req.profile.role !== 'hod')) {
     return res.status(403).json({
       success: false,
       error: 'Forbidden: Faculty access required.'

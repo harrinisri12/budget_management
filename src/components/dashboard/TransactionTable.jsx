@@ -5,38 +5,90 @@ import { TableSkeleton } from '../common/Skeleton';
 import { TransactionDetailModal } from './TransactionDetailModal';
 import { useBudget } from '../../context/BudgetContext';
 
-const STATUS_OPTIONS = ['All Statuses', 'Approved', 'Pending', 'Rejected'];
+const STATUS_OPTIONS = ['All Statuses', 'Approved', 'Pending', 'Under Review', 'Rejected'];
 
 export const TransactionTable = () => {
-  const { transactions, categories, loading } = useBudget();
+  const { transactions, proposals, categories, loading } = useBudget();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedStatus, setSelectedStatus] = useState('All Statuses');
   const [sortField, setSortField] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [selectedTxn, setSelectedTxn] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  // Normalize genuine departmental activity records from real proposals and transactions
+  const activityItems = useMemo(() => {
+    // If real transaction records exist, use them; otherwise use genuine proposals
+    if (transactions && transactions.length > 0) {
+      return transactions.map(t => ({
+        id: t.id || t.transaction_number,
+        dbId: t.dbId || t.id,
+        date: t.date || (t.transaction_date ? new Date(t.transaction_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''),
+        department: t.department || 'CSE',
+        category: t.category || 'General Activity',
+        categoryId: t.categoryId || t.category_id,
+        subCategory: t.subCategory || t.sub_category || '',
+        amount: Number(t.amount || 0),
+        status: t.status || 'Pending',
+        description: t.description || t.title || '',
+        title: t.title || t.description || '',
+        requestedBy: t.requestedBy || t.facultyName || 'CSE Faculty',
+        requestedEmail: t.requestedEmail || t.facultyEmail || '',
+        vendor: t.vendor || 'Kongu Procurement',
+        programDate: t.programDate || '',
+        guestDetails: t.guestDetails || '',
+        adminRemarks: t.adminRemarks || ''
+      }));
+    }
+
+    if (proposals && proposals.length > 0) {
+      return proposals.map(p => ({
+        id: p.proposalNumber || p.proposalId || p.id,
+        dbId: p.dbId || p.id,
+        date: p.proposalDate || p.date || (p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''),
+        department: 'CSE',
+        category: p.category || 'General Activity',
+        categoryId: p.categoryId || p.category_id,
+        subCategory: p.subCategory || p.sub_category || '',
+        amount: Number(p.amount || 0),
+        status: p.status || 'Pending',
+        description: p.title || '',
+        title: p.title || '',
+        requestedBy: p.facultyName || p.requestedBy || 'CSE Faculty',
+        requestedEmail: p.facultyEmail || '',
+        vendor: p.guestDetails || 'Kongu Procurement',
+        programDate: p.programDate || '',
+        guestDetails: p.guestDetails || '',
+        adminRemarks: p.adminRemarks || ''
+      }));
+    }
+
+    return [];
+  }, [transactions, proposals]);
 
   const categoryFilterOptions = useMemo(() => {
     const fromCats = categories && categories.length > 0 ? categories.map(c => c.name) : [];
-    const fromTxns = transactions.map(t => t.category).filter(Boolean);
-    const unique = Array.from(new Set([...fromCats, ...fromTxns]));
+    const fromItems = activityItems.map(t => t.category).filter(Boolean);
+    const unique = Array.from(new Set([...fromCats, ...fromItems]));
     return ['All Categories', ...unique];
-  }, [categories, transactions]);
+  }, [categories, activityItems]);
 
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter(txn => {
+  const filteredItems = useMemo(() => {
+    return activityItems.filter(item => {
+      const search = searchTerm.toLowerCase();
       const matchesSearch =
-        txn.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        txn.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        txn.requestedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        txn.id.toLowerCase().includes(searchTerm.toLowerCase());
+        (item.description && item.description.toLowerCase().includes(search)) ||
+        (item.title && item.title.toLowerCase().includes(search)) ||
+        (item.category && item.category.toLowerCase().includes(search)) ||
+        (item.requestedBy && item.requestedBy.toLowerCase().includes(search)) ||
+        (item.id && item.id.toLowerCase().includes(search));
 
       const matchesCat =
-        selectedCategory === 'All Categories' || txn.category === selectedCategory;
+        selectedCategory === 'All Categories' || item.category === selectedCategory;
 
       const matchesStatus =
-        selectedStatus === 'All Statuses' || txn.status === selectedStatus;
+        selectedStatus === 'All Statuses' || item.status === selectedStatus;
 
       return matchesSearch && matchesCat && matchesStatus;
     }).sort((a, b) => {
@@ -47,7 +99,7 @@ export const TransactionTable = () => {
         ? new Date(a.date).getTime() - new Date(b.date).getTime()
         : new Date(b.date).getTime() - new Date(a.date).getTime();
     });
-  }, [transactions, searchTerm, selectedCategory, selectedStatus, sortField, sortOrder]);
+  }, [activityItems, searchTerm, selectedCategory, selectedStatus, sortField, sortOrder]);
 
   const toggleSort = (field) => {
     if (sortField === field) {
@@ -58,19 +110,68 @@ export const TransactionTable = () => {
     }
   };
 
+  const exportCsv = () => {
+    const isTransactionMode = Boolean(transactions && transactions.length > 0);
+    const headers = isTransactionMode
+      ? ['Transaction ID', 'Date', 'Description', 'Department', 'Category', 'Subcategory', 'Amount (INR)', 'Status', 'Requested By', 'Vendor']
+      : ['Proposal ID', 'Date', 'Program Title', 'Department', 'Category', 'Subcategory', 'Proposed Amount (INR)', 'Status', 'Faculty Name', 'Faculty Email', 'Program Date', 'Admin Remarks'];
+
+    const rows = filteredItems.map(item => {
+      if (isTransactionMode) {
+        return [
+          `"${(item.id || '').toString().replace(/"/g, '""')}"`,
+          `"${item.date || ''}"`,
+          `"${(item.description || item.title || '').replace(/"/g, '""')}"`,
+          `"${(item.department || 'CSE').replace(/"/g, '""')}"`,
+          `"${(item.category || '').replace(/"/g, '""')}"`,
+          `"${(item.subCategory || '').replace(/"/g, '""')}"`,
+          Number(item.amount || 0),
+          `"${item.status || ''}"`,
+          `"${(item.requestedBy || '').replace(/"/g, '""')}"`,
+          `"${(item.vendor || '').replace(/"/g, '""')}"`
+        ];
+      }
+      return [
+        `"${(item.id || '').toString().replace(/"/g, '""')}"`,
+        `"${item.date || ''}"`,
+        `"${(item.title || item.description || '').replace(/"/g, '""')}"`,
+        `"${(item.department || 'CSE').replace(/"/g, '""')}"`,
+        `"${(item.category || '').replace(/"/g, '""')}"`,
+        `"${(item.subCategory || '').replace(/"/g, '""')}"`,
+        Number(item.amount || 0),
+        `"${item.status || ''}"`,
+        `"${(item.requestedBy || '').replace(/"/g, '""')}"`,
+        `"${(item.requestedEmail || '').replace(/"/g, '""')}"`,
+        `"${(item.programDate || '').replace(/"/g, '""')}"`,
+        `"${(item.adminRemarks || '').replace(/"/g, '""')}"`
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${isTransactionMode ? 'KEC_CSE_Transactions_Audit' : 'KEC_CSE_Proposals_Audit'}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Table Title & Filter Controls Header */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>Transaction Journal & Audit Trail</span>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Financial disbursements and departmental expenditure records</p>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>Department Activity & Proposals</span>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Proposals submitted, evaluated, and disbursed for the academic year</p>
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button
-              onClick={() => alert('Exporting CSE departmental audit report (CSV)...')}
+              onClick={exportCsv}
               className="cbm-btn cbm-btn-outline cbm-btn-sm"
             >
               <FileDown size={14} />
@@ -149,20 +250,19 @@ export const TransactionTable = () => {
               <th style={{ textAlign: 'center' }}>Action</th>
             </tr>
           </thead>
-          {loading ? (
-            <TableSkeleton rows={5} />
-          ) : (
-            <tbody>
-              {filteredTransactions.length === 0 ? (
+          <tbody>
+            {loading ? (
+              <TableSkeleton rows={4} columns={6} />
+            ) : filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
-                    No matching transactions found.
+                    No recent departmental activity found.
                   </td>
                 </tr>
               ) : (
-                filteredTransactions.map((txn) => (
-                  <tr key={txn.id}>
-                    <td style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{txn.date}</td>
+                filteredItems.map((item) => (
+                  <tr key={item.id}>
+                    <td style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{item.date}</td>
                     <td>
                       <span
                         style={{
@@ -180,20 +280,25 @@ export const TransactionTable = () => {
                       </span>
                     </td>
                     <td style={{ color: 'var(--text-body)', fontWeight: 500 }}>
-                      {txn.category}
+                      {item.category}
+                      {item.subCategory && (
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4 }}>
+                          • {item.subCategory}
+                        </span>
+                      )}
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>
-                        {txn.requestedBy}
+                        {item.requestedBy}
                       </div>
                     </td>
                     <td style={{ fontWeight: 700, color: 'var(--text-heading)', textAlign: 'right' }}>
-                      ₹{txn.amount.toLocaleString('en-IN')}
+                      ₹{item.amount.toLocaleString('en-IN')}
                     </td>
                     <td>
-                      <Badge status={txn.status} />
+                      <Badge status={item.status} />
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <button
-                        onClick={() => setSelectedTxn(txn)}
+                        onClick={() => setSelectedItem(item)}
                         style={{
                           background: 'var(--bg-surface)',
                           border: '1px solid var(--border)',
@@ -224,16 +329,15 @@ export const TransactionTable = () => {
                   </tr>
                 ))
               )}
-            </tbody>
-          )}
+          </tbody>
         </table>
       </div>
 
-      {/* Transaction Details Modal */}
+      {/* Activity Details Modal */}
       <TransactionDetailModal
-        transaction={selectedTxn}
-        isOpen={!!selectedTxn}
-        onClose={() => setSelectedTxn(null)}
+        transaction={selectedItem}
+        isOpen={!!selectedItem}
+        onClose={() => setSelectedItem(null)}
       />
     </div>
   );

@@ -1,17 +1,31 @@
 import React from 'react';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Badge } from '../components/common/Badge';
-import { CSEA_DETAILS } from '../data/mockData';
 import { UserCheck, Shield } from 'lucide-react';
 import { useBudget } from '../context/BudgetContext';
 
 export const CSEAPage = () => {
-  const { categories } = useBudget();
-  const cseaCategory = categories.find(c => c.name.toLowerCase().includes('csea'));
-  const allocated = cseaCategory ? Number(cseaCategory.allocated_amount) : CSEA_DETAILS.allocated;
-  const spent = cseaCategory ? Number(cseaCategory.spent_amount) : CSEA_DETAILS.spent;
+  const { categories, activeAcademicYear, proposals } = useBudget();
+
+  // Find CSEA category from active academic year or budget categories
+  const activeCategories = activeAcademicYear?.categories || categories || [];
+  const cseaCategory = activeCategories.find(c => c.name.toLowerCase().includes('csea')) || null;
+
+  const allocated = Number(cseaCategory?.budget || cseaCategory?.allocated_amount || 0);
+
+  // Filter proposals and activities for CSEA
+  const cseaProposals = proposals.filter(p =>
+    (p.category || '').toLowerCase().includes('csea')
+  );
+
+  const spent = cseaProposals
+    .filter(p => p.status === 'Approved')
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
   const remaining = Math.max(0, allocated - spent);
-  const spentPercent = allocated > 0 ? ((spent / allocated) * 100).toFixed(1) : '71.1';
+  const spentPercent = allocated > 0 ? ((spent / allocated) * 100).toFixed(1) : '0';
+
+  const ayLabel = activeAcademicYear?.name || activeAcademicYear?.academicYear || 'No Active Academic Year';
 
   return (
     <DashboardLayout pageTitle="CSEA Association">
@@ -24,32 +38,32 @@ export const CSEAPage = () => {
             </span>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>
-            {CSEA_DETAILS.fullName} ({CSEA_DETAILS.name})
+            Computer Science and Engineering Association (CSEA)
           </h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2, maxWidth: 850 }}>
-            {CSEA_DETAILS.description}
+            Primary departmental student association driving technical symposiums, workshops, guest lectures, and industry interaction for CSE students.
           </p>
         </div>
 
         <hr className="cbm-divider" />
 
-        {/* SECTION 1: Unit Leadership & Budget Quota */}
+        {/* SECTION 1: Unit Quota & Department Overview */}
         <section className="cbm-section">
           <div className="cbm-section-header">
             <div>
-              <h2 className="cbm-section-title">Association Quota & Leadership</h2>
+              <h2 className="cbm-section-title">Association Quota & Overview</h2>
               <p className="cbm-section-subtitle">
-                Fiscal allocation and administrative leadership for Computer Science and Engineering Association
+                Fiscal allocation and departmental coordination for Computer Science and Engineering Association ({ayLabel})
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12.5 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-heading)' }}>
                 <UserCheck size={14} style={{ color: 'var(--gold)' }} />
-                <span>Faculty: <strong>{CSEA_DETAILS.facultyInCharge}</strong></span>
+                <span>Department: <strong>CSE</strong></span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-heading)' }}>
                 <Shield size={14} style={{ color: 'var(--gold)' }} />
-                <span>President: <strong>{CSEA_DETAILS.studentPresident}</strong></span>
+                <span>Session: <strong>{ayLabel}</strong></span>
               </div>
             </div>
           </div>
@@ -57,13 +71,13 @@ export const CSEAPage = () => {
           {/* Metric Strip */}
           <div className="cbm-metric-strip">
             <div className="cbm-metric-item">
-              <span className="cbm-metric-label">Allocated Budget</span>
+              <span className="cbm-metric-label">Allocated Category Budget</span>
               <div className="cbm-metric-value">₹{allocated.toLocaleString('en-IN')}</div>
-              <span className="cbm-metric-supporting">Annual CSEA FY 2026-27 Quota</span>
+              <span className="cbm-metric-supporting">Direct {ayLabel} Category Quota</span>
             </div>
 
             <div className="cbm-metric-item">
-              <span className="cbm-metric-label">Amount Spent</span>
+              <span className="cbm-metric-label">Amount Disbursed / Approved</span>
               <div className="cbm-metric-value">₹{spent.toLocaleString('en-IN')}</div>
               <span className="cbm-metric-supporting">{spentPercent}% of allocated funds utilized</span>
             </div>
@@ -82,13 +96,13 @@ export const CSEAPage = () => {
         <section className="cbm-section">
           <div className="cbm-section-header">
             <div>
-              <h2 className="cbm-section-title">CSEA Activities & Expenditure</h2>
+              <h2 className="cbm-section-title">CSEA Activities & Proposals</h2>
               <p className="cbm-section-subtitle">
                 Departmental symposiums, workshops, and guest lectures hosted under CSEA
               </p>
             </div>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)' }}>
-              {CSEA_DETAILS.activities.length} Events Logged
+              {cseaProposals.length} Proposals / Activities Logged
             </span>
           </div>
 
@@ -96,33 +110,48 @@ export const CSEAPage = () => {
             <table className="cbm-table">
               <thead>
                 <tr>
-                  <th>Activity / Event Name</th>
-                  <th>Category</th>
-                  <th>Date</th>
-                  <th style={{ textAlign: 'right' }}>Disbursed Amount</th>
+                  <th>Proposal / Activity Name</th>
+                  <th>Subcategory</th>
+                  <th>Program Date</th>
+                  <th style={{ textAlign: 'right' }}>Proposed Amount</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {CSEA_DETAILS.activities.map((act, i) => (
-                  <tr key={i}>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
-                        {act.title}
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ padding: '2px 8px', borderRadius: 4, backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', color: 'var(--slate-700)', fontWeight: 600, fontSize: 11.5 }}>
-                        {act.category}
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 500, color: 'var(--text-muted)', fontSize: 12.5 }}>{act.date}</td>
-                    <td style={{ fontWeight: 700, textAlign: 'right', color: 'var(--text-heading)' }}>₹{act.amount.toLocaleString('en-IN')}</td>
-                    <td>
-                      <Badge status={act.status} />
+                {cseaProposals.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      No proposals or activities recorded under CSEA Association yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  cseaProposals.map((prop, i) => (
+                    <tr key={prop.dbId || prop.id || i}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
+                          {prop.title}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                          ID: {prop.proposalNumber || prop.proposalId || prop.id}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{ padding: '2px 8px', borderRadius: 4, backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)', color: 'var(--text-body)', fontWeight: 600, fontSize: 11.5 }}>
+                          {prop.subCategory || 'General Activity'}
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: 500, color: 'var(--text-muted)', fontSize: 12.5 }}>
+                        {prop.programDate || prop.proposalDate || '—'}
+                      </td>
+                      <td style={{ fontWeight: 700, textAlign: 'right', color: 'var(--text-heading)' }}>
+                        ₹{Number(prop.amount || 0).toLocaleString('en-IN')}
+                      </td>
+                      <td>
+                        <Badge status={prop.status} />
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -131,5 +160,3 @@ export const CSEAPage = () => {
     </DashboardLayout>
   );
 };
-
-

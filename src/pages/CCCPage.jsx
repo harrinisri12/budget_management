@@ -1,17 +1,31 @@
 import React from 'react';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Badge } from '../components/common/Badge';
-import { CCC_DETAILS } from '../data/mockData';
 import { UserCheck, Shield } from 'lucide-react';
 import { useBudget } from '../context/BudgetContext';
 
 export const CCCPage = () => {
-  const { categories } = useBudget();
-  const cccCategory = categories.find(c => c.name.toLowerCase().includes('ccc'));
-  const allocated = cccCategory ? Number(cccCategory.allocated_amount) : CCC_DETAILS.allocated;
-  const spent = cccCategory ? Number(cccCategory.spent_amount) : CCC_DETAILS.spent;
+  const { categories, activeAcademicYear, proposals } = useBudget();
+
+  // Find CCC category from active academic year or budget categories
+  const activeCategories = activeAcademicYear?.categories || categories || [];
+  const cccCategory = activeCategories.find(c => c.name.toLowerCase().includes('ccc')) || null;
+
+  const allocated = Number(cccCategory?.budget || cccCategory?.allocated_amount || 0);
+
+  // Filter proposals and activities for CCC
+  const cccProposals = proposals.filter(p =>
+    (p.category || '').toLowerCase().includes('ccc')
+  );
+
+  const spent = cccProposals
+    .filter(p => p.status === 'Approved')
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
   const remaining = Math.max(0, allocated - spent);
-  const spentPercent = allocated > 0 ? ((spent / allocated) * 100).toFixed(1) : '68.6';
+  const spentPercent = allocated > 0 ? ((spent / allocated) * 100).toFixed(1) : '0';
+
+  const ayLabel = activeAcademicYear?.name || activeAcademicYear?.academicYear || 'No Active Academic Year';
 
   return (
     <DashboardLayout pageTitle="CCC Coding Club">
@@ -24,32 +38,32 @@ export const CCCPage = () => {
             </span>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>
-            {CCC_DETAILS.fullName} ({CCC_DETAILS.name})
+            Competitive Coding Club (CCC)
           </h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2, maxWidth: 850 }}>
-            {CCC_DETAILS.description}
+            Specialized CSE algorithmic coding hub fostering competitive programming, hackathons, LeetCode sprints, and open-source contributions.
           </p>
         </div>
 
         <hr className="cbm-divider" />
 
-        {/* SECTION 1: Club Leadership & Budget Quota */}
+        {/* SECTION 1: Club Quota & Department Overview */}
         <section className="cbm-section">
           <div className="cbm-section-header">
             <div>
-              <h2 className="cbm-section-title">Club Quota & Leadership</h2>
+              <h2 className="cbm-section-title">Club Quota & Overview</h2>
               <p className="cbm-section-subtitle">
-                Fiscal allocation and faculty coordination for Kongu Collegiate Coding Club
+                Fiscal allocation and departmental coordination for Kongu Collegiate Coding Club ({ayLabel})
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12.5 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-heading)' }}>
                 <UserCheck size={14} style={{ color: 'var(--gold)' }} />
-                <span>Faculty: <strong>{CCC_DETAILS.facultyInCharge}</strong></span>
+                <span>Department: <strong>CSE</strong></span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-heading)' }}>
                 <Shield size={14} style={{ color: 'var(--gold)' }} />
-                <span>President: <strong>{CCC_DETAILS.studentPresident}</strong></span>
+                <span>Session: <strong>{ayLabel}</strong></span>
               </div>
             </div>
           </div>
@@ -57,13 +71,13 @@ export const CCCPage = () => {
           {/* Metric Strip */}
           <div className="cbm-metric-strip">
             <div className="cbm-metric-item">
-              <span className="cbm-metric-label">Allocated Budget</span>
+              <span className="cbm-metric-label">Allocated Category Budget</span>
               <div className="cbm-metric-value">₹{allocated.toLocaleString('en-IN')}</div>
-              <span className="cbm-metric-supporting">Annual CCC FY 2026-27 Quota</span>
+              <span className="cbm-metric-supporting">Direct {ayLabel} Category Quota</span>
             </div>
 
             <div className="cbm-metric-item">
-              <span className="cbm-metric-label">Amount Spent</span>
+              <span className="cbm-metric-label">Amount Disbursed / Approved</span>
               <div className="cbm-metric-value">₹{spent.toLocaleString('en-IN')}</div>
               <span className="cbm-metric-supporting">{spentPercent}% of allocated funds utilized</span>
             </div>
@@ -82,13 +96,13 @@ export const CCCPage = () => {
         <section className="cbm-section">
           <div className="cbm-section-header">
             <div>
-              <h2 className="cbm-section-title">CCC Hackathons & Contests Expenditure</h2>
+              <h2 className="cbm-section-title">CCC Hackathons & Contests Proposals</h2>
               <p className="cbm-section-subtitle">
-                Competitive programming bootcamps, hackathons, and server compute expenses
+                Competitive programming bootcamps, hackathons, and server compute proposals
               </p>
             </div>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)' }}>
-              {CCC_DETAILS.activities.length} Contests Logged
+              {cccProposals.length} Proposals / Contests Logged
             </span>
           </div>
 
@@ -97,32 +111,47 @@ export const CCCPage = () => {
               <thead>
                 <tr>
                   <th>Coding Event / Contest Name</th>
-                  <th>Category</th>
-                  <th>Date</th>
-                  <th style={{ textAlign: 'right' }}>Disbursed Amount</th>
+                  <th>Subcategory</th>
+                  <th>Program Date</th>
+                  <th style={{ textAlign: 'right' }}>Proposed Amount</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {CCC_DETAILS.activities.map((act, i) => (
-                  <tr key={i}>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
-                        {act.title}
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ padding: '2px 8px', borderRadius: 4, backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', color: 'var(--slate-700)', fontWeight: 600, fontSize: 11.5 }}>
-                        {act.category}
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 500, color: 'var(--text-muted)', fontSize: 12.5 }}>{act.date}</td>
-                    <td style={{ fontWeight: 700, textAlign: 'right', color: 'var(--text-heading)' }}>₹{act.amount.toLocaleString('en-IN')}</td>
-                    <td>
-                      <Badge status={act.status} />
+                {cccProposals.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      No proposals or activities recorded under CCC Coding Club yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  cccProposals.map((prop, i) => (
+                    <tr key={prop.dbId || prop.id || i}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
+                          {prop.title}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                          ID: {prop.proposalNumber || prop.proposalId || prop.id}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{ padding: '2px 8px', borderRadius: 4, backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)', color: 'var(--text-body)', fontWeight: 600, fontSize: 11.5 }}>
+                          {prop.subCategory || 'Coding Event'}
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: 500, color: 'var(--text-muted)', fontSize: 12.5 }}>
+                        {prop.programDate || prop.proposalDate || '—'}
+                      </td>
+                      <td style={{ fontWeight: 700, textAlign: 'right', color: 'var(--text-heading)' }}>
+                        ₹{Number(prop.amount || 0).toLocaleString('en-IN')}
+                      </td>
+                      <td>
+                        <Badge status={prop.status} />
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -131,5 +160,3 @@ export const CCCPage = () => {
     </DashboardLayout>
   );
 };
-
-

@@ -55,11 +55,11 @@ export const SettingsPage = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 20 }}>
               <Input
                 label="Administrator Full Name"
-                defaultValue={user?.name || 'Dr. Suresh Kumar'}
+                defaultValue={user?.name || 'Administrator'}
               />
               <Input
                 label="Institutional Email"
-                defaultValue={user?.email || 'admin@kongu.edu'}
+                defaultValue={user?.email || ''}
                 disabled
                 helperText="Email address is governed by Kongu domain policy."
               />

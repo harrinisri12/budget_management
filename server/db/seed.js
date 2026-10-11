@@ -187,40 +187,209 @@ export async function seedDatabase() {
     }
     console.log('✅ Faculty accounts verified.');
 
-    // 3b. Seed Academic Years
-    console.log('📅 Seeding Academic Years...');
+    // 4. Seed Academic Years (Categories with Direct Budgets & Subcategories without separate budgets)
+    console.log('📅 Seeding Academic Years & Categories...');
     const academicYearsSeeds = [
-      { academic_year: '2026-2027', budget: 500000, is_active: true },
-      { academic_year: '2027-2028', budget: 600000, is_active: true }
+      {
+        start_year: 2026,
+        end_year: 2027,
+        name: '2026 - 2027',
+        academic_year: '2026-2027',
+        status: 'ACTIVE',
+        is_active: true,
+        annual_budget: 2060000,
+        budget: 2060000,
+        categories: [
+          {
+            name: 'CSEA Association',
+            description: 'Primary departmental student association driving technical symposiums, workshops, and guest lectures.',
+            budget: 450000,
+            subcategories: [
+              { name: 'Renaissance' },
+              { name: 'Workshop' },
+              { name: 'Guest Lecture' },
+              { name: 'Validation' },
+              { name: 'Inaugural' },
+              { name: 'Partial Guest Lecture' },
+              { name: 'Orientation' },
+              { name: 'Crescita' },
+              { name: 'Senior-Junior Interaction' }
+            ]
+          },
+          {
+            name: 'CCC Coding Club',
+            description: 'Specialized CSE algorithmic coding hub fostering competitive programming, hackathons, and open-source sprints.',
+            budget: 350000,
+            subcategories: [
+              { name: 'Coding Contest' },
+              { name: 'Training' },
+              { name: 'Hackathon' }
+            ]
+          },
+          {
+            name: 'Lab & Equipment',
+            description: 'Hardware, software licenses, lab infrastructure upgrades, and networking equipment.',
+            budget: 520000,
+            subcategories: [
+              { name: 'Hardware Upgrade' },
+              { name: 'Software Licenses' },
+              { name: 'Networking Infrastructure' }
+            ]
+          },
+          {
+            name: 'Technical Workshop',
+            description: 'Hands-on technical workshops, tool training, and student skill enhancement.',
+            budget: 240000,
+            subcategories: [
+              { name: 'Technical Workshop' },
+              { name: 'Non-Technical Workshop' }
+            ]
+          },
+          {
+            name: 'Department Maintenance',
+            description: 'Departmental upkeep, consumables, printing quotas, stationery, and routine maintenance.',
+            budget: 160000,
+            subcategories: [
+              { name: 'Lab Maintenance' },
+              { name: 'Office Consumables' }
+            ]
+          },
+          {
+            name: 'Academic Research',
+            description: 'Faculty and student research projects, paper publications, patents, and seed funding.',
+            budget: 100000,
+            subcategories: [
+              { name: 'Paper Publications' },
+              { name: 'Patent Filings' }
+            ]
+          },
+          {
+            name: 'Technical Workshops',
+            description: 'Advanced technical certifications and faculty development programs.',
+            budget: 240000,
+            subcategories: []
+          }
+        ]
+      },
+      {
+        start_year: 2027,
+        end_year: 2028,
+        name: '2027 - 2028',
+        academic_year: '2027-2028',
+        status: 'DRAFT',
+        is_active: false,
+        annual_budget: 600000,
+        budget: 600000,
+        categories: [
+          {
+            name: 'Guest Lecture',
+            description: 'Expert talks for 2027-28',
+            budget: 100000,
+            subcategories: [
+              { name: 'External Guest Lecture' },
+              { name: 'Industry Guest Lecture' }
+            ]
+          },
+          {
+            name: 'Workshop & Hands-on Lab',
+            description: 'Hands-on practical sessions',
+            budget: 200000,
+            subcategories: []
+          },
+          {
+            name: 'Symposium & Competitions',
+            description: 'National Level Technical Symposium',
+            budget: 300000,
+            subcategories: []
+          }
+        ]
+      }
     ];
 
-    const academicYearsMap = {};
-    for (const ay of academicYearsSeeds) {
+    for (const aySeed of academicYearsSeeds) {
       try {
         const { data: existingAy } = await supabaseAdmin
           .from('academic_years')
           .select('*')
-          .eq('academic_year', ay.academic_year)
+          .or(`academic_year.eq.${aySeed.academic_year},name.eq.${aySeed.name}`)
           .maybeSingle();
+
+        let ayId = existingAy?.id;
 
         if (!existingAy) {
           const { data: newAy } = await supabaseAdmin
             .from('academic_years')
-            .insert(ay)
+            .insert({
+              academic_year: aySeed.academic_year,
+              status: aySeed.status,
+              is_active: aySeed.is_active,
+              budget: aySeed.budget
+            })
             .select()
             .single();
-          if (newAy) academicYearsMap[ay.academic_year] = newAy.id;
+          ayId = newAy?.id;
         } else {
-          academicYearsMap[ay.academic_year] = existingAy.id;
+          await supabaseAdmin
+            .from('academic_years')
+            .update({
+              academic_year: aySeed.academic_year,
+              status: aySeed.status,
+              is_active: aySeed.is_active,
+              budget: aySeed.budget
+            })
+            .eq('id', existingAy.id);
+        }
+
+        // Seed categories, category budgets, subcategories
+        if (ayId) {
+          try {
+            for (const catSeed of aySeed.categories) {
+              const { data: catData } = await supabaseAdmin
+                .from('categories')
+                .upsert({
+                  academic_year_id: ayId,
+                  name: catSeed.name,
+                  description: catSeed.description
+                }, { onConflict: 'academic_year_id,name' })
+                .select()
+                .single();
+
+              if (catData) {
+                const catId = catData.id;
+
+                // Category budget
+                await supabaseAdmin
+                  .from('category_budgets')
+                  .upsert({
+                    category_id: catId,
+                    amount: catSeed.budget
+                  }, { onConflict: 'category_id' });
+
+                // Subcategories (classification only, NO budget)
+                if (catSeed.subcategories) {
+                  for (const subSeed of catSeed.subcategories) {
+                    await supabaseAdmin
+                      .from('subcategories')
+                      .upsert({
+                        category_id: catId,
+                        name: subSeed.name
+                      }, { onConflict: 'category_id,name' });
+                  }
+                }
+              }
+            }
+          } catch (tblErr) {
+            console.warn(`Note on enhanced tables seeding: ${tblErr.message}`);
+          }
         }
       } catch (err) {
-        console.warn(`Could not seed academic year ${ay.academic_year}: ${err.message}`);
+        console.warn(`Could not seed academic year ${aySeed.name}: ${err.message}`);
       }
     }
-    console.log('✅ Academic Years verified.');
+    console.log('✅ Academic Years & Categories verified.');
 
-    // 4. Seed Budget (FY 2026-27 - ₹24.5 Lakhs)
-    console.log('💰 Seeding Annual Budget...');
+    // 5. Seed Legacy Budget & Categories (FY 2026-27)
+    console.log('💰 Seeding Department General Budget...');
     let { data: existingBudget } = await supabaseAdmin
       .from('budgets')
       .select('*')
@@ -244,8 +413,6 @@ export async function seedDatabase() {
       console.log('✅ Budget for FY 2026-27 created: ₹24,50,000');
     }
 
-    // 5. Seed Budget Categories
-    console.log('📊 Seeding Budget Categories...');
     const categorySeeds = [
       { name: 'CSEA Association', allocated_amount: 450000, spent_amount: 320000 },
       { name: 'CCC Coding Club', allocated_amount: 350000, spent_amount: 240000 },
@@ -280,182 +447,7 @@ export async function seedDatabase() {
         categoryMap[cat.name] = existingCat.id;
       }
     }
-    console.log('✅ Budget categories verified.');
-
-    // 6. Seed Initial Proposals
-    console.log('📝 Seeding Initial Proposals...');
-    const arunId = facultyProfileMap['arun@kongu.edu'];
-    const priyaId = facultyProfileMap['priya@kongu.edu'];
-    const rajeshId = facultyProfileMap['rajesh@kongu.edu'];
-    const karthikId = facultyProfileMap['karthik@kongu.edu'];
-
-    const initialProposals = [
-      {
-        proposal_number: 'PROP-2026-001',
-        faculty_id: arunId,
-        category_name: 'CSEA Association',
-        title: 'CSEA Technical Symposium (OPUS 2026)',
-        proposal_date: '2026-09-18',
-        program_date: '2026-09-25',
-        guest_details: 'Dr. Arun Kumar, Senior Software Engineer, ABC Technologies',
-        amount: 35000,
-        status: 'Approved'
-      },
-      {
-        proposal_number: 'PROP-2026-002',
-        faculty_id: priyaId,
-        category_name: 'CCC Coding Club',
-        title: 'CCC Algorithmic Coding Contest',
-        proposal_date: '2026-09-17',
-        program_date: '2026-09-30',
-        guest_details: 'Prof. Ramesh G, ACM Chapter Chair',
-        amount: 12500,
-        status: 'Pending'
-      },
-      {
-        proposal_number: 'PROP-2026-003',
-        faculty_id: rajeshId,
-        category_name: 'Lab & Equipment',
-        title: 'High-performance AI workstation GPU upgrade for CSE Lab 3',
-        proposal_date: '2026-09-15',
-        program_date: '2026-10-05',
-        guest_details: 'Dell Technical Sales Team',
-        amount: 28000,
-        status: 'Approved'
-      },
-      {
-        proposal_number: 'PROP-2026-004',
-        faculty_id: karthikId,
-        category_name: 'Technical Workshop',
-        title: 'Hands-on Cloud Computing & DevOps workshop',
-        proposal_date: '2026-09-14',
-        program_date: '2026-10-12',
-        guest_details: 'AWS Authorized Trainer',
-        amount: 18000,
-        status: 'Under Review'
-      }
-    ];
-
-    for (const p of initialProposals) {
-      const catId = categoryMap[p.category_name] || Object.values(categoryMap)[0];
-      if (p.faculty_id && catId) {
-        await supabaseAdmin.from('proposals').upsert({
-          proposal_number: p.proposal_number,
-          faculty_id: p.faculty_id,
-          category_id: catId,
-          title: p.title,
-          proposal_date: p.proposal_date,
-          program_date: p.program_date,
-          guest_details: p.guest_details,
-          amount: p.amount,
-          status: p.status
-        }, { onConflict: 'proposal_number' });
-      }
-    }
-    console.log('✅ Proposals verified.');
-
-    // 7. Seed Initial Transactions
-    console.log('💳 Seeding Initial Transactions...');
-    const sampleTransactions = [
-      {
-        transaction_number: 'TXN-901',
-        category_name: 'CSEA Association',
-        amount: 45000,
-        transaction_date: '2026-09-18',
-        status: 'Approved',
-        description: 'National Level Technical Symposium guest honorarium & stage setup',
-        requested_email: 'arun@kongu.edu',
-        vendor: 'Kongu Events & Hospitality'
-      },
-      {
-        transaction_number: 'TXN-902',
-        category_name: 'CCC Coding Club',
-        amount: 12500,
-        transaction_date: '2026-09-17',
-        status: 'Pending',
-        description: 'Inter-College Algorithmic Coding Contest cash prizes & trophies',
-        requested_email: 'priya@kongu.edu',
-        vendor: 'CCC Student Chapter'
-      },
-      {
-        transaction_number: 'TXN-903',
-        category_name: 'Lab & Equipment',
-        amount: 28000,
-        transaction_date: '2026-09-16',
-        status: 'Approved',
-        description: 'High-performance AI workstation GPU upgrade for CSE Lab 3',
-        requested_email: 'rajesh@kongu.edu',
-        vendor: 'Dell Technologies Ltd'
-      },
-      {
-        transaction_number: 'TXN-904',
-        category_name: 'Technical Workshop',
-        amount: 18000,
-        transaction_date: '2026-09-14',
-        status: 'Approved',
-        description: 'Hands-on Cloud Computing & DevOps workshop trainer honorarium',
-        requested_email: 'karthik@kongu.edu',
-        vendor: 'AWS Academy Partner'
-      },
-      {
-        transaction_number: 'TXN-905',
-        category_name: 'CSEA Association',
-        amount: 35000,
-        transaction_date: '2026-09-12',
-        status: 'Pending',
-        description: 'Industrial Guest Lecture series on Generative AI by industry leaders',
-        requested_email: 'meena@kongu.edu',
-        vendor: 'Tech Talks India'
-      },
-      {
-        transaction_number: 'TXN-906',
-        category_name: 'CCC Coding Club',
-        amount: 65000,
-        transaction_date: '2026-09-10',
-        status: 'Approved',
-        description: 'Annual Hackathon server infrastructure & cloud compute credits',
-        requested_email: 'anitha@kongu.edu',
-        vendor: 'Google Cloud Academic'
-      },
-      {
-        transaction_number: 'TXN-907',
-        category_name: 'Lab & Equipment',
-        amount: 52000,
-        transaction_date: '2026-09-08',
-        status: 'Approved',
-        description: 'Cisco L3 switches & Gigabit patch cables for CSE IoT Lab',
-        requested_email: 'arun@kongu.edu',
-        vendor: 'Cisco Networking Systems'
-      },
-      {
-        transaction_number: 'TXN-908',
-        category_name: 'Department Maintenance',
-        amount: 8500,
-        transaction_date: '2026-09-05',
-        status: 'Rejected',
-        description: 'Unplanned printer ink refill outside departmental quota',
-        requested_email: 'priya@kongu.edu',
-        vendor: 'Local Office Mart'
-      }
-    ];
-
-    for (const txn of sampleTransactions) {
-      const catId = categoryMap[txn.category_name] || null;
-      const reqId = facultyProfileMap[txn.requested_email] || null;
-
-      await supabaseAdmin.from('transactions').upsert({
-        transaction_number: txn.transaction_number,
-        department_id: deptId,
-        category_id: catId,
-        amount: txn.amount,
-        transaction_date: txn.transaction_date,
-        status: txn.status,
-        description: txn.description,
-        requested_by: reqId,
-        vendor: txn.vendor
-      }, { onConflict: 'transaction_number' });
-    }
-    console.log('✅ Transactions verified.');
+    console.log('✅ Legacy budget categories verified.');
 
     console.log('🎉 Database Seeding Completed Successfully!');
   } catch (err) {

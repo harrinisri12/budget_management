@@ -11,18 +11,20 @@ export const authenticateUser = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
+    req.token = token;
 
-    // Validate JWT via Supabase Auth
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
+    // Validate token against authentic Supabase Auth session
+    const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !authData?.user) {
       return res.status(401).json({
         success: false,
         error: 'Unauthorized: Invalid or expired session token.'
       });
     }
 
-    // Load profile from public.profiles
+    const user = authData.user;
+
+    // Load actual profile from public.profiles
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('*, departments(id, name, code)')
@@ -30,17 +32,22 @@ export const authenticateUser = async (req, res, next) => {
       .maybeSingle();
 
     if (profileError) {
-      console.error('Error fetching profile in auth middleware:', profileError);
+      console.error('Error fetching user profile in auth middleware:', profileError.message);
+      return res.status(500).json({
+        success: false,
+        error: 'Database error verifying user profile.'
+      });
     }
 
-    // Attach user & profile to request
+    if (!profile) {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden: No profile record associated with this account.'
+      });
+    }
+
     req.user = user;
-    req.profile = profile || {
-      id: user.id,
-      email: user.email,
-      role: user.user_metadata?.role || 'faculty',
-      name: user.user_metadata?.name || 'User'
-    };
+    req.profile = profile;
 
     next();
   } catch (err) {

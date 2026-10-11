@@ -1,60 +1,64 @@
 import express from 'express';
 import { supabaseAdmin } from '../supabaseClient.js';
 import { authenticateUser } from '../middleware/auth.js';
-import { requireAdmin } from '../middleware/roles.js';
+import { requireAdminOrHod } from '../middleware/roles.js';
 
 const router = express.Router();
 
-// Fallback in-memory proposals list
-let memoryProposals = [];
+// Helper to format proposal record from Supabase
+const formatProposalRecord = (p) => {
+  const ayLabel = p.academic_years?.academic_year || p.academic_years?.name || 'Academic Year';
+  const catLabel = p.category || p.budget_categories?.name || 'Department Activity';
 
+  return {
+    id: p.id,
+    dbId: p.id,
+    proposalNumber: p.proposal_number || p.id,
+    proposalId: p.proposal_number || p.id,
+    academicYearId: p.academic_year_id,
+    academicYear: ayLabel,
+    proposalDate: p.proposal_date ? new Date(p.proposal_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+    facultyName: p.profiles?.name || 'Faculty Member',
+    facultyEmail: p.profiles?.email || '',
+    facultyId: p.faculty_id,
+    category: catLabel,
+    categoryId: p.category_id,
+    subCategory: p.sub_category || '',
+    subcategoryId: p.subcategory_id || null,
+    title: p.title,
+    programDate: p.program_date ? new Date(p.program_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+    guestDetails: p.guest_details || '',
+    eventDetails: p.event_details || {},
+    amount: Number(p.amount || 0),
+    status: p.status,
+    adminRemarks: p.admin_remarks || '',
+    createdAt: p.created_at,
+    updatedAt: p.updated_at
+  };
+};
 
-// GET /api/proposals - Get proposals (Admin sees all, Faculty sees own)
+// GET /api/proposals - Get real database proposals (Admin/HOD sees all, Faculty sees own)
 router.get('/', authenticateUser, async (req, res) => {
   try {
     let query = supabaseAdmin
       .from('proposals')
-      .select('*, profiles:faculty_id(id, name, email, employee_id), budget_categories:category_id(id, name), academic_years:academic_year_id(id, academic_year, budget)')
+      .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
       .order('created_at', { ascending: false });
 
-    // If faculty, restrict to their own ID
-    if (req.profile.role !== 'admin') {
+    // If regular faculty, restrict strictly to their own submitted proposals
+    if (req.profile.role !== 'admin' && req.profile.role !== 'hod') {
       query = query.eq('faculty_id', req.profile.id);
     }
 
     const { data: proposals, error } = await query;
 
-    if (!error && proposals) {
-      const formatted = proposals.map(p => ({
-        id: p.proposal_number,
-        dbId: p.id,
-        proposalId: p.proposal_number,
-        academicYearId: p.academic_year_id,
-        academicYear: p.academic_years?.academic_year || '2026-2027',
-        proposalDate: p.proposal_date ? new Date(p.proposal_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-        facultyName: p.profiles?.name || 'Faculty Member',
-        facultyEmail: p.profiles?.email || '',
-        facultyId: p.faculty_id,
-        category: p.category || p.budget_categories?.name || 'CSEA',
-        categoryId: p.category_id,
-        subCategory: p.sub_category || '',
-        title: p.title,
-        programDate: p.program_date ? new Date(p.program_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-        guestDetails: p.guest_details || '',
-        amount: Number(p.amount),
-        status: p.status,
-        adminRemarks: p.admin_remarks || ''
-      }));
-
-      return res.json({ success: true, proposals: formatted });
+    if (error) {
+      console.error('Error querying proposals from database:', error.message);
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    // Memory fallback if Supabase table query failed
-    let memList = memoryProposals;
-    if (req.profile.role !== 'admin') {
-      memList = memList.filter(p => p.facultyId === req.profile.id);
-    }
-    return res.json({ success: true, proposals: memList });
+    const formatted = (proposals || []).map(formatProposalRecord);
+    return res.json({ success: true, proposals: formatted });
   } catch (err) {
     console.error('Error fetching proposals:', err);
     return res.status(500).json({ success: false, error: 'Server error retrieving proposals.' });
@@ -70,6 +74,7 @@ router.post('/', authenticateUser, async (req, res) => {
       category,
       categoryId,
       subCategory,
+      subcategoryId,
       title,
       programDate,
       proposalDate,
@@ -79,9 +84,34 @@ router.post('/', authenticateUser, async (req, res) => {
       amount
     } = req.body;
 
-    // 1. Validate Academic Year
-    if (!academicYearId && !academicYear) {
-      return res.status(400).json({ success: false, error: 'Academic Year is required. Please select an Academic Year.' });
+    // 1. Resolve Active Academic Year
+    let resolvedAyId = academicYearId;
+    let resolvedAyText = academicYear;
+
+    if (!resolvedAyId) {
+      const { data: activeAy, error: ayErr } = await supabaseAdmin
+        .from('academic_years')
+        .select('id, academic_year')
+        .or('status.eq.ACTIVE,is_active.eq.true')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (ayErr) {
+        console.warn('Academic year lookup notice:', ayErr.message);
+      }
+
+      if (activeAy) {
+        resolvedAyId = activeAy.id;
+        resolvedAyText = activeAy.academic_year;
+      }
+    }
+
+    if (!resolvedAyId && !resolvedAyText) {
+      return res.status(400).json({
+        success: false,
+        error: 'No active academic year found in database. Proposals can only be submitted against an active academic year.'
+      });
     }
 
     // 2. Validate Category
@@ -89,13 +119,9 @@ router.post('/', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Category is required. Please select a Category.' });
     }
 
-    // 3. Validate Subcategory if CSEA
     const trimmedCat = category.trim();
-    if (trimmedCat === 'CSEA' && (!subCategory || !subCategory.trim())) {
-      return res.status(400).json({ success: false, error: 'Sub Category is required for CSEA.' });
-    }
 
-    // 4. Validate Title & Dates & Amount
+    // 3. Validate Title & Program Date & Amount
     if (!title || !title.trim()) {
       return res.status(400).json({ success: false, error: 'Program / Proposal title is required.' });
     }
@@ -109,40 +135,53 @@ router.post('/', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Valid proposed amount greater than 0 is required.' });
     }
 
-    // Resolve category ID if needed
+    // 4. Resolve category ID & subcategory ID in database
     let resolvedCategoryId = categoryId;
-    if (!resolvedCategoryId && category) {
+    if (!resolvedCategoryId && resolvedAyId) {
       const { data: catRecord } = await supabaseAdmin
         .from('budget_categories')
         .select('id')
-        .eq('name', trimmedCat)
+        .eq('academic_year_id', resolvedAyId)
+        .ilike('name', trimmedCat)
         .maybeSingle();
 
       resolvedCategoryId = catRecord?.id;
     }
 
-    // Resolve academic year id
-    let resolvedAyId = academicYearId;
-    let resolvedAyText = academicYear || '2027-2028';
-    if (!resolvedAyId && academicYear) {
-      const { data: ayRecord } = await supabaseAdmin
-        .from('academic_years')
-        .select('id, academic_year')
-        .eq('academic_year', academicYear.trim())
+    let resolvedSubcategoryId = subcategoryId;
+    if (!resolvedSubcategoryId && resolvedCategoryId && subCategory) {
+      const { data: subRecord } = await supabaseAdmin
+        .from('subcategories')
+        .select('id')
+        .eq('category_id', resolvedCategoryId)
+        .ilike('name', subCategory.trim())
         .maybeSingle();
 
-      resolvedAyId = ayRecord?.id;
-      if (ayRecord) resolvedAyText = ayRecord.academic_year;
+      resolvedSubcategoryId = subRecord?.id;
+    }
+
+    // 5. Generate proposal number from DB count
+    let generatedProposalNumber = req.body.proposalId;
+    if (!generatedProposalNumber) {
+      const { count } = await supabaseAdmin
+        .from('proposals')
+        .select('id', { count: 'exact', head: true });
+
+      const nextSeq = String((count || 0) + 1).padStart(3, '0');
+      const ayClean = (resolvedAyText || '2026-2027').replace(/\s+/g, '');
+      generatedProposalNumber = `PROP-${ayClean}-${nextSeq}`;
     }
 
     const activeEventDetails = eventDetails || event_details || {};
 
     const insertPayload = {
-      // Placeholder string - DB trigger 'generate_proposal_id_trigger' overrides this with KEC/{ACADEMIC_YEAR}/{CATEGORY}/{SUBCATEGORY}/{EVENT_NUMBER}
-      proposal_number: req.body.proposalId || `PENDING-${Date.now()}`,
+      proposal_number: generatedProposalNumber,
       faculty_id: req.profile.id,
+      academic_year_id: resolvedAyId || null,
       category_id: resolvedCategoryId || null,
+      subcategory_id: resolvedSubcategoryId || null,
       category: trimmedCat,
+      sub_category: (subCategory || '').trim() || null,
       title: title.trim(),
       proposal_date: proposalDate || new Date().toISOString().split('T')[0],
       program_date: programDate,
@@ -152,87 +191,22 @@ router.post('/', authenticateUser, async (req, res) => {
       status: 'Pending'
     };
 
-    if (resolvedAyId) {
-      insertPayload.academic_year_id = resolvedAyId;
-    }
-    if (subCategory) {
-      insertPayload.sub_category = subCategory.trim();
-    }
-
     const { data: newProposal, error } = await supabaseAdmin
       .from('proposals')
       .insert(insertPayload)
-      .select('*, profiles:faculty_id(id, name, email), budget_categories:category_id(id, name)')
+      .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
       .single();
 
-    if (!error && newProposal) {
-      const generatedId = newProposal.proposal_number;
-      const formatted = {
-        id: generatedId,
-        dbId: newProposal.id,
-        proposalId: generatedId,
-        academicYearId: newProposal.academic_year_id || resolvedAyId,
-        academicYear: resolvedAyText,
-        proposalDate: new Date(newProposal.proposal_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        facultyName: req.profile.name,
-        facultyEmail: req.profile.email,
-        facultyId: newProposal.faculty_id,
-        category: trimmedCat,
-        categoryId: newProposal.category_id,
-        subCategory: (subCategory || '').trim(),
-        title: newProposal.title,
-        programDate: new Date(newProposal.program_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        guestDetails: newProposal.guest_details || '',
-        eventDetails: newProposal.event_details || activeEventDetails,
-        amount: Number(newProposal.amount),
-        status: newProposal.status
-      };
-
-      memoryProposals.unshift(formatted);
-
-      return res.status(201).json({
-        success: true,
-        message: `Proposal submitted successfully. Proposal ID: ${generatedId}`,
-        proposal: formatted
-      });
+    if (error) {
+      console.error('Error inserting proposal in database:', error.message);
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    // Fallback if Supabase table query fails
-    const slug = (str) => (str || '').trim().replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    const memSeq = memoryProposals.length + 1;
-    const catSlug = slug(trimmedCat);
-    const subCatSlug = slug(subCategory);
-    const generatedId = subCatSlug
-      ? `KEC/${resolvedAyText}/${catSlug}/${subCatSlug}/${memSeq}`
-      : `KEC/${resolvedAyText}/${catSlug}/${memSeq}`;
-
-    const memFormatted = {
-      id: generatedId,
-      dbId: `prop-${Date.now()}`,
-      proposalId: generatedId,
-      academicYearId: resolvedAyId || 'ay-2027-2028-default',
-      academicYear: resolvedAyText,
-      proposalDate: proposalDate ? new Date(proposalDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      facultyName: req.profile.name,
-      facultyEmail: req.profile.email,
-      facultyId: req.profile.id,
-      category: trimmedCat,
-      categoryId: resolvedCategoryId,
-      subCategory: (subCategory || '').trim(),
-      title: title.trim(),
-      programDate: new Date(programDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      guestDetails: (guestDetails || '').trim() || '',
-      eventDetails: activeEventDetails,
-      amount: parsedAmount,
-      status: 'Pending'
-    };
-
-    memoryProposals.unshift(memFormatted);
-
+    const formatted = formatProposalRecord(newProposal);
     return res.status(201).json({
       success: true,
-      message: `Proposal submitted successfully. Proposal ID: ${generatedId}`,
-      proposal: memFormatted
+      message: `Proposal submitted successfully. Proposal ID: ${formatted.proposalNumber}`,
+      proposal: formatted
     });
   } catch (err) {
     console.error('Error submitting proposal:', err);
@@ -240,54 +214,120 @@ router.post('/', authenticateUser, async (req, res) => {
   }
 });
 
-// PATCH /api/proposals/:id/status - Admin updates proposal status
-router.patch('/:id/status', authenticateUser, requireAdmin, async (req, res) => {
+// PATCH /api/proposals/:id/status - Admin or HOD updates proposal status
+router.patch('/:id/status', authenticateUser, requireAdminOrHod, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, remarks } = req.body;
 
+    // 1. Validate requested status
     const validStatuses = ['Pending', 'Under Review', 'Approved', 'Rejected'];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+      return res.status(400).json({
+        success: false,
+        error: `Invalid status '${status}'. Must be one of: ${validStatuses.join(', ')}`
+      });
     }
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const filterCol = isUuid ? 'id' : 'proposal_number';
 
-    const updates = { status };
-    if (remarks !== undefined) updates.admin_remarks = remarks;
+    // 2. Validate proposal exists in database
+    const { data: existingProp, error: fetchErr } = await supabaseAdmin
+      .from('proposals')
+      .select('*')
+      .eq(filterCol, id)
+      .maybeSingle();
 
-    const { data: updated, error } = await supabaseAdmin
+    if (fetchErr) {
+      return res.status(400).json({ success: false, error: fetchErr.message });
+    }
+
+    if (!existingProp) {
+      return res.status(404).json({
+        success: false,
+        error: `Proposal not found with identifier '${id}'.`
+      });
+    }
+
+    // 3. Prepare updates
+    const updates = {
+      status,
+      updated_at: new Date().toISOString()
+    };
+    if (remarks !== undefined && remarks !== null) {
+      updates.admin_remarks = remarks;
+    }
+
+    const { data: updated, error: updateError } = await supabaseAdmin
       .from('proposals')
       .update(updates)
-      .eq(filterCol, id)
-      .select('*, profiles:faculty_id(name, email), budget_categories:category_id(name)')
+      .eq('id', existingProp.id)
+      .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
       .single();
 
-    // Also update in memory
-    const memItem = memoryProposals.find(p => p.id === id || p.dbId === id);
-    if (memItem) {
-      memItem.status = status;
-      if (remarks !== undefined) memItem.adminRemarks = remarks;
+    if (updateError) {
+      return res.status(400).json({ success: false, error: updateError.message });
     }
 
-    if (!error && updated) {
-      return res.json({
-        success: true,
-        message: `Proposal ${updated.proposal_number} status updated to ${status}.`,
-        proposal: updated
-      });
+    // 4. Maintain linked transaction in database for financial audit trail
+    if (status === 'Approved') {
+      try {
+        const { data: existingTxn } = await supabaseAdmin
+          .from('transactions')
+          .select('id')
+          .eq('proposal_id', existingProp.id)
+          .maybeSingle();
+
+        if (!existingTxn) {
+          const { count } = await supabaseAdmin
+            .from('transactions')
+            .select('id', { count: 'exact', head: true });
+
+          const nextTxnNum = `TXN-${1000 + (count || 0) + 1}`;
+
+          const { data: dept } = await supabaseAdmin
+            .from('departments')
+            .select('id')
+            .eq('code', 'CSE')
+            .maybeSingle();
+
+          await supabaseAdmin
+            .from('transactions')
+            .insert({
+              transaction_number: nextTxnNum,
+              department_id: dept?.id || null,
+              category_id: updated.category_id || null,
+              proposal_id: existingProp.id,
+              amount: Number(updated.amount || 0),
+              transaction_date: new Date().toISOString().split('T')[0],
+              status: 'Approved',
+              description: updated.title || 'Approved Proposal Disbursement',
+              requested_by: updated.faculty_id || null,
+              vendor: updated.guest_details || 'Kongu Procurement'
+            });
+        }
+      } catch (txnErr) {
+        console.warn('Transaction sync notice:', txnErr.message);
+      }
+    } else {
+      // If status changed away from Approved, remove linked transaction
+      try {
+        await supabaseAdmin
+          .from('transactions')
+          .delete()
+          .eq('proposal_id', existingProp.id);
+      } catch (txnErr) {
+        console.warn('Transaction cleanup notice:', txnErr.message);
+      }
     }
 
-    if (memItem) {
-      return res.json({
-        success: true,
-        message: `Proposal ${memItem.id} status updated to ${status}.`,
-        proposal: memItem
-      });
-    }
-
-    return res.status(400).json({ success: false, error: error?.message || 'Proposal not found.' });
+    const formatted = formatProposalRecord(updated);
+    return res.json({
+      success: true,
+      message: `Proposal ${formatted.proposalNumber} status updated to ${status}.`,
+      proposal: formatted
+    });
   } catch (err) {
     console.error('Error updating proposal status:', err);
     return res.status(500).json({ success: false, error: 'Server error updating proposal status.' });

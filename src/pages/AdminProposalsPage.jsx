@@ -9,6 +9,12 @@ export const AdminProposalsPage = () => {
   const { proposals, updateProposalStatus, loading } = useBudget();
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedProposal, setSelectedProposal] = useState(null);
+  const [adminRemarks, setAdminRemarks] = useState('');
+
+  const handleOpenReview = (prop) => {
+    setSelectedProposal(prop);
+    setAdminRemarks(prop.adminRemarks || '');
+  };
 
   const filteredProposals = proposals.filter((p) => {
     if (filterStatus === 'All') return true;
@@ -84,11 +90,10 @@ export const AdminProposalsPage = () => {
                   <th style={{ textAlign: 'center' }}>Action</th>
                 </tr>
               </thead>
-              {loading ? (
-                <TableSkeleton rows={5} />
-              ) : (
-                <tbody>
-                  {filteredProposals.length === 0 ? (
+              <tbody>
+                {loading ? (
+                  <TableSkeleton rows={5} columns={9} />
+                ) : filteredProposals.length === 0 ? (
                     <tr>
                       <td colSpan={9} style={{ textAlign: 'center', padding: '36px 20px', color: 'var(--text-muted)' }}>
                         No proposals found matching status filter "{filterStatus}".
@@ -96,11 +101,11 @@ export const AdminProposalsPage = () => {
                     </tr>
                   ) : (
                     filteredProposals.map((prop) => (
-                      <tr key={prop.id}>
-                        <td style={{ fontWeight: 600, color: 'var(--primary)' }}>{prop.id}</td>
+                      <tr key={prop.dbId || prop.id}>
+                        <td style={{ fontWeight: 600, color: 'var(--primary)' }}>{prop.proposalNumber || prop.proposalId || prop.id}</td>
                         <td>
                           <span style={{ padding: '2px 6px', borderRadius: 3, backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', color: 'var(--slate-700)', fontSize: 11.5, fontWeight: 600 }}>
-                            {prop.academicYear || '2026-2027'}
+                            {prop.academicYear || '—'}
                           </span>
                         </td>
                         <td style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
@@ -123,7 +128,7 @@ export const AdminProposalsPage = () => {
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <button
-                            onClick={() => setSelectedProposal(prop)}
+                            onClick={() => handleOpenReview(prop)}
                             style={{
                               padding: '4px 10px',
                               borderRadius: 'var(--radius-sm)',
@@ -145,8 +150,7 @@ export const AdminProposalsPage = () => {
                       </tr>
                     ))
                   )}
-                </tbody>
-              )}
+              </tbody>
             </table>
           </div>
         </section>
@@ -165,7 +169,7 @@ export const AdminProposalsPage = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
                 <div>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Proposal Evaluation</span>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-heading)', marginTop: 2 }}>{selectedProposal.id}</h2>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-heading)', marginTop: 2 }}>{selectedProposal.proposalNumber || selectedProposal.proposalId || selectedProposal.id}</h2>
                 </div>
                 <Badge status={selectedProposal.status} />
               </div>
@@ -174,7 +178,7 @@ export const AdminProposalsPage = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
                   <div>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Academic Year</span>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{selectedProposal.academicYear || '2026-2027'}</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{selectedProposal.academicYear || '—'}</p>
                   </div>
                   <div>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposal Date</span>
@@ -219,6 +223,22 @@ export const AdminProposalsPage = () => {
                   </p>
                 </div>
 
+                {/* Admin Remarks Input */}
+                <div style={{ paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
+                  <label className="cbm-label" htmlFor="admin-remarks-input">
+                    Administrative Remarks (Optional)
+                  </label>
+                  <textarea
+                    id="admin-remarks-input"
+                    rows={2}
+                    className="cbm-input"
+                    placeholder="Enter approval comments, stipulations, or reasons for rejection..."
+                    value={adminRemarks}
+                    onChange={(e) => setAdminRemarks(e.target.value)}
+                    style={{ height: 'auto', padding: '8px 10px', fontSize: 12.5 }}
+                  />
+                </div>
+
                 {/* Admin Status Actions */}
                 <div style={{ marginTop: 6, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-heading)', display: 'block', marginBottom: 8 }}>
@@ -227,7 +247,7 @@ export const AdminProposalsPage = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 90px), 1fr))', gap: 8 }}>
                     <button
                       onClick={() => {
-                        updateProposalStatus(selectedProposal.id, 'Approved');
+                        updateProposalStatus(selectedProposal.dbId || selectedProposal.id, 'Approved', adminRemarks);
                         setSelectedProposal(null);
                       }}
                       style={{
@@ -250,7 +270,7 @@ export const AdminProposalsPage = () => {
                     </button>
                     <button
                       onClick={() => {
-                        updateProposalStatus(selectedProposal.id, 'Under Review');
+                        updateProposalStatus(selectedProposal.dbId || selectedProposal.id, 'Under Review', adminRemarks);
                         setSelectedProposal(null);
                       }}
                       style={{
@@ -273,7 +293,7 @@ export const AdminProposalsPage = () => {
                     </button>
                     <button
                       onClick={() => {
-                        updateProposalStatus(selectedProposal.id, 'Rejected');
+                        updateProposalStatus(selectedProposal.dbId || selectedProposal.id, 'Rejected', adminRemarks);
                         setSelectedProposal(null);
                       }}
                       style={{

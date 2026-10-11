@@ -18,11 +18,15 @@ export const FacultyProposalsPage = () => {
 
   const filteredProposals = metrics.proposals.filter((p) => {
     const term = searchTerm.toLowerCase();
+    const idStr = (p.proposalNumber || p.proposalId || p.id || '').toLowerCase();
+    const titleStr = (p.title || '').toLowerCase();
+    const catStr = (p.category || '').toLowerCase();
+    const statusStr = (p.status || '').toLowerCase();
     return (
-      p.id.toLowerCase().includes(term) ||
-      p.title.toLowerCase().includes(term) ||
-      p.category.toLowerCase().includes(term) ||
-      p.status.toLowerCase().includes(term)
+      idStr.includes(term) ||
+      titleStr.includes(term) ||
+      catStr.includes(term) ||
+      statusStr.includes(term)
     );
   });
 
@@ -92,11 +96,10 @@ export const FacultyProposalsPage = () => {
                   <th style={{ textAlign: 'center' }}>Action</th>
                 </tr>
               </thead>
-              {loading ? (
-                <TableSkeleton rows={4} />
-              ) : (
-                <tbody>
-                  {filteredProposals.length === 0 ? (
+              <tbody>
+                {loading ? (
+                  <TableSkeleton rows={4} columns={9} />
+                ) : filteredProposals.length === 0 ? (
                     <tr>
                       <td colSpan={9} style={{ textAlign: 'center', padding: '36px 20px', color: 'var(--text-muted)' }}>
                         <p style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 8 }}>No matching proposals found.</p>
@@ -110,11 +113,11 @@ export const FacultyProposalsPage = () => {
                     </tr>
                   ) : (
                     filteredProposals.map((prop) => (
-                      <tr key={prop.id}>
-                        <td style={{ fontWeight: 600, color: 'var(--primary)' }}>{prop.id}</td>
+                      <tr key={prop.dbId || prop.id}>
+                        <td style={{ fontWeight: 600, color: 'var(--primary)' }}>{prop.proposalNumber || prop.proposalId || prop.id}</td>
                         <td style={{ fontWeight: 500, color: 'var(--text-body)' }}>
                           <span style={{ padding: '2px 6px', borderRadius: 3, backgroundColor: 'var(--slate-100)', color: 'var(--slate-700)', fontSize: 11.5, fontWeight: 600 }}>
-                            {prop.academicYear || '2026-2027'}
+                            {prop.academicYear || '—'}
                           </span>
                         </td>
                         <td style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>{prop.proposalDate}</td>
@@ -156,8 +159,7 @@ export const FacultyProposalsPage = () => {
                       </tr>
                     ))
                   )}
-                </tbody>
-              )}
+              </tbody>
             </table>
           </div>
         </section>
@@ -176,7 +178,7 @@ export const FacultyProposalsPage = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
                 <div>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Proposal Record Details</span>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-heading)', marginTop: 2 }}>{selectedProposal.id}</h2>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-heading)', marginTop: 2 }}>{selectedProposal.proposalNumber || selectedProposal.proposalId || selectedProposal.id}</h2>
                 </div>
                 <Badge status={selectedProposal.status} />
               </div>
@@ -185,7 +187,7 @@ export const FacultyProposalsPage = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
                   <div>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Academic Year</span>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{selectedProposal.academicYear || '2026-2027'}</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{selectedProposal.academicYear || '—'}</p>
                   </div>
                   <div>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposal Date</span>
@@ -222,6 +224,13 @@ export const FacultyProposalsPage = () => {
                     ₹{Number(selectedProposal.amount).toLocaleString('en-IN')}
                   </p>
                 </div>
+
+                {selectedProposal.adminRemarks && (
+                  <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--gold-subtle)', border: '1px solid var(--gold-border)', marginTop: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--gold-text)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>Admin Review Remarks</span>
+                    <p style={{ fontSize: 12.5, color: 'var(--text-heading)', marginTop: 2, lineHeight: 1.4 }}>{selectedProposal.adminRemarks}</p>
+                  </div>
+                )}
               </div>
 
               <button

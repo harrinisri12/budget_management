@@ -1,209 +1,470 @@
 import express from 'express';
 import { supabaseAdmin } from '../supabaseClient.js';
 import { authenticateUser } from '../middleware/auth.js';
-import { requireAdmin } from '../middleware/roles.js';
+import { requireAdminOrHod } from '../middleware/roles.js';
 
 const router = express.Router();
 
-// Mock in-memory store for fallback if Supabase table is not yet created in the cloud
-let memoryAcademicYears = [
-  {
-    id: 'ay-2026-2027-default',
-    academic_year: '2026-2027',
-    budget: 500000,
-    is_active: true,
-    created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 30 * 86400000).toISOString()
-  },
-  {
-    id: 'ay-2027-2028-default',
-    academic_year: '2027-2028',
-    budget: 600000,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+/**
+ * Normalizes an academic year identifier into standard canonical format: "YYYY-YYYY+1" (e.g. "2027-2028")
+ */
+function canonicalAcademicYear(raw) {
+  if (!raw) return '';
+  const str = String(raw).trim();
+  const match = str.match(/(\d{4})/);
+  if (match) {
+    const s = parseInt(match[1], 10);
+    return `${s}-${s + 1}`;
   }
-];
+  return str.replace(/\s+/g, '').replace(/[–—/]/g, '-');
+}
 
-// GET /api/academic-years - List academic years (Admin: all, Faculty: active only)
-router.get('/', authenticateUser, async (req, res) => {
+/**
+ * Normalizes an academic year for display: "YYYY - YYYY+1" (e.g. "2027 - 2028")
+ */
+function displayAcademicYear(raw) {
+  if (!raw) return '';
+  const match = String(raw).match(/(\d{4})/);
+  if (match) {
+    const s = parseInt(match[1], 10);
+    return `${s} - ${s + 1}`;
+  }
+  return String(raw);
+}
+
+// Helper to assemble full nested academic year object from DB
+async function loadFullAcademicYearFromDb(ayId) {
   try {
-    const isAdmin = req.profile?.role === 'admin';
-    
-    // Try Supabase first
-    let query = supabaseAdmin
+    const { data: ay, error: ayErr } = await supabaseAdmin
       .from('academic_years')
       .select('*')
-      .order('academic_year', { ascending: false });
+      .eq('id', ayId)
+      .maybeSingle();
 
-    if (!isAdmin) {
-      query = query.eq('is_active', true);
+    if (ayErr || !ay) return null;
+
+    // Fetch categories belonging to this academic year
+    let cats = [];
+    try {
+      const { data: categories, error: catErr } = await supabaseAdmin
+        .from('budget_categories')
+        .select('*, subcategories(*)')
+        .eq('academic_year_id', ayId)
+        .order('allocated_amount', { ascending: false });
+
+      if (!catErr && categories) {
+        cats = categories.map(c => ({
+          id: c.id,
+          academicYearId: c.academic_year_id,
+          name: c.name,
+          description: c.description || '',
+          budget: Number(c.allocated_amount || 0),
+          allocated_amount: Number(c.allocated_amount || 0),
+          spent_amount: Number(c.spent_amount || 0),
+          subcategories: (c.subcategories || []).map(s => ({
+            id: s.id,
+            name: s.name,
+            categoryId: s.category_id,
+            allocated_amount: Number(s.allocated_amount || 0),
+            spent_amount: Number(s.spent_amount || 0)
+          }))
+        }));
+      }
+    } catch (e) {
+      console.warn('Note categories query in loadFullAcademicYearFromDb:', e.message);
     }
 
-    const { data: academicYears, error } = await query;
+    const canon = canonicalAcademicYear(ay.academic_year || ay.name);
+    const match = canon.match(/(\d{4})/);
+    const sYear = match ? parseInt(match[1], 10) : (ay.start_year || 2026);
+    const eYear = sYear + 1;
+    const normName = displayAcademicYear(canon);
+    const normStatus = (ay.status || (ay.is_active ? 'ACTIVE' : 'DRAFT')).toUpperCase();
+    const finalBudget = Number(ay.budget !== undefined ? ay.budget : (ay.annual_budget || 0));
 
-    if (!error && academicYears) {
-      return res.json({
-        success: true,
-        academicYears: academicYears.map(ay => ({
-          id: ay.id,
-          academicYear: ay.academic_year,
-          budget: Number(ay.budget),
-          isActive: Boolean(ay.is_active),
-          createdAt: ay.created_at,
-          updatedAt: ay.updated_at
-        }))
-      });
+    return {
+      id: ay.id,
+      startYear: sYear,
+      endYear: eYear,
+      startDate: ay.start_date || `${sYear}-06-01`,
+      endDate: ay.end_date || `${eYear}-05-31`,
+      name: normName,
+      academicYear: canon || `${sYear}-${eYear}`,
+      status: normStatus,
+      isActive: normStatus === 'ACTIVE' || Boolean(ay.is_active),
+      annualBudget: finalBudget,
+      budget: finalBudget,
+      categoriesCount: cats.length,
+      categories: cats,
+      createdAt: ay.created_at,
+      updatedAt: ay.updated_at
+    };
+  } catch (err) {
+    console.error('Error loading academic year from DB:', err);
+    return null;
+  }
+}
+
+// ------------------------------------------------------------------------------
+// 1. GET /api/academic-years - Get list of all academic years
+// ------------------------------------------------------------------------------
+router.get('/', authenticateUser, async (req, res) => {
+  try {
+    const isManagement = req.profile.role === 'admin' || req.profile.role === 'hod';
+
+    let query = supabaseAdmin
+      .from('academic_years')
+      .select('*, budget_categories(id, allocated_amount, spent_amount)')
+      .order('created_at', { ascending: false });
+
+    if (!isManagement) {
+      query = query.or('status.eq.ACTIVE,is_active.eq.true');
     }
 
-    // Fallback to memory store if table not found or query failed
-    const list = isAdmin ? memoryAcademicYears : memoryAcademicYears.filter(ay => ay.is_active);
-    return res.json({
-      success: true,
-      academicYears: list.map(ay => ({
+    const { data: dbYears, error } = await query;
+
+    if (error) {
+      console.error('Database error querying academic years:', error.message);
+      return res.status(400).json({ success: false, error: error.message });
+    }
+
+    const formattedList = (dbYears || []).map(ay => {
+      const canon = canonicalAcademicYear(ay.academic_year || ay.name);
+      const match = canon.match(/(\d{4})/);
+      const sYear = match ? parseInt(match[1], 10) : (ay.start_year || 2026);
+      const eYear = sYear + 1;
+      const normName = displayAcademicYear(canon);
+      const normStatus = (ay.status || (ay.is_active ? 'ACTIVE' : 'DRAFT')).toUpperCase();
+      const finalBudget = Number(ay.budget !== undefined ? ay.budget : (ay.annual_budget || 0));
+      const sDate = ay.start_date || `${sYear}-06-01`;
+      const eDate = ay.end_date || `${eYear}-05-31`;
+
+      return {
         id: ay.id,
-        academicYear: ay.academic_year,
-        budget: Number(ay.budget),
-        isActive: Boolean(ay.is_active),
+        startYear: sYear,
+        endYear: eYear,
+        startDate: sDate,
+        endDate: eDate,
+        name: normName,
+        academicYear: canon || `${sYear}-${eYear}`,
+        status: normStatus,
+        isActive: normStatus === 'ACTIVE' || Boolean(ay.is_active),
+        annualBudget: finalBudget,
+        budget: finalBudget,
+        categoriesCount: (ay.budget_categories || []).length,
+        categories: ay.budget_categories || [],
         createdAt: ay.created_at,
         updatedAt: ay.updated_at
-      }))
+      };
     });
+
+    return res.json({ success: true, academicYears: formattedList });
   } catch (err) {
     console.error('Error fetching academic years:', err);
     return res.status(500).json({ success: false, error: 'Server error retrieving academic years.' });
   }
 });
 
-// GET /api/academic-years/active - List only active academic years (for dropdowns)
-router.get('/active', authenticateUser, async (req, res) => {
+// ------------------------------------------------------------------------------
+// 2. GET /api/academic-years/check-duplicate - Real-time Duplicate Check
+// ------------------------------------------------------------------------------
+router.get('/check-duplicate', authenticateUser, async (req, res) => {
   try {
-    const { data: academicYears, error } = await supabaseAdmin
-      .from('academic_years')
-      .select('*')
-      .eq('is_active', true)
-      .order('academic_year', { ascending: false });
-
-    if (!error && academicYears) {
-      return res.json({
-        success: true,
-        academicYears: academicYears.map(ay => ({
-          id: ay.id,
-          academicYear: ay.academic_year,
-          budget: Number(ay.budget),
-          isActive: true
-        }))
-      });
+    const rawQuery = req.query.year || req.query.startYear || req.query.academicYear || '';
+    if (!rawQuery) {
+      return res.status(400).json({ success: false, error: 'Academic year parameter is required.' });
     }
 
-    // Fallback to memory store
-    const active = memoryAcademicYears.filter(ay => ay.is_active);
+    const canonicalTarget = canonicalAcademicYear(rawQuery);
+    if (!canonicalTarget) {
+      return res.status(400).json({ success: false, error: 'Invalid academic year format.' });
+    }
+
+    const { data: existingYears, error } = await supabaseAdmin
+      .from('academic_years')
+      .select('id, academic_year');
+
+    if (error) {
+      console.error('Database error checking duplicate academic year:', error.message);
+      return res.status(400).json({ success: false, error: error.message });
+    }
+
+    const isDuplicate = (existingYears || []).some(ay => {
+      const existingCanon = canonicalAcademicYear(ay.academic_year);
+      return existingCanon === canonicalTarget;
+    });
+
     return res.json({
       success: true,
-      academicYears: active.map(ay => ({
-        id: ay.id,
-        academicYear: ay.academic_year,
-        budget: Number(ay.budget),
-        isActive: true
-      }))
+      isDuplicate,
+      academicYear: canonicalTarget,
+      message: isDuplicate ? 'Academic year already exists.' : 'Academic year is available.'
     });
   } catch (err) {
-    console.error('Error fetching active academic years:', err);
-    return res.status(500).json({ success: false, error: 'Server error retrieving active academic years.' });
+    console.error('Error in check-duplicate endpoint:', err);
+    return res.status(500).json({ success: false, error: 'Server error validating academic year.' });
   }
 });
 
-// POST /api/academic-years - Admin creates a new academic year
-router.post('/', authenticateUser, requireAdmin, async (req, res) => {
+// ------------------------------------------------------------------------------
+// 3. GET /api/academic-years/active - Get the single currently ACTIVE academic year
+// ------------------------------------------------------------------------------
+router.get('/active', authenticateUser, async (req, res) => {
   try {
-    const { academicYear, budget, isActive } = req.body;
-
-    if (!academicYear || !academicYear.trim()) {
-      return res.status(400).json({ success: false, error: 'Academic Year is required (e.g. 2026-2027).' });
-    }
-
-    const trimmedYear = academicYear.trim();
-    const parsedBudget = Number(budget);
-
-    if (isNaN(parsedBudget) || parsedBudget <= 0) {
-      return res.status(400).json({ success: false, error: 'Budget must be a valid positive number.' });
-    }
-
-    // Check duplicate in Supabase
-    const { data: existingSupabase, error: checkError } = await supabaseAdmin
+    const { data: dbActive, error } = await supabaseAdmin
       .from('academic_years')
-      .select('id, academic_year')
-      .ilike('academic_year', trimmedYear)
+      .select('id')
+      .or('status.eq.ACTIVE,is_active.eq.true')
+      .order('updated_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    if (existingSupabase) {
+    if (error) {
+      console.error('Database error fetching active academic year:', error.message);
+      return res.status(400).json({ success: false, error: error.message });
+    }
+
+    if (!dbActive) {
+      return res.status(404).json({ success: false, error: 'No active academic year configured in database.' });
+    }
+
+    const fullActive = await loadFullAcademicYearFromDb(dbActive.id);
+    if (!fullActive) {
+      return res.status(404).json({ success: false, error: 'Could not load active academic year details.' });
+    }
+
+    return res.json({ success: true, academicYear: fullActive });
+  } catch (err) {
+    console.error('Error fetching active academic year:', err);
+    return res.status(500).json({ success: false, error: 'Server error retrieving active academic year.' });
+  }
+});
+
+// ------------------------------------------------------------------------------
+// 3b. GET /api/academic-years/category-options - Get all distinct categories and subcategories from DB
+// ------------------------------------------------------------------------------
+router.get('/category-options', authenticateUser, async (req, res) => {
+  try {
+    const { data: dbCategories, error: catErr } = await supabaseAdmin
+      .from('budget_categories')
+      .select('name, description, subcategories(name)')
+      .order('name', { ascending: true });
+
+    if (catErr) {
+      console.warn('Note: error querying category options from DB:', catErr.message);
+      return res.status(400).json({ success: false, error: catErr.message });
+    }
+
+    const categoryMap = new Map();
+
+    (dbCategories || []).forEach(cat => {
+      const name = (cat.name || '').trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+
+      if (!categoryMap.has(key)) {
+        categoryMap.set(key, {
+          name,
+          description: cat.description || '',
+          subcategories: new Set()
+        });
+      }
+
+      const entry = categoryMap.get(key);
+      if (cat.description && !entry.description) {
+        entry.description = cat.description;
+      }
+
+      (cat.subcategories || []).forEach(sub => {
+        const subName = (typeof sub === 'string' ? sub : sub?.name || '').trim();
+        if (subName) {
+          entry.subcategories.add(subName);
+        }
+      });
+    });
+
+    const categoryOptions = Array.from(categoryMap.values()).map(entry => ({
+      name: entry.name,
+      description: entry.description,
+      subcategories: Array.from(entry.subcategories)
+    }));
+
+    return res.json({ success: true, categoryOptions });
+  } catch (err) {
+    console.error('Error in category-options endpoint:', err);
+    return res.status(500).json({ success: false, error: 'Server error retrieving category options.' });
+  }
+});
+
+// ------------------------------------------------------------------------------
+// 4. GET /api/academic-years/:id - Get complete details of an Academic Year
+// ------------------------------------------------------------------------------
+router.get('/:id', authenticateUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Guard: ignore known static endpoints or invalid IDs
+    if (!id || id === 'category-options' || id === 'check-duplicate' || id === 'active') {
+      return res.status(404).json({ success: false, error: 'Endpoint not found.' });
+    }
+
+    const fullAy = await loadFullAcademicYearFromDb(id);
+    if (!fullAy) {
+      return res.status(404).json({ success: false, error: 'Academic Year not found in database.' });
+    }
+
+    return res.json({ success: true, academicYear: fullAy });
+  } catch (err) {
+    console.error('Error fetching academic year details:', err);
+    return res.status(500).json({ success: false, error: 'Server error retrieving academic year details.' });
+  }
+});
+
+// ------------------------------------------------------------------------------
+// 5. POST /api/academic-years - Admin / HOD creates a new Academic Year configuration
+// ------------------------------------------------------------------------------
+router.post('/', authenticateUser, requireAdminOrHod, async (req, res) => {
+  try {
+    const {
+      startYear,
+      name,
+      academicYear,
+      annualBudget,
+      budget,
+      status = 'DRAFT',
+      isActive,
+      categories = []
+    } = req.body;
+
+    // 1. Calculate consecutive academic year: START YEAR - START YEAR + 1
+    let sYear = parseInt(startYear);
+    if (isNaN(sYear)) {
+      const canon = canonicalAcademicYear(academicYear || name);
+      const match = canon.match(/(\d{4})/);
+      if (match) sYear = parseInt(match[1], 10);
+    }
+
+    if (isNaN(sYear) || sYear < 2000 || sYear > 2100) {
       return res.status(400).json({
         success: false,
-        error: `Academic Year "${trimmedYear}" already exists. Duplicate academic years are not allowed.`
+        error: 'Please provide a valid starting year (e.g. 2026).'
       });
     }
 
-    // Check duplicate in memory fallback
-    if (memoryAcademicYears.some(ay => ay.academic_year.toLowerCase() === trimmedYear.toLowerCase())) {
-      return res.status(400).json({
+    const eYear = sYear + 1;
+    const cleanAcademicYear = `${sYear}-${eYear}`;
+    const cleanDisplay = `${sYear} - ${eYear}`;
+    const determinedStatus = status === 'ACTIVE' || isActive === true ? 'ACTIVE' : (status === 'CLOSED' ? 'CLOSED' : 'DRAFT');
+    const isAct = determinedStatus === 'ACTIVE';
+
+    // 2. Calculate Total Annual Budget (map to confirmed column 'budget')
+    let totalBudget = Number(budget !== undefined ? budget : (annualBudget || 0));
+    if (categories.length > 0) {
+      const sumCategories = categories.reduce((sum, c) => sum + Number(c.budget || c.allocated_amount || 0), 0);
+      if (sumCategories > 0) {
+        totalBudget = sumCategories;
+      }
+    }
+
+    // 3. Normalized Duplicate Check on Backend (handles concurrent requests)
+    const { data: existingYears, error: fetchErr } = await supabaseAdmin
+      .from('academic_years')
+      .select('id, academic_year');
+
+    if (fetchErr) {
+      console.error('Database error checking existing academic years:', fetchErr.message);
+      return res.status(500).json({ success: false, error: fetchErr.message });
+    }
+
+    const isDuplicate = (existingYears || []).some(ay => {
+      return canonicalAcademicYear(ay.academic_year) === cleanAcademicYear;
+    });
+
+    if (isDuplicate) {
+      return res.status(409).json({
         success: false,
-        error: `Academic Year "${trimmedYear}" already exists. Duplicate academic years are not allowed.`
+        error: 'Academic year already exists.'
       });
     }
 
-    // Try inserting into Supabase
-    const { data: newYear, error: insertError } = await supabaseAdmin
+    // 4. If creating as ACTIVE, deactivate all other years in database
+    if (isAct) {
+      await supabaseAdmin
+        .from('academic_years')
+        .update({ status: 'CLOSED', is_active: false })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+    }
+
+    // 5. Insert Academic Year record strictly using confirmed schema columns:
+    //    academic_year (TEXT), budget (NUMERIC), is_active (BOOLEAN), status (TEXT)
+    const { data: insertedYear, error: insertError } = await supabaseAdmin
       .from('academic_years')
       .insert({
-        academic_year: trimmedYear,
-        budget: parsedBudget,
-        is_active: isActive !== undefined ? Boolean(isActive) : true
+        academic_year: cleanAcademicYear,
+        budget: totalBudget,
+        status: determinedStatus,
+        is_active: isAct
       })
       .select()
       .single();
 
-    if (!insertError && newYear) {
-      const formatted = {
-        id: newYear.id,
-        academicYear: newYear.academic_year,
-        budget: Number(newYear.budget),
-        isActive: Boolean(newYear.is_active),
-        createdAt: newYear.created_at,
-        updatedAt: newYear.updated_at
-      };
-
-      // Also keep memory in sync
-      memoryAcademicYears.unshift(newYear);
-
-      return res.status(201).json({
-        success: true,
-        message: `Academic Year ${trimmedYear} created successfully.`,
-        academicYear: formatted
-      });
+    if (insertError) {
+      console.error('Database error inserting academic year:', insertError.message);
+      return res.status(400).json({ success: false, error: insertError.message });
     }
 
-    // If Supabase table does not exist or errored, store in memory fallback
-    const memItem = {
-      id: `ay-${Date.now()}`,
-      academic_year: trimmedYear,
-      budget: parsedBudget,
-      is_active: isActive !== undefined ? Boolean(isActive) : true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    const ayId = insertedYear.id;
 
-    memoryAcademicYears.unshift(memItem);
+    // 6. Insert Categories & Subcategories
+    if (categories && categories.length > 0) {
+      for (const cat of categories) {
+        const catAllocated = Number(cat.budget || cat.allocated_amount || 0);
+        const { data: insCat, error: catErr } = await supabaseAdmin
+          .from('budget_categories')
+          .insert({
+            academic_year_id: ayId,
+            name: cat.name,
+            description: cat.description || '',
+            allocated_amount: catAllocated,
+            spent_amount: 0
+          })
+          .select()
+          .single();
+
+        if (!catErr && insCat && cat.subcategories && cat.subcategories.length > 0) {
+          const subInserts = cat.subcategories.map(s => ({
+            category_id: insCat.id,
+            name: typeof s === 'string' ? s : s.name,
+            allocated_amount: 0,
+            spent_amount: 0
+          }));
+
+          await supabaseAdmin
+            .from('subcategories')
+            .insert(subInserts);
+        }
+      }
+    }
+
+    const fullCreated = await loadFullAcademicYearFromDb(ayId);
 
     return res.status(201).json({
       success: true,
-      message: `Academic Year ${trimmedYear} created successfully.`,
-      academicYear: {
-        id: memItem.id,
-        academicYear: memItem.academic_year,
-        budget: memItem.budget,
-        isActive: memItem.is_active,
-        createdAt: memItem.created_at,
-        updatedAt: memItem.updated_at
+      message: `Academic Year "${cleanDisplay}" created successfully.`,
+      academicYear: fullCreated || {
+        id: insertedYear.id,
+        startYear: sYear,
+        endYear: eYear,
+        startDate: `${sYear}-06-01`,
+        endDate: `${eYear}-05-31`,
+        name: cleanDisplay,
+        academicYear: cleanAcademicYear,
+        status: determinedStatus,
+        isActive: isAct,
+        annualBudget: totalBudget,
+        budget: totalBudget,
+        categoriesCount: categories.length,
+        categories
       }
     });
   } catch (err) {
@@ -212,60 +473,59 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
   }
 });
 
-// PATCH /api/academic-years/:id - Admin updates an academic year
-router.patch('/:id', authenticateUser, requireAdmin, async (req, res) => {
+// ------------------------------------------------------------------------------
+// 6. PATCH & PUT /api/academic-years/:id - Update Academic Year
+// ------------------------------------------------------------------------------
+const handleUpdateAcademicYear = async (req, res) => {
   try {
     const { id } = req.params;
-    const { academicYear, budget, isActive } = req.body;
+    const {
+      name,
+      academicYear,
+      startYear,
+      annualBudget,
+      budget,
+      status,
+      isActive,
+      is_active
+    } = req.body;
 
-    const updates = {};
+    const updates = {
+      updated_at: new Date().toISOString()
+    };
+
     if (academicYear !== undefined) {
-      const trimmed = academicYear.trim();
-      if (!trimmed) {
-        return res.status(400).json({ success: false, error: 'Academic Year cannot be empty.' });
-      }
-      updates.academic_year = trimmed;
+      updates.academic_year = canonicalAcademicYear(academicYear);
+    } else if (name !== undefined) {
+      updates.academic_year = canonicalAcademicYear(name);
+    } else if (startYear !== undefined) {
+      const sy = parseInt(startYear, 10);
+      if (!isNaN(sy)) updates.academic_year = `${sy}-${sy + 1}`;
     }
 
-    if (budget !== undefined) {
-      const numBudget = Number(budget);
-      if (isNaN(numBudget) || numBudget <= 0) {
-        return res.status(400).json({ success: false, error: 'Budget must be a positive number.' });
-      }
-      updates.budget = numBudget;
+    const bVal = budget !== undefined ? budget : annualBudget;
+    if (bVal !== undefined) {
+      updates.budget = Number(bVal);
     }
 
-    if (isActive !== undefined) {
-      updates.is_active = Boolean(isActive);
+    if (status !== undefined) {
+      const st = status.toUpperCase() === 'ACTIVE' ? 'ACTIVE' : (status.toUpperCase() === 'CLOSED' ? 'CLOSED' : 'DRAFT');
+      updates.status = st;
+      updates.is_active = st === 'ACTIVE';
+    } else if (isActive !== undefined || is_active !== undefined) {
+      const act = Boolean(isActive !== undefined ? isActive : is_active);
+      updates.is_active = act;
+      updates.status = act ? 'ACTIVE' : 'CLOSED';
     }
 
-    updates.updated_at = new Date().toISOString();
-
-    // Check duplicate if academic_year is modified
-    if (updates.academic_year) {
-      const { data: existing } = await supabaseAdmin
+    // If changing to ACTIVE, deactivate others
+    if (updates.status === 'ACTIVE' || updates.is_active === true) {
+      await supabaseAdmin
         .from('academic_years')
-        .select('id, academic_year')
-        .ilike('academic_year', updates.academic_year)
-        .neq('id', id)
-        .maybeSingle();
-
-      if (existing) {
-        return res.status(400).json({
-          success: false,
-          error: `Another academic year named "${updates.academic_year}" already exists.`
-        });
-      }
-
-      if (memoryAcademicYears.some(ay => ay.id !== id && ay.academic_year.toLowerCase() === updates.academic_year.toLowerCase())) {
-        return res.status(400).json({
-          success: false,
-          error: `Another academic year named "${updates.academic_year}" already exists.`
-        });
-      }
+        .update({ status: 'CLOSED', is_active: false })
+        .neq('id', id);
     }
 
-    // Update in Supabase
     const { data: updated, error } = await supabaseAdmin
       .from('academic_years')
       .update(updates)
@@ -273,113 +533,236 @@ router.patch('/:id', authenticateUser, requireAdmin, async (req, res) => {
       .select()
       .single();
 
-    if (!error && updated) {
-      // Update memory store
-      const memIdx = memoryAcademicYears.findIndex(ay => ay.id === id);
-      if (memIdx !== -1) {
-        memoryAcademicYears[memIdx] = { ...memoryAcademicYears[memIdx], ...updated };
-      }
-
-      return res.json({
-        success: true,
-        message: 'Academic Year updated successfully.',
-        academicYear: {
-          id: updated.id,
-          academicYear: updated.academic_year,
-          budget: Number(updated.budget),
-          isActive: Boolean(updated.is_active),
-          createdAt: updated.created_at,
-          updatedAt: updated.updated_at
-        }
-      });
+    if (error) {
+      console.error('Database error updating academic year:', error.message);
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    // Fallback to memory
-    const memIdx = memoryAcademicYears.findIndex(ay => ay.id === id);
-    if (memIdx !== -1) {
-      memoryAcademicYears[memIdx] = {
-        ...memoryAcademicYears[memIdx],
-        ...(updates.academic_year ? { academic_year: updates.academic_year } : {}),
-        ...(updates.budget !== undefined ? { budget: updates.budget } : {}),
-        ...(updates.is_active !== undefined ? { is_active: updates.is_active } : {}),
-        updated_at: updates.updated_at
-      };
+    const fullUpdated = await loadFullAcademicYearFromDb(id);
 
-      const cur = memoryAcademicYears[memIdx];
-      return res.json({
-        success: true,
-        message: 'Academic Year updated successfully.',
-        academicYear: {
-          id: cur.id,
-          academicYear: cur.academic_year,
-          budget: Number(cur.budget),
-          isActive: Boolean(cur.is_active),
-          createdAt: cur.created_at,
-          updatedAt: cur.updated_at
-        }
-      });
-    }
-
-    return res.status(404).json({ success: false, error: 'Academic Year not found.' });
+    return res.json({
+      success: true,
+      message: 'Academic Year updated successfully.',
+      academicYear: fullUpdated || updated
+    });
   } catch (err) {
     console.error('Error updating academic year:', err);
     return res.status(500).json({ success: false, error: 'Server error updating academic year.' });
   }
-});
+};
 
-// PATCH /api/academic-years/:id/status - Toggle status
-router.patch('/:id/status', authenticateUser, requireAdmin, async (req, res) => {
+router.patch('/:id', authenticateUser, requireAdminOrHod, handleUpdateAcademicYear);
+router.put('/:id', authenticateUser, requireAdminOrHod, handleUpdateAcademicYear);
+
+// ------------------------------------------------------------------------------
+// 7. PATCH /api/academic-years/:id/status - Change Academic Year Status
+// ------------------------------------------------------------------------------
+router.patch('/:id/status', authenticateUser, requireAdminOrHod, async (req, res) => {
   try {
     const { id } = req.params;
-    const { isActive } = req.body;
+    const { status } = req.body;
 
-    const newStatus = Boolean(isActive);
+    const validStatuses = ['DRAFT', 'ACTIVE', 'CLOSED', 'Active', 'Inactive', 'Closed'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: "Status must be one of 'DRAFT', 'ACTIVE', or 'CLOSED'."
+      });
+    }
+
+    const targetStatus = status.toUpperCase() === 'ACTIVE' ? 'ACTIVE' : (status.toUpperCase() === 'CLOSED' ? 'CLOSED' : 'DRAFT');
+    const isAct = targetStatus === 'ACTIVE';
+
+    if (isAct) {
+      await supabaseAdmin
+        .from('academic_years')
+        .update({ status: 'CLOSED', is_active: false })
+        .neq('id', id);
+    }
 
     const { data: updated, error } = await supabaseAdmin
       .from('academic_years')
-      .update({ is_active: newStatus, updated_at: new Date().toISOString() })
+      .update({
+        status: targetStatus,
+        is_active: isAct,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
       .select()
       .single();
 
-    if (!error && updated) {
-      const memIdx = memoryAcademicYears.findIndex(ay => ay.id === id);
-      if (memIdx !== -1) {
-        memoryAcademicYears[memIdx].is_active = newStatus;
+    if (error) {
+      console.error('Database error updating status:', error.message);
+      return res.status(400).json({ success: false, error: error.message });
+    }
+
+    return res.json({
+      success: true,
+      message: `Academic Year status changed to ${targetStatus}.`,
+      academicYear: updated
+    });
+  } catch (err) {
+    console.error('Error changing academic year status:', err);
+    return res.status(500).json({ success: false, error: 'Server error updating status.' });
+  }
+});
+
+// ------------------------------------------------------------------------------
+// 8. DELETE /api/academic-years/:id - Delete an Academic Year
+// ------------------------------------------------------------------------------
+router.delete('/:id', authenticateUser, requireAdminOrHod, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Academic Year ID is required.' });
+    }
+
+    // 1. Locate target academic year in database (UUID or canonical format)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let targetAy = null;
+
+    if (isUuid) {
+      const { data, error } = await supabaseAdmin
+        .from('academic_years')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) {
+        console.error('Error finding academic year by id:', error.message);
+        return res.status(400).json({ success: false, error: error.message });
+      }
+      targetAy = data;
+    } else {
+      const canon = canonicalAcademicYear(id);
+      const { data, error } = await supabaseAdmin
+        .from('academic_years')
+        .select('*')
+        .ilike('academic_year', canon)
+        .maybeSingle();
+      if (error) {
+        console.error('Error finding academic year by label:', error.message);
+        return res.status(400).json({ success: false, error: error.message });
+      }
+      targetAy = data;
+    }
+
+    if (!targetAy) {
+      return res.status(404).json({ success: false, error: 'Academic Year not found in database.' });
+    }
+
+    const targetAyId = targetAy.id;
+    const ayDisplayName = displayAcademicYear(targetAy.academic_year);
+
+    // 2. Safety Check: Verify if there are associated proposals
+    const { count: proposalCount, error: propErr } = await supabaseAdmin
+      .from('proposals')
+      .select('id', { count: 'exact', head: true })
+      .eq('academic_year_id', targetAyId);
+
+    if (propErr) {
+      console.error('Error checking proposals for academic year:', propErr.message);
+    }
+
+    if (proposalCount && proposalCount > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Cannot delete Academic Year "${ayDisplayName}": It has ${proposalCount} associated proposal(s). Historical proposals and financial records must be preserved.`
+      });
+    }
+
+    // 3. Safety Check: Check category allocations and transactions
+    const { data: catList, error: catFetchErr } = await supabaseAdmin
+      .from('budget_categories')
+      .select('id, name')
+      .eq('academic_year_id', targetAyId);
+
+    if (catFetchErr) {
+      console.error('Error checking categories for academic year:', catFetchErr.message);
+    }
+
+    const catIds = (catList || []).map(c => c.id);
+
+    if (catIds.length > 0) {
+      const { count: txnCount, error: txnErr } = await supabaseAdmin
+        .from('transactions')
+        .select('id', { count: 'exact', head: true })
+        .in('category_id', catIds);
+
+      if (txnErr) {
+        console.error('Error checking transactions for categories:', txnErr.message);
       }
 
-      return res.json({
-        success: true,
-        message: `Academic Year status updated to ${newStatus ? 'Active' : 'Inactive'}.`,
-        academicYear: {
-          id: updated.id,
-          academicYear: updated.academic_year,
-          budget: Number(updated.budget),
-          isActive: Boolean(updated.is_active)
-        }
-      });
+      if (txnCount && txnCount > 0) {
+        return res.status(400).json({
+          success: false,
+          error: `Cannot delete Academic Year "${ayDisplayName}": It has ${txnCount} recorded transaction ledger entr${txnCount > 1 ? 'ies' : 'y'}.`
+        });
+      }
+
+      // 4. Safely remove subcategories belonging to these categories
+      const { error: subcatDelErr } = await supabaseAdmin
+        .from('subcategories')
+        .delete()
+        .in('category_id', catIds);
+
+      if (subcatDelErr) {
+        console.error('Database error deleting subcategories:', subcatDelErr.message);
+        return res.status(400).json({ success: false, error: `Failed to remove subcategories: ${subcatDelErr.message}` });
+      }
+
+      // 5. Safely remove budget categories belonging to this academic year
+      const { error: catDelErr } = await supabaseAdmin
+        .from('budget_categories')
+        .delete()
+        .eq('academic_year_id', targetAyId);
+
+      if (catDelErr) {
+        console.error('Database error deleting categories:', catDelErr.message);
+        return res.status(400).json({ success: false, error: `Failed to remove budget categories: ${catDelErr.message}` });
+      }
     }
 
-    // Memory fallback
-    const memIdx = memoryAcademicYears.findIndex(ay => ay.id === id);
-    if (memIdx !== -1) {
-      memoryAcademicYears[memIdx].is_active = newStatus;
-      return res.json({
-        success: true,
-        message: `Academic Year status updated to ${newStatus ? 'Active' : 'Inactive'}.`,
-        academicYear: {
-          id: memoryAcademicYears[memIdx].id,
-          academicYear: memoryAcademicYears[memIdx].academic_year,
-          budget: Number(memoryAcademicYears[memIdx].budget),
-          isActive: Boolean(memoryAcademicYears[memIdx].is_active)
-        }
-      });
+    // 6. Delete the academic year record from database
+    const { data: deletedRow, error: delError } = await supabaseAdmin
+      .from('academic_years')
+      .delete()
+      .eq('id', targetAyId)
+      .select();
+
+    if (delError) {
+      console.error('Database error deleting academic year:', delError.message);
+      return res.status(400).json({ success: false, error: delError.message });
     }
 
-    return res.status(404).json({ success: false, error: 'Academic Year not found.' });
+    if (!deletedRow || deletedRow.length === 0) {
+      return res.status(404).json({ success: false, error: 'Academic Year could not be deleted or was already removed.' });
+    }
+
+    // 7. If the deleted academic year was active, activate the next available session
+    if (targetAy.is_active || targetAy.status === 'ACTIVE') {
+      const { data: nextActive } = await supabaseAdmin
+        .from('academic_years')
+        .select('id')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (nextActive) {
+        await supabaseAdmin
+          .from('academic_years')
+          .update({ status: 'ACTIVE', is_active: true })
+          .eq('id', nextActive.id);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Academic Year "${ayDisplayName}" has been permanently deleted from the database.`,
+      deletedId: targetAyId
+    });
   } catch (err) {
-    console.error('Error updating status:', err);
-    return res.status(500).json({ success: false, error: 'Server error updating academic year status.' });
+    console.error('Error deleting academic year:', err);
+    return res.status(500).json({ success: false, error: 'Server error deleting academic year.' });
   }
 });
 

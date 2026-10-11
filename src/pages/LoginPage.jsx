@@ -193,8 +193,8 @@ export const LoginPage = ({ initialMode }) => {
             >
               <PieChart size={20} style={{ color: 'var(--gold)', flexShrink: 0 }} />
               <div>
-                <p style={{ fontSize: 13.5, fontWeight: 600, color: '#FFFFFF' }}>FY 2026-27 Academic Allocation</p>
-                <p style={{ fontSize: 12, color: '#A1A1AA' }}>CSE Departmental Quota Management</p>
+                <p style={{ fontSize: 13.5, fontWeight: 600, color: '#FFFFFF' }}>Academic Year Budget Quota</p>
+                <p style={{ fontSize: 12, color: '#A1A1AA' }}>CSE Departmental Allocation Management</p>
               </div>
             </div>
 
