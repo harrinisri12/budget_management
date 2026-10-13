@@ -84,6 +84,15 @@ router.post('/', authenticateUser, async (req, res) => {
       amount
     } = req.body;
 
+    // Helper for institutional proposal slugification
+    const slugifyText = (text) => {
+      if (!text || typeof text !== 'string') return '';
+      return text
+        .trim()
+        .replace(/[^a-zA-Z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    };
+
     // 1. Resolve Active Academic Year
     let resolvedAyId = academicYearId;
     let resolvedAyText = academicYear;
@@ -91,7 +100,7 @@ router.post('/', authenticateUser, async (req, res) => {
     if (!resolvedAyId) {
       const { data: activeAy, error: ayErr } = await supabaseAdmin
         .from('academic_years')
-        .select('id, academic_year')
+        .select('id, academic_year, status, is_active')
         .or('status.eq.ACTIVE,is_active.eq.true')
         .order('updated_at', { ascending: false })
         .limit(1)
@@ -112,6 +121,25 @@ router.post('/', authenticateUser, async (req, res) => {
         success: false,
         error: 'No active academic year found in database. Proposals can only be submitted against an active academic year.'
       });
+    }
+
+    // 1b. Verify Academic Year permits submissions (Active)
+    if (resolvedAyId) {
+      const { data: targetAy } = await supabaseAdmin
+        .from('academic_years')
+        .select('id, academic_year, status, is_active')
+        .eq('id', resolvedAyId)
+        .maybeSingle();
+
+      if (targetAy) {
+        const isActiveAy = (targetAy.status && targetAy.status.toUpperCase() === 'ACTIVE') || Boolean(targetAy.is_active);
+        if (!isActiveAy) {
+          return res.status(400).json({
+            success: false,
+            error: `Academic year "${targetAy.academic_year}" is closed/inactive. Proposals can only be submitted against active academic years.`
+          });
+        }
+      }
     }
 
     // 2. Validate Category
@@ -160,16 +188,48 @@ router.post('/', authenticateUser, async (req, res) => {
       resolvedSubcategoryId = subRecord?.id;
     }
 
-    // 5. Generate proposal number from DB count
+    // 5. Generate secure, unique proposal number matching institutional convention
     let generatedProposalNumber = req.body.proposalId;
-    if (!generatedProposalNumber) {
+    const isPlaceholderId = !generatedProposalNumber ||
+      generatedProposalNumber.includes('(assigned on submit)') ||
+      generatedProposalNumber.includes('pending') ||
+      generatedProposalNumber.includes('placeholder') ||
+      generatedProposalNumber.includes('PROP-');
+
+    if (isPlaceholderId) {
+      const ayClean = (resolvedAyText || '2026-2027').replace(/\s+/g, '');
+      const catSlug = slugifyText(trimmedCat || 'GENERAL');
+      const subCatSlug = subCategory ? slugifyText(subCategory) : '';
+      const basePrefix = subCatSlug
+        ? `KEC/${ayClean}/${catSlug}/${subCatSlug}`
+        : `KEC/${ayClean}/${catSlug}`;
+
       const { count } = await supabaseAdmin
         .from('proposals')
         .select('id', { count: 'exact', head: true });
 
-      const nextSeq = String((count || 0) + 1).padStart(3, '0');
-      const ayClean = (resolvedAyText || '2026-2027').replace(/\s+/g, '');
-      generatedProposalNumber = `PROP-${ayClean}-${nextSeq}`;
+      let nextSeq = (count || 0) + 1;
+      let candidateId = `${basePrefix}/${String(nextSeq).padStart(3, '0')}`;
+
+      // Guarantee collision-proof uniqueness
+      let isUnique = false;
+      let attempts = 0;
+      while (!isUnique && attempts < 15) {
+        attempts++;
+        const { data: existing } = await supabaseAdmin
+          .from('proposals')
+          .select('id')
+          .eq('proposal_number', candidateId)
+          .maybeSingle();
+
+        if (!existing) {
+          isUnique = true;
+        } else {
+          nextSeq++;
+          candidateId = `${basePrefix}/${String(nextSeq).padStart(3, '0')}`;
+        }
+      }
+      generatedProposalNumber = candidateId;
     }
 
     const activeEventDetails = eventDetails || event_details || {};

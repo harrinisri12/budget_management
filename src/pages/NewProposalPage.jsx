@@ -1,729 +1,724 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { FacultyLayout } from '../components/layout/FacultyLayout';
 import { useAuth } from '../context/AuthContext';
 import { useBudget } from '../context/BudgetContext';
-import { Input } from '../components/common/Input';
-import { Button } from '../components/common/Button';
-import { AlertCircle, ArrowRight, Calendar, AlertTriangle, Calculator, FileCheck, Lock, UserCheck } from 'lucide-react';
-import { getEventConfig, FIELD_GROUPS } from '../config/eventFormConfig';
+import { ProposalStepper } from '../components/proposal/ProposalStepper';
+import { Step1ProposalConfig } from '../components/proposal/Step1ProposalConfig';
+import { Step2ProposalDetails } from '../components/proposal/Step2ProposalDetails';
+import { Step3BudgetDetails } from '../components/proposal/Step3BudgetDetails';
+import { Step4ReviewSubmit } from '../components/proposal/Step4ReviewSubmit';
+import { Step5SubmissionComplete } from '../components/proposal/Step5SubmissionComplete';
+import { getProposalSchema } from '../config/proposalFormSchemas';
 import { slugify } from '../utils/slugify';
+import { api } from '../lib/api';
+import { supabase } from '../lib/supabase';
 
 export const NewProposalPage = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const {
     academicYears,
     activeAcademicYear,
     fetchActiveAcademicYearConfig,
+    fetchAcademicYearDetails,
     addProposal,
     getFacultyMetrics
   } = useBudget();
 
-  // Load active academic year config on mount
-  useEffect(() => {
-    fetchActiveAcademicYearConfig();
-  }, [fetchActiveAcademicYearConfig]);
+  // Workflow Step State (1: Config, 2: Details, 3: Budget, 4: Review, 5: Complete)
+  const [currentStep, setCurrentStep] = useState(1);
+  const [maxStepReached, setMaxStepReached] = useState(1);
+
+  // ---------------------------------------------------------------------------
+  // Step 1: Proposal Configuration State
+  // ---------------------------------------------------------------------------
+  const [selectedAyId, setSelectedAyId] = useState('');
+  const [configuredCategories, setConfiguredCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesError, setCategoriesError] = useState('');
+  const [selectedCategoryName, setSelectedCategoryName] = useState('');
+  const [selectedSubCategoryName, setSelectedSubCategoryName] = useState('');
+
+  // Fixed Submission Date
+  const [submissionDateStr] = useState(() =>
+    new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  );
+  const [todayIso] = useState(() => new Date().toISOString().split('T')[0]);
 
   // Determine active academic year object
   const activeAy = useMemo(() => {
     if (activeAcademicYear && (activeAcademicYear.status === 'ACTIVE' || activeAcademicYear.isActive)) {
       return activeAcademicYear;
     }
-    return (academicYears || []).find(ay => ay.status === 'ACTIVE' || ay.isActive) || null;
+    return (academicYears || []).find((ay) => ay.status === 'ACTIVE' || ay.isActive) || null;
   }, [activeAcademicYear, academicYears]);
 
-  // Dynamic Categories belonging to the active academic year
-  const dynamicCategories = useMemo(() => {
-    if (!activeAy) return [];
-    return activeAy.categories || [];
-  }, [activeAy]);
+  // Initialize selectedAyId from active academic year
+  useEffect(() => {
+    if (activeAy && !selectedAyId) {
+      setSelectedAyId(activeAy.id);
+    }
+  }, [activeAy, selectedAyId]);
 
-  // Faculty balance metrics
-  const metrics = getFacultyMetrics(user?.email);
-  const currentAvailableBalance = metrics.remainingBalance;
+  // Load active academic year config on mount
+  useEffect(() => {
+    fetchActiveAcademicYearConfig();
+  }, [fetchActiveAcademicYearConfig]);
 
-  // ---------------------------------------------------------------------------
-  // Form State
-  // ---------------------------------------------------------------------------
-  // Category Selection
-  const [selectedCategoryName, setSelectedCategoryName] = useState('');
-  const [selectedSubCategoryName, setSelectedSubCategoryName] = useState('');
+  // Function to load categories and subcategories for the selected academic year
+  const loadCategoriesForAy = useCallback(
+    async (ayId) => {
+      if (!ayId) return;
+      setCategoriesLoading(true);
+      setCategoriesError('');
 
-  // Effective category and subcategory
-  const effectiveCategoryName = selectedCategoryName || (dynamicCategories.length > 0 ? dynamicCategories[0].name : '');
+      try {
+        // 1. Try activeAcademicYear in context if matches
+        if (activeAcademicYear && activeAcademicYear.id === ayId && activeAcademicYear.categories?.length > 0) {
+          setConfiguredCategories(activeAcademicYear.categories);
+          setCategoriesLoading(false);
+          return;
+        }
+
+        // 2. Try fetching academic year details from API
+        if (fetchAcademicYearDetails) {
+          const ayDetails = await fetchAcademicYearDetails(ayId);
+          if (ayDetails && ayDetails.categories && ayDetails.categories.length > 0) {
+            setConfiguredCategories(ayDetails.categories);
+            setCategoriesLoading(false);
+            return;
+          }
+        }
+
+        // 3. Fallback to direct Supabase query
+        const { data: dbCats, error: catErr } = await supabase
+          .from('budget_categories')
+          .select('*, subcategories(*)')
+          .eq('academic_year_id', ayId)
+          .order('name', { ascending: true });
+
+        if (catErr) {
+          throw new Error(catErr.message);
+        }
+
+        if (dbCats && dbCats.length > 0) {
+          const formatted = dbCats.map((c) => ({
+            id: c.id,
+            name: c.name,
+            description: c.description || '',
+            budget: Number(c.allocated_amount || 0),
+            allocated_amount: Number(c.allocated_amount || 0),
+            spent_amount: Number(c.spent_amount || 0),
+            subcategories: (c.subcategories || []).map((s) => ({
+              id: s.id,
+              name: s.name,
+              categoryId: s.category_id
+            }))
+          }));
+          setConfiguredCategories(formatted);
+        } else {
+          // If no categories for that specific academic year, fallback to active academic year categories
+          if (activeAy && activeAy.categories && activeAy.categories.length > 0) {
+            setConfiguredCategories(activeAy.categories);
+          } else {
+            setConfiguredCategories([]);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load categories for academic year:', err.message);
+        setCategoriesError('Unable to load categories for the selected academic year.');
+        if (activeAy && activeAy.categories) {
+          setConfiguredCategories(activeAy.categories);
+        }
+      } finally {
+        setCategoriesLoading(false);
+      }
+    },
+    [activeAcademicYear, activeAy, fetchAcademicYearDetails]
+  );
+
+  // Reload categories whenever selectedAyId changes
+  useEffect(() => {
+    if (selectedAyId) {
+      loadCategoriesForAy(selectedAyId);
+    }
+  }, [selectedAyId, loadCategoriesForAy]);
+
+  // Selected Academic Year Object
+  const currentAyObj = useMemo(() => {
+    return (
+      (academicYears || []).find((ay) => ay.id === selectedAyId) ||
+      activeAy ||
+      null
+    );
+  }, [academicYears, selectedAyId, activeAy]);
+
+  // Selected Academic Year Label
+  const selectedAcademicYearLabel = useMemo(() => {
+    if (!currentAyObj) return 'Academic Year';
+    return currentAyObj.name || currentAyObj.academicYear || `${currentAyObj.startYear}-${currentAyObj.endYear}`;
+  }, [currentAyObj]);
+
+  // Synchronize category selection when categories change
+  useEffect(() => {
+    if (configuredCategories.length > 0) {
+      const exists = configuredCategories.some((c) => c.name === selectedCategoryName);
+      if (!exists) {
+        const firstCat = configuredCategories[0];
+        setSelectedCategoryName(firstCat.name);
+        const subs = firstCat.subcategories || [];
+        setSelectedSubCategoryName(subs.length > 0 ? subs[0].name : '');
+      }
+    } else {
+      setSelectedCategoryName('');
+      setSelectedSubCategoryName('');
+    }
+  }, [configuredCategories, selectedCategoryName]);
 
   // Selected Category Object
   const selectedCategoryObj = useMemo(() => {
-    return dynamicCategories.find(c => c.name === effectiveCategoryName) || null;
-  }, [dynamicCategories, effectiveCategoryName]);
+    return configuredCategories.find((c) => c.name === selectedCategoryName) || null;
+  }, [configuredCategories, selectedCategoryName]);
 
-  // Dynamic Subcategories for currently selected category
+  // Available Subcategories for currently selected Category
   const availableSubcategories = useMemo(() => {
     return selectedCategoryObj?.subcategories || [];
   }, [selectedCategoryObj]);
 
-  const effectiveSubCategoryName = selectedSubCategoryName !== ''
-    ? selectedSubCategoryName
-    : (availableSubcategories.length > 0 ? availableSubcategories[0].name : '');
+  // Synchronize subcategory selection when availableSubcategories changes
+  useEffect(() => {
+    if (availableSubcategories.length > 0) {
+      const exists = availableSubcategories.some((s) => s.name === selectedSubCategoryName);
+      if (!exists) {
+        setSelectedSubCategoryName(availableSubcategories[0].name);
+      }
+    } else {
+      setSelectedSubCategoryName('');
+    }
+  }, [availableSubcategories, selectedSubCategoryName]);
 
-  // Dates
-  const [proposalDateStr] = useState(() => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
-  const [todayIso] = useState(() => new Date().toISOString().split('T')[0]);
+  // Handle academic year change
+  const handleAyChange = (newAyId) => {
+    setSelectedAyId(newAyId);
+    setSelectedCategoryName('');
+    setSelectedSubCategoryName('');
+    setEventData({});
+    setRepeatableEvents([]);
+  };
 
-  // Dynamic Event-Specific State Object (cleared on category / subcategory change)
-  const [eventData, setEventData] = useState({});
-
-  // Common Proposal Fields State
-  const [title, setTitle] = useState('');
-  const [programDate, setProgramDate] = useState('');
-  const [proposedAmount, setProposedAmount] = useState('');
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Active event configuration
-  const activeEventConfig = getEventConfig(effectiveSubCategoryName || effectiveCategoryName);
-  const activeFieldGroupIds = activeEventConfig.fieldGroupIds || [];
-
-  // Academic year label
-  const selectedAcademicYearLabel = activeAy
-    ? (activeAy.name || activeAy.academicYear || `${activeAy.startYear}-${activeAy.endYear}`)
-    : 'No Active Academic Year';
-
-  // ---------------------------------------------------------------------------
-  // Automatic Global Proposal ID Preview (Read-only UI Preview)
-  // Format: KEC/{ACADEMIC_YEAR}/{CATEGORY}/{SUBCATEGORY}/(assigned on submit)
-  // ---------------------------------------------------------------------------
-  const categorySlug = slugify(effectiveCategoryName || 'GENERAL');
-  const subCategorySlug = slugify(effectiveSubCategoryName);
-  const compactAyLabel = selectedAcademicYearLabel.replace(/\s+/g, '');
-
-  const proposalIdPreview = activeAy
-    ? (subCategorySlug
-      ? `KEC/${compactAyLabel}/${categorySlug}/${subCategorySlug}/(assigned on submit)`
-      : `KEC/${compactAyLabel}/${categorySlug}/(assigned on submit)`)
-    : 'KEC/NO-SESSION/(pending active session configuration)';
-
-  // ---------------------------------------------------------------------------
-  // Category / Sub Category Change Handlers
-  // ---------------------------------------------------------------------------
-  const handleCategoryChange = (e) => {
-    const newCatName = e.target.value;
+  // Handle category change
+  const handleCategoryChange = (newCatName) => {
     setSelectedCategoryName(newCatName);
-
-    const catObj = dynamicCategories.find(c => c.name === newCatName);
+    const catObj = configuredCategories.find((c) => c.name === newCatName);
     const subs = catObj?.subcategories || [];
     setSelectedSubCategoryName(subs.length > 0 ? subs[0].name : '');
     setEventData({});
-    setError('');
+    setRepeatableEvents([]);
   };
 
-  const handleSubCategoryChange = (e) => {
-    const newSubName = e.target.value;
+  // Handle subcategory change
+  const handleSubCategoryChange = (newSubName) => {
     setSelectedSubCategoryName(newSubName);
     setEventData({});
-    setError('');
+    setRepeatableEvents([]);
+  };
+
+  // ---------------------------------------------------------------------------
+  // Dynamic Schema Resolution (Category & Subcategory)
+  // ---------------------------------------------------------------------------
+  const activeSchema = useMemo(() => {
+    return getProposalSchema(selectedCategoryName, selectedSubCategoryName);
+  }, [selectedCategoryName, selectedSubCategoryName]);
+
+  // Proposal ID Preview matching institutional numbering: KEC/{AY}/{CAT}/{SUBCAT}/(assigned on submit)
+  const proposalIdPreview = useMemo(() => {
+    if (!currentAyObj) return 'KEC/NO-SESSION/(pending)';
+    const compactAy = selectedAcademicYearLabel.replace(/\s+/g, '');
+    const catSlug = slugify(selectedCategoryName || 'GENERAL');
+    const subCatSlug = slugify(selectedSubCategoryName);
+
+    if (subCatSlug) {
+      return `KEC/${compactAy}/${catSlug}/${subCatSlug}/(assigned on submit)`;
+    }
+    return `KEC/${compactAy}/${catSlug}/(assigned on submit)`;
+  }, [currentAyObj, selectedAcademicYearLabel, selectedCategoryName, selectedSubCategoryName]);
+
+  // ---------------------------------------------------------------------------
+  // Step 2: Programme Details State
+  // ---------------------------------------------------------------------------
+  const [title, setTitle] = useState('');
+  const [programDate, setProgramDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [startTime, setStartTime] = useState('10:00');
+  const [endTime, setEndTime] = useState('12:30');
+  const [venue, setVenue] = useState('CC3 Seminar Hall');
+  const [programmeLevel, setProgrammeLevel] = useState('Department');
+  const [selectedAudiences, setSelectedAudiences] = useState(['Students (UG)']);
+  const [coordinatorName, setCoordinatorName] = useState(user?.name || '');
+  const [coordinatorDesignation, setCoordinatorDesignation] = useState(
+    user?.designation || (user?.role === 'hod' ? 'HOD' : 'Assistant Professor')
+  );
+  const [coordinatorContact, setCoordinatorContact] = useState(user?.phone || '');
+
+  // Category-specific answers dictionary
+  const [eventData, setEventData] = useState({});
+
+  // Repeatable Events (for Releases / Renaissance / Crecita / Presidential Events)
+  const [repeatableEvents, setRepeatableEvents] = useState([
+    {
+      id: 'event-1',
+      eventName: '',
+      eventDate: '',
+      venue: '',
+      eventDescription: ''
+    }
+  ]);
+
+  const handleToggleAudience = (audienceName) => {
+    setSelectedAudiences((prev) =>
+      prev.includes(audienceName)
+        ? prev.filter((a) => a !== audienceName)
+        : [...prev, audienceName]
+    );
   };
 
   const handleEventDataChange = (key, value) => {
-    setEventData(prev => ({
+    setEventData((prev) => ({
       ...prev,
       [key]: value
     }));
-    setError('');
+  };
+
+  const handleAddRepeatableEvent = () => {
+    setRepeatableEvents((prev) => [
+      ...prev,
+      {
+        id: `event-${Date.now()}`,
+        eventName: '',
+        eventDate: programDate || '',
+        venue: venue || '',
+        eventDescription: ''
+      }
+    ]);
+  };
+
+  const handleRemoveRepeatableEvent = (id) => {
+    setRepeatableEvents((prev) => prev.filter((ev) => ev.id !== id));
+  };
+
+  const handleRepeatableEventChange = (id, field, value) => {
+    setRepeatableEvents((prev) =>
+      prev.map((ev) => (ev.id === id ? { ...ev, [field]: value } : ev))
+    );
   };
 
   // ---------------------------------------------------------------------------
-  // Live Financial Calculations
+  // Step 3: Budget & Expenditure State (Repeatable Expense Table)
   // ---------------------------------------------------------------------------
-  const parsedAmount = Number(proposedAmount) || 0;
-  const remainingBalance = currentAvailableBalance - parsedAmount;
-  const isOverBudget = parsedAmount > currentAvailableBalance;
+  const [fundingSource, setFundingSource] = useState('Department Budget Allocation');
+  const [budgetRemarks, setBudgetRemarks] = useState('');
 
-  // Date Formatter
-  const formatDisplayDate = (dateIso) => {
-    if (!dateIso) return '';
-    const d = new Date(dateIso);
-    return isNaN(d.getTime())
-      ? dateIso
-      : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  // Update default funding source when schema changes
+  useEffect(() => {
+    if (activeSchema?.defaultFundingSource) {
+      setFundingSource(activeSchema.defaultFundingSource);
+    }
+  }, [activeSchema]);
+
+  const [expenses, setExpenses] = useState([
+    {
+      id: 'exp-1',
+      purpose: 'Remuneration / Honorarium for Resource Person',
+      proposedAmount: 10000,
+      revisedAmount: '',
+      actualAmount: '',
+      remarks: 'Standard institutional honorarium'
+    },
+    {
+      id: 'exp-2',
+      purpose: 'Travel Allowance (TA) / Conveyance',
+      proposedAmount: 5000,
+      revisedAmount: '',
+      actualAmount: '',
+      remarks: 'Local conveyance & airport transit'
+    },
+    {
+      id: 'exp-3',
+      purpose: 'Refreshments, Working Lunch & Tea',
+      proposedAmount: 3500,
+      revisedAmount: '',
+      actualAmount: '',
+      remarks: 'Participant refreshments & lunch'
+    }
+  ]);
+
+  const handleAddExpense = (initialPurpose = '') => {
+    setExpenses((prev) => [
+      ...prev,
+      {
+        id: `exp-${Date.now()}`,
+        purpose: initialPurpose || '',
+        proposedAmount: '',
+        revisedAmount: '',
+        actualAmount: '',
+        remarks: ''
+      }
+    ]);
   };
 
-  // ---------------------------------------------------------------------------
-  // Form Submission Handler
-  // ---------------------------------------------------------------------------
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const handleRemoveExpense = (id) => {
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
+  };
 
-    if (!activeAy) {
-      setError('No active academic year available. Please contact the administrator.');
+  const handleExpenseChange = (id, field, value) => {
+    setExpenses((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, [field]: value } : e))
+    );
+  };
+
+  // Authoritative Budget Metrics
+  const metrics = getFacultyMetrics(user?.email);
+  const allocatedQuota = metrics.availableBalance || 150000;
+  const approvedCommittedExpenditure = metrics.approvedAmount || 0;
+  const currentAvailableBalance = metrics.remainingBalance || 150000;
+
+  const totalProposedAmount = useMemo(() => {
+    return expenses.reduce((sum, item) => sum + (Number(item.proposedAmount) || 0), 0);
+  }, [expenses]);
+
+  const remainingBalanceAfterProposal = currentAvailableBalance - totalProposedAmount;
+  const isOverBudget = totalProposedAmount > currentAvailableBalance;
+
+  // ---------------------------------------------------------------------------
+  // Step 4: Submission State & Handler
+  // ---------------------------------------------------------------------------
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState('');
+  const [submittedProposal, setSubmittedProposal] = useState(null);
+
+  const handleSubmitProposal = async () => {
+    setSubmissionError('');
+
+    if (!currentAyObj) {
+      setSubmissionError('Active academic year is missing. Please contact the administrator.');
       return;
     }
 
-    if (!effectiveCategoryName) {
-      setError('Please select a Category.');
-      return;
-    }
-
-    if (availableSubcategories.length > 0 && !effectiveSubCategoryName) {
-      setError(`Please select a Sub Category for ${effectiveCategoryName}.`);
+    if (!selectedCategoryName) {
+      setSubmissionError('Please select a funding Category.');
       return;
     }
 
     if (!title.trim()) {
-      setError('Please enter the Program / Proposal Title.');
+      setSubmissionError('Please enter the Programme Title.');
       return;
     }
 
     if (!programDate) {
-      setError('Please select the Date of Program.');
+      setSubmissionError('Please select the Programme Date.');
       return;
     }
 
-    // Dynamic Event-Specific Validation
-    for (const groupId of activeFieldGroupIds) {
-      const group = FIELD_GROUPS[groupId];
-      if (group && group.fields) {
-        for (const field of group.fields) {
-          if (field.required) {
-            const val = (eventData[field.key] || '').trim();
-            if (!val) {
-              setError(`Please enter the required field: ${field.label}.`);
-              return;
-            }
-          }
-        }
-      }
-    }
-
-    if (parsedAmount <= 0) {
-      setError('Please enter a valid proposed amount greater than ₹0.');
+    if (totalProposedAmount <= 0) {
+      setSubmissionError('Please specify proposed expenditure amounts greater than ₹0.');
       return;
     }
 
     if (isOverBudget) {
-      setError('Insufficient available balance. Proposed amount exceeds your remaining balance.');
+      setSubmissionError('Insufficient balance. Proposed amount exceeds your permitted remaining quota.');
       return;
     }
 
     setIsSubmitting(true);
 
-    // Build event-specific payload & formatted guest string if guest fields active
-    const activePayloadEventData = { ...eventData };
-    let formattedGuestDetails = '';
-
-    if (activeFieldGroupIds.includes('guestFields')) {
-      const { guestName, guestDesignation, guestOrg, guestDetails } = eventData;
-      const parts = [];
-      if (guestName) parts.push(guestName.trim());
-      if (guestDesignation) parts.push(guestDesignation.trim());
-      if (guestOrg) parts.push(guestOrg.trim());
-
-      let baseStr = parts.join(', ');
-      if (guestDetails && guestDetails.trim()) {
-        baseStr += baseStr ? ` — ${guestDetails.trim()}` : guestDetails.trim();
-      }
-      formattedGuestDetails = baseStr;
-    }
-
-    // Find selected subcategory ID
-    const selectedSubObj = availableSubcategories.find(s => s.name === effectiveSubCategoryName);
-
     try {
-      const result = await addProposal({
+      // Build formatted guest string for backwards compatibility
+      let formattedGuestDetails = '';
+      if (activeSchema.requiresGuestDetails) {
+        const gName = eventData.guestName || eventData.resourcePersonName || '';
+        const gDesig = eventData.guestDesignation || eventData.resourcePersonDesignation || '';
+        const gOrg = eventData.guestOrg || eventData.resourcePersonOrg || '';
+        const parts = [gName, gDesig, gOrg].filter(Boolean);
+        formattedGuestDetails = parts.join(', ');
+      }
+
+      // Find subcategory UUID if available
+      const selectedSubObj = availableSubcategories.find((s) => s.name === selectedSubCategoryName);
+
+      // Build rich, structured event details payload
+      const richEventDetails = {
+        schemaType: activeSchema.type,
+        programmeDetails: {
+          title: title.trim(),
+          programDate,
+          endDate: endDate || null,
+          startTime,
+          endTime,
+          venue,
+          programmeLevel,
+          audiences: selectedAudiences,
+          coordinator: {
+            name: coordinatorName,
+            designation: coordinatorDesignation,
+            contact: coordinatorContact
+          }
+        },
+        categoryDetails: { ...eventData },
+        repeatableEvents: activeSchema.hasRepeatableEvents ? repeatableEvents : [],
+        expenses: expenses.map((e, idx) => ({
+          sno: idx + 1,
+          purpose: e.purpose,
+          proposedAmount: Number(e.proposedAmount) || 0,
+          revisedAmount: null,
+          actualAmount: null,
+          remarks: e.remarks || ''
+        })),
+        fundingSource,
+        budgetRemarks,
+        financialComputation: {
+          allocatedQuota,
+          approvedCommittedExpenditure,
+          availableBalanceBefore: currentAvailableBalance,
+          totalProposedAmount,
+          remainingBalanceAfter: remainingBalanceAfterProposal
+        }
+      };
+
+      const payload = {
         proposalId: proposalIdPreview,
-        academicYearId: activeAy.id,
+        academicYearId: currentAyObj.id,
         academicYear: selectedAcademicYearLabel,
         proposalDate: todayIso,
         facultyName: user?.name || 'Faculty Member',
         facultyEmail: user?.email || 'faculty@kongu.edu',
-        category: effectiveCategoryName,
+        category: selectedCategoryName,
         categoryId: selectedCategoryObj?.id || null,
-        subCategory: availableSubcategories.length > 0 ? effectiveSubCategoryName : '',
+        subCategory: availableSubcategories.length > 0 ? selectedSubCategoryName : '',
         subcategoryId: selectedSubObj?.id || null,
         title: title.trim(),
         programDate,
         guestDetails: formattedGuestDetails,
-        eventDetails: activePayloadEventData,
-        amount: parsedAmount
-      });
+        eventDetails: richEventDetails,
+        amount: totalProposedAmount
+      };
 
-      setIsSubmitting(false);
+      const result = await addProposal(payload);
 
       if (result.success) {
-        navigate('/faculty/proposals');
+        setSubmittedProposal(result.proposal);
+        setCurrentStep(5);
+        setMaxStepReached(5);
       } else {
-        setError(result.error || 'Failed to submit proposal. Please try again.');
+        setSubmissionError(result.error || 'Failed to submit proposal. Please check the entered data.');
       }
     } catch (err) {
+      console.error('Submission error:', err);
+      setSubmissionError(err.message || 'Error communicating with server during submission.');
+    } finally {
       setIsSubmitting(false);
-      setError(err.message || 'Error submitting proposal.');
     }
+  };
+
+  // Reset form to start a new proposal
+  const handleResetForm = () => {
+    setTitle('');
+    setProgramDate('');
+    setEndDate('');
+    setStartTime('10:00');
+    setEndTime('12:30');
+    setVenue('CC3 Seminar Hall');
+    setSelectedAudiences(['Students (UG)']);
+    setEventData({});
+    setRepeatableEvents([
+      { id: 'event-1', eventName: '', eventDate: '', venue: '', eventDescription: '' }
+    ]);
+    setBudgetRemarks('');
+    setExpenses([
+      {
+        id: 'exp-1',
+        purpose: 'Remuneration / Honorarium for Resource Person',
+        proposedAmount: 10000,
+        revisedAmount: '',
+        actualAmount: '',
+        remarks: 'Standard institutional honorarium'
+      }
+    ]);
+    setSubmittedProposal(null);
+    setSubmissionError('');
+    setCurrentStep(1);
+    setMaxStepReached(1);
+  };
+
+  // Stepper click handler
+  const handleStepClick = (stepId) => {
+    if (stepId <= maxStepReached && stepId !== 5 && currentStep !== 5) {
+      setCurrentStep(stepId);
+    }
+  };
+
+  const handleContinueStep1 = () => {
+    setCurrentStep(2);
+    setMaxStepReached((prev) => Math.max(prev, 2));
+  };
+
+  const handleContinueStep2 = () => {
+    setCurrentStep(3);
+    setMaxStepReached((prev) => Math.max(prev, 3));
+  };
+
+  const handleContinueStep3 = () => {
+    setCurrentStep(4);
+    setMaxStepReached((prev) => Math.max(prev, 4));
   };
 
   return (
     <FacultyLayout pageTitle="New Proposal">
-      <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Page Header */}
+      <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Page Title & Institutional Heading */}
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)' }}>Submit Budget Proposal</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-            Submit an activity budget proposal for Computer Science and Engineering, Kongu Engineering College.
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-heading)' }}>
+            Submit Programme Budget Proposal
+          </h1>
+          <p style={{ fontSize: 13.5, color: 'var(--text-muted)', marginTop: 3 }}>
+            Multi-step dynamic proposal submission workflow for Computer Science and Engineering, Kongu Engineering College.
           </p>
         </div>
 
         <hr className="cbm-divider" />
 
-        {/* Form & Summary Container */}
-        <div className="cbm-proposal-grid">
-          {/* Main Form Card */}
-          <div className="cbm-card" style={{ padding: '24px' }}>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {/* Error Alert */}
-              {error && (
-                <div
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-sm)',
-                    backgroundColor: 'var(--danger-bg)',
-                    border: '1px solid var(--danger-border)',
-                    color: 'var(--danger-text)',
-                    fontSize: 12.5,
-                    fontWeight: 500,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8
-                  }}
-                  role="alert"
-                >
-                  <AlertCircle size={15} style={{ flexShrink: 0 }} />
-                  <span>{error}</span>
-                </div>
-              )}
+        {/* Horizontal 5-Step Progress Stepper */}
+        <ProposalStepper
+          currentStep={currentStep}
+          onStepClick={handleStepClick}
+          maxStepReached={maxStepReached}
+        />
 
-              {/* Warning if no Active Academic Year */}
-              {!activeAy && (
-                <div
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-sm)',
-                    backgroundColor: 'var(--warning-bg)',
-                    border: '1px solid var(--warning-border)',
-                    color: 'var(--warning-text)',
-                    fontSize: 12.5,
-                    fontWeight: 500,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8
-                  }}
-                >
-                  <AlertTriangle size={15} style={{ flexShrink: 0 }} />
-                  <span>No active academic year available for proposals. Please contact the administrator.</span>
-                </div>
-              )}
+        {/* STEP CONTENT CONTAINER */}
+        <div>
+          {/* STEP 1: Academic Year & Category Selection */}
+          {currentStep === 1 && (
+            <Step1ProposalConfig
+              academicYears={academicYears}
+              selectedAyId={selectedAyId}
+              onAyChange={handleAyChange}
+              submissionDateStr={submissionDateStr}
+              categories={configuredCategories}
+              categoriesLoading={categoriesLoading}
+              categoriesError={categoriesError}
+              onReloadCategories={() => loadCategoriesForAy(selectedAyId)}
+              selectedCategoryName={selectedCategoryName}
+              onCategoryChange={handleCategoryChange}
+              availableSubcategories={availableSubcategories}
+              selectedSubCategoryName={selectedSubCategoryName}
+              onSubCategoryChange={handleSubCategoryChange}
+              onContinue={handleContinueStep1}
+            />
+          )}
 
-              {/* FIELD 1: ACADEMIC YEAR (Active Cycle) & FIELD 2: SUBMISSION DATE */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-                {/* Field 1 — Active Academic Year Display */}
-                <div className="cbm-input-group">
-                  <label className="cbm-label">
-                    Active Academic Year <span style={{ color: 'var(--danger)' }}>*</span>
-                  </label>
-                  <div
-                    style={{
-                      height: 40,
-                      padding: '0 12px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--bg-page)',
-                      border: '1px solid var(--border)',
-                      fontWeight: 600,
-                      color: 'var(--text-heading)',
-                      fontSize: 13,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <span>{selectedAcademicYearLabel}</span>
-                    <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 3, backgroundColor: 'var(--success-bg)', color: 'var(--success-text)', fontWeight: 700 }}>
-                      ACTIVE
-                    </span>
-                  </div>
-                </div>
+          {/* STEP 2: Dynamically Generated Proposal Details */}
+          {currentStep === 2 && (
+            <Step2ProposalDetails
+              proposalIdPreview={proposalIdPreview}
+              categoryName={selectedCategoryName}
+              subCategoryName={selectedSubCategoryName}
+              schema={activeSchema}
+              title={title}
+              onTitleChange={setTitle}
+              programDate={programDate}
+              onProgramDateChange={setProgramDate}
+              endDate={endDate}
+              onEndDateChange={setEndDate}
+              startTime={startTime}
+              onStartTimeChange={setStartTime}
+              endTime={endTime}
+              onEndTimeChange={setEndTime}
+              venue={venue}
+              onVenueChange={setVenue}
+              programmeLevel={programmeLevel}
+              onProgrammeLevelChange={setProgrammeLevel}
+              selectedAudiences={selectedAudiences}
+              onToggleAudience={handleToggleAudience}
+              coordinatorName={coordinatorName}
+              onCoordinatorNameChange={setCoordinatorName}
+              coordinatorDesignation={coordinatorDesignation}
+              onCoordinatorDesignationChange={setCoordinatorDesignation}
+              coordinatorContact={coordinatorContact}
+              onCoordinatorContactChange={setCoordinatorContact}
+              eventData={eventData}
+              onEventDataChange={handleEventDataChange}
+              repeatableEvents={repeatableEvents}
+              onAddRepeatableEvent={handleAddRepeatableEvent}
+              onRemoveRepeatableEvent={handleRemoveRepeatableEvent}
+              onRepeatableEventChange={handleRepeatableEventChange}
+              onBack={() => setCurrentStep(1)}
+              onContinue={handleContinueStep2}
+            />
+          )}
 
-                {/* Field 2 — Date of Submission */}
-                <div className="cbm-input-group">
-                  <label className="cbm-label">
-                    Date of Submission <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>(System Date)</span>
-                  </label>
-                  <div
-                    style={{
-                      height: 40,
-                      padding: '0 12px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--bg-page)',
-                      border: '1px solid var(--border)',
-                      fontWeight: 500,
-                      color: 'var(--text-heading)',
-                      fontSize: 13,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8
-                    }}
-                  >
-                    <Calendar size={15} color="var(--primary)" />
-                    <span>{proposalDateStr}</span>
-                  </div>
-                </div>
-              </div>
+          {/* STEP 3: Budget & Repeatable Expenditure Details */}
+          {currentStep === 3 && (
+            <Step3BudgetDetails
+              academicYearLabel={selectedAcademicYearLabel}
+              allocatedQuota={allocatedQuota}
+              approvedCommittedExpenditure={approvedCommittedExpenditure}
+              availableBalance={currentAvailableBalance}
+              expenses={expenses}
+              onAddExpense={handleAddExpense}
+              onRemoveExpense={handleRemoveExpense}
+              onExpenseChange={handleExpenseChange}
+              fundingSource={fundingSource}
+              onFundingSourceChange={setFundingSource}
+              budgetRemarks={budgetRemarks}
+              onBudgetRemarksChange={setBudgetRemarks}
+              onBack={() => setCurrentStep(2)}
+              onContinue={handleContinueStep3}
+            />
+          )}
 
-              {/* FIELD 3: DYNAMIC CATEGORY & FIELD 4: DYNAMIC SUB CATEGORY */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-                {/* Field 3 — Category Dropdown (Driven by Active Academic Year) */}
-                <div className="cbm-input-group">
-                  <label htmlFor="category-select" className="cbm-label">
-                    Category <span style={{ color: 'var(--danger)' }}>*</span>
-                  </label>
-                  {dynamicCategories.length > 0 ? (
-                    <select
-                      id="category-select"
-                      value={effectiveCategoryName}
-                      onChange={handleCategoryChange}
-                      required
-                      className="cbm-select"
-                    >
-                      {dynamicCategories.map((cat) => (
-                        <option key={cat.id || cat.name} value={cat.name}>
-                          {cat.name} {cat.budget ? `(₹${Number(cat.budget).toLocaleString('en-IN')})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--text-muted)' }}>
-                      No categories configured for this cycle.
-                    </div>
-                  )}
-                </div>
+          {/* STEP 4: Review & Submit */}
+          {currentStep === 4 && (
+            <Step4ReviewSubmit
+              academicYearLabel={selectedAcademicYearLabel}
+              submissionDateStr={submissionDateStr}
+              categoryName={selectedCategoryName}
+              subCategoryName={selectedSubCategoryName}
+              proposalIdPreview={proposalIdPreview}
+              schema={activeSchema}
+              title={title}
+              programDate={programDate}
+              endDate={endDate}
+              startTime={startTime}
+              endTime={endTime}
+              venue={venue}
+              programmeLevel={programmeLevel}
+              selectedAudiences={selectedAudiences}
+              coordinatorName={coordinatorName}
+              coordinatorDesignation={coordinatorDesignation}
+              coordinatorContact={coordinatorContact}
+              eventData={eventData}
+              repeatableEvents={repeatableEvents}
+              fundingSource={fundingSource}
+              budgetRemarks={budgetRemarks}
+              expenses={expenses}
+              totalProposedAmount={totalProposedAmount}
+              availableBalance={currentAvailableBalance}
+              remainingBalance={remainingBalanceAfterProposal}
+              isOverBudget={isOverBudget}
+              isSubmitting={isSubmitting}
+              error={submissionError}
+              onEditStep={(stepNum) => setCurrentStep(stepNum)}
+              onBack={() => setCurrentStep(3)}
+              onSubmit={handleSubmitProposal}
+            />
+          )}
 
-                {/* Field 4 — Dynamic Sub Category (Shown only if category has subcategories) */}
-                {availableSubcategories.length > 0 ? (
-                  <div className="cbm-input-group">
-                    <label htmlFor="subcategory-select" className="cbm-label">
-                      Sub Category <span style={{ color: 'var(--danger)' }}>*</span>
-                    </label>
-                    <select
-                      id="subcategory-select"
-                      value={effectiveSubCategoryName}
-                      onChange={handleSubCategoryChange}
-                      required
-                      className="cbm-select"
-                    >
-                      {availableSubcategories.map((sub) => (
-                        <option key={sub.id || sub.name} value={sub.name}>
-                          {sub.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="cbm-input-group">
-                    <label className="cbm-label">Sub Category</label>
-                    <div style={{ height: 40, padding: '0 12px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
-                      No subcategories available (Direct Category)
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* FIELD 5: PROPOSAL ID (Automatic Global Sequence Preview) */}
-              <div className="cbm-input-group">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <label className="cbm-label" htmlFor="proposal-id-preview">
-                    Proposal ID <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>(Auto-Generated System ID)</span>
-                  </label>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Lock size={11} /> Auto Sequence
-                  </span>
-                </div>
-                <div
-                  id="proposal-id-preview"
-                  style={{
-                    height: 40,
-                    padding: '0 12px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--bg-page)',
-                    border: '1px solid var(--border)',
-                    fontWeight: 600,
-                    color: 'var(--primary)',
-                    fontSize: 13,
-                    fontFamily: 'monospace',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span>{proposalIdPreview}</span>
-                  <span style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--text-muted)', fontStyle: 'italic', fontFamily: 'sans-serif' }}>
-                    Read-only
-                  </span>
-                </div>
-              </div>
-
-              {/* Program Title */}
-              <Input
-                id="program-title-input"
-                label="Program / Proposal Title"
-                required
-                placeholder="e.g. Technical Symposium / AI Guest Talk / Hackathon"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-
-              {/* Date of Program */}
-              <div className="cbm-input-group">
-                <label htmlFor="program-date-input" className="cbm-label">
-                  Date of Program <span style={{ color: 'var(--danger)' }}>*</span>
-                </label>
-                <input
-                  id="program-date-input"
-                  type="date"
-                  min={todayIso}
-                  value={programDate}
-                  onChange={(e) => setProgramDate(e.target.value)}
-                  required
-                  className="cbm-input"
-                />
-              </div>
-
-              {/* DYNAMIC EVENT-SPECIFIC FIELD GROUPS */}
-              {activeFieldGroupIds.map((groupId) => {
-                const group = FIELD_GROUPS[groupId];
-                if (!group) return null;
-
-                return (
-                  <div
-                    key={groupId}
-                    style={{
-                      padding: '16px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--bg-page)',
-                      border: '1px solid var(--border)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 14
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <UserCheck size={16} color="var(--primary)" />
-                      <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
-                        {group.title} <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>(Required for {selectedSubCategoryName || selectedCategoryName})</span>
-                      </h4>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
-                      {group.fields.map((field) => {
-                        const fieldValue = eventData[field.key] || '';
-
-                        if (field.type === 'textarea') {
-                          return (
-                            <div key={field.key} className="cbm-input-group" style={{ gridColumn: '1 / -1' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <label htmlFor={`dynamic-${field.key}`} className="cbm-label">
-                                  {field.label} {field.required && <span style={{ color: 'var(--danger)' }}>*</span>}
-                                </label>
-                                {!field.required && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Optional</span>}
-                              </div>
-                              <textarea
-                                id={`dynamic-${field.key}`}
-                                placeholder={field.placeholder}
-                                value={fieldValue}
-                                onChange={(e) => handleEventDataChange(field.key, e.target.value)}
-                                rows={field.rows || 2}
-                                required={field.required}
-                                className="cbm-textarea"
-                              />
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <div key={field.key} className="cbm-input-group">
-                            <label htmlFor={`dynamic-${field.key}`} className="cbm-label">
-                              {field.label} {field.required && <span style={{ color: 'var(--danger)' }}>*</span>}
-                            </label>
-                            <input
-                              id={`dynamic-${field.key}`}
-                              type="text"
-                              placeholder={field.placeholder}
-                              value={fieldValue}
-                              onChange={(e) => handleEventDataChange(field.key, e.target.value)}
-                              required={field.required}
-                              className="cbm-input"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Proposed Amount */}
-              <Input
-                id="proposed-amount-input"
-                label="Proposed Amount (₹)"
-                required
-                type="number"
-                min="1"
-                placeholder="Enter amount in ₹ (e.g. 35000)"
-                value={proposedAmount}
-                onChange={(e) => setProposedAmount(e.target.value)}
-              />
-
-              {/* Live Financial Calculation Box */}
-              <div
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: isOverBudget ? 'var(--danger-bg)' : 'var(--bg-page)',
-                  border: isOverBudget ? '1px solid var(--danger-border)' : '1px solid var(--border)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  <Calculator size={13} />
-                  <span>Financial Computation</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--text-body)' }}>
-                  <span>Available Quota:</span>
-                  <span style={{ fontWeight: 600 }}>₹{currentAvailableBalance.toLocaleString('en-IN')}</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--text-body)' }}>
-                  <span>Proposed Expenditure:</span>
-                  <span style={{ fontWeight: 600, color: 'var(--primary)' }}>₹{parsedAmount.toLocaleString('en-IN')}</span>
-                </div>
-
-                <div
-                  style={{
-                    borderTop: '1px solid var(--border)',
-                    paddingTop: 6,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: 13.5,
-                    fontWeight: 700,
-                    color: isOverBudget ? 'var(--danger-text)' : 'var(--success-text)'
-                  }}
-                >
-                  <span>Remaining Quota:</span>
-                  <span>₹{remainingBalance.toLocaleString('en-IN')}</span>
-                </div>
-
-                {isOverBudget && (
-                  <div style={{ fontSize: 12, color: 'var(--danger)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <AlertCircle size={14} /> Insufficient quota balance.
-                  </div>
-                )}
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                variant="primary"
-                isLoading={isSubmitting}
-                disabled={isOverBudget || isSubmitting || !activeAy}
-                icon={ArrowRight}
-                style={{ height: 42, fontSize: 14, marginTop: 4 }}
-              >
-                {isSubmitting ? 'Submitting Proposal...' : 'Submit Proposal'}
-              </Button>
-            </form>
-          </div>
-
-          {/* Live Proposal Summary Preview Card */}
-          <div className="cbm-card" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-              <FileCheck size={18} color="var(--primary)" />
-              <div>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-heading)' }}>
-                  Proposal Summary Preview
-                </h3>
-                <p style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                  Real-time validation summary
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Academic Year</span>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{selectedAcademicYearLabel}</p>
-              </div>
-
-              <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Date of Submission</span>
-                <p style={{ fontSize: 13, color: 'var(--text-body)', marginTop: 1 }}>{proposalDateStr}</p>
-              </div>
-
-              <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Category</span>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-body)', marginTop: 1 }}>
-                  {effectiveCategoryName || '—'} {effectiveSubCategoryName ? `— ${effectiveSubCategoryName}` : ''}
-                </p>
-              </div>
-
-              <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposal ID Preview</span>
-                <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace', marginTop: 1 }}>{proposalIdPreview}</p>
-              </div>
-
-              <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Program Title</span>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)', marginTop: 1 }}>{title || '—'}</p>
-              </div>
-
-              <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Date of Program</span>
-                <p style={{ fontSize: 13, color: 'var(--text-body)', marginTop: 1 }}>{formatDisplayDate(programDate) || '—'}</p>
-              </div>
-
-              {/* Dynamic Event Details Preview */}
-              {activeFieldGroupIds.includes('guestFields') && (eventData.guestName || eventData.guestDesignation || eventData.guestOrg) && (
-                <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Guest Information</span>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-body)', marginTop: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {eventData.guestName && <p style={{ margin: 0, fontWeight: 600 }}>{eventData.guestName}</p>}
-                    {(eventData.guestDesignation || eventData.guestOrg) && (
-                      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)' }}>
-                        {[eventData.guestDesignation, eventData.guestOrg].filter(Boolean).join(' • ')}
-                      </p>
-                    )}
-                    {eventData.guestDetails && (
-                      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 2 }}>
-                        {eventData.guestDetails}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposed Amount</span>
-                <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', marginTop: 1 }}>₹{parsedAmount.toLocaleString('en-IN')}</p>
-              </div>
-
-              <div>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Remaining Quota Balance</span>
-                <p style={{ fontSize: 15, fontWeight: 800, color: isOverBudget ? 'var(--danger-text)' : 'var(--success-text)', marginTop: 1 }}>
-                  ₹{remainingBalance.toLocaleString('en-IN')}
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* STEP 5: Submission Complete */}
+          {currentStep === 5 && (
+            <Step5SubmissionComplete
+              submittedProposal={submittedProposal}
+              academicYearLabel={selectedAcademicYearLabel}
+              onResetForm={handleResetForm}
+            />
+          )}
         </div>
       </div>
     </FacultyLayout>

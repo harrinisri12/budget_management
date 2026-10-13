@@ -8,14 +8,16 @@ import authRoutes from './routes/auth.js';
 import facultyRoutes from './routes/faculty.js';
 import proposalsRoutes from './routes/proposals.js';
 import budgetsRoutes from './routes/budgets.js';
+import categoriesRoutes from './routes/categories.js';
 import transactionsRoutes from './routes/transactions.js';
 import academicYearsRoutes from './routes/academicYears.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load server environment
+// Load server environment (local server/.env or root .env)
 dotenv.config({ path: path.resolve(__dirname, './.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -47,6 +49,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/faculty', facultyRoutes);
 app.use('/api/proposals', proposalsRoutes);
 app.use('/api/budgets', budgetsRoutes);
+app.use('/api/categories', categoriesRoutes);
 app.use('/api/budget-categories', (req, res, next) => {
   req.url = '/categories' + (req.url === '/' ? '' : req.url);
   budgetsRoutes(req, res, next);
