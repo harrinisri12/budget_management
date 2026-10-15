@@ -5,56 +5,8 @@ import { requireAdmin } from '../middleware/roles.js';
 
 const router = express.Router();
 
-// Shared In-Memory Store for Category & Sub-category Configuration
-// Seeded with default categories & sub-categories for 2026-2027 and 2027-2028
-export const memoryCategories = [
-  // 2026-2027
-  { id: 'cat-2026-lab', academic_year_id: 'ay-2026-2027-default', name: 'Laboratory', is_active: true, created_at: new Date().toISOString() },
-  { id: 'cat-2026-infra', academic_year_id: 'ay-2026-2027-default', name: 'Infrastructure', is_active: true, created_at: new Date().toISOString() },
-  { id: 'cat-2026-fdp', academic_year_id: 'ay-2026-2027-default', name: 'Faculty Development', is_active: true, created_at: new Date().toISOString() },
-  { id: 'cat-2026-csea', academic_year_id: 'ay-2026-2027-default', name: 'CSEA Association', is_active: true, created_at: new Date().toISOString() },
-  { id: 'cat-2026-ccc', academic_year_id: 'ay-2026-2027-default', name: 'CCC Coding Club', is_active: true, created_at: new Date().toISOString() },
 
-  // 2027-2028
-  { id: 'cat-2027-lab', academic_year_id: 'ay-2027-2028-default', name: 'Laboratory', is_active: true, created_at: new Date().toISOString() },
-  { id: 'cat-2027-infra', academic_year_id: 'ay-2027-2028-default', name: 'Infrastructure', is_active: true, created_at: new Date().toISOString() },
-  { id: 'cat-2027-research', academic_year_id: 'ay-2027-2028-default', name: 'Research & Publications', is_active: true, created_at: new Date().toISOString() }
-];
 
-export const memorySubCategories = [
-  // Laboratory 2026-2027
-  { id: 'sub-2026-lab-1', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-lab', name: 'Hardware', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2026-lab-2', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-lab', name: 'Networking Equipment', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2026-lab-3', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-lab', name: 'Maintenance', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2026-lab-4', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-lab', name: 'Consumables', is_active: true, created_at: new Date().toISOString() },
-
-  // Infrastructure 2026-2027
-  { id: 'sub-2026-infra-1', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-infra', name: 'Furniture', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2026-infra-2', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-infra', name: 'Electrical', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2026-infra-3', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-infra', name: 'Classroom Equipment', is_active: true, created_at: new Date().toISOString() },
-
-  // Faculty Development 2026-2027
-  { id: 'sub-2026-fdp-1', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-fdp', name: 'Training', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2026-fdp-2', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-fdp', name: 'Conferences', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2026-fdp-3', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-fdp', name: 'Certifications', is_active: true, created_at: new Date().toISOString() },
-
-  // CSEA 2026-2027
-  { id: 'sub-2026-csea-1', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-csea', name: 'Guest Lecture', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2026-csea-2', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-csea', name: 'Symposium', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2026-csea-3', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-csea', name: 'Workshop', is_active: true, created_at: new Date().toISOString() },
-
-  // CCC 2026-2027
-  { id: 'sub-2026-ccc-1', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-ccc', name: 'Coding Contest', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2026-ccc-2', academic_year_id: 'ay-2026-2027-default', category_id: 'cat-2026-ccc', name: 'Hackathon', is_active: true, created_at: new Date().toISOString() },
-
-  // Laboratory 2027-2028
-  { id: 'sub-2027-lab-1', academic_year_id: 'ay-2027-2028-default', category_id: 'cat-2027-lab', name: 'Advanced Hardware', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2027-lab-2', academic_year_id: 'ay-2027-2028-default', category_id: 'cat-2027-lab', name: 'AI Equipment', is_active: true, created_at: new Date().toISOString() },
-
-  // Research 2027-2028
-  { id: 'sub-2027-res-1', academic_year_id: 'ay-2027-2028-default', category_id: 'cat-2027-research', name: 'Publications', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sub-2027-res-2', academic_year_id: 'ay-2027-2028-default', category_id: 'cat-2027-research', name: 'Software Licenses', is_active: true, created_at: new Date().toISOString() }
-];
 
 // Helper: resolve academic year ID from parameter or string
 export const resolveAcademicYearId = async (ayInput) => {
@@ -62,23 +14,24 @@ export const resolveAcademicYearId = async (ayInput) => {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ayInput) || ayInput.startsWith('ay-');
   if (isUuid) return ayInput;
 
-  // Search by academic_year string e.g. "2026-2027"
+  // Search by academic_year string e.g. "2026-2027" or "2026 - 2027"
+  const cleanAy = ayInput.trim().replace(/\s+/g, '').replace(/[–—/]/g, '-');
   const { data } = await supabaseAdmin
     .from('academic_years')
-    .select('id')
-    .eq('academic_year', ayInput.trim())
+    .select('id, academic_year')
+    .or(`academic_year.eq.${cleanAy},academic_year.ilike.%${cleanAy}%`)
+    .limit(1)
     .maybeSingle();
 
   return data?.id || null;
 };
 
-// GET /api/categories - Get categories by academic year
+// GET /api/categories - Get categories by academic year with joined subcategories
 router.get('/', authenticateUser, async (req, res) => {
   try {
-    const { academicYearId, academicYear } = req.query;
-    const isAdmin = req.profile?.role === 'admin';
+    const { academicYearId, academicYear, academic_year_id } = req.query;
 
-    let ayId = academicYearId;
+    let ayId = academicYearId || academic_year_id;
     if (!ayId && academicYear) {
       ayId = await resolveAcademicYearId(academicYear);
     }
@@ -86,54 +39,73 @@ router.get('/', authenticateUser, async (req, res) => {
     // Try Supabase first
     let query = supabaseAdmin
       .from('budget_categories')
-      .select('*')
+      .select('id, budget_id, academic_year_id, name, allocated_amount, spent_amount, created_at, subcategories(id, name, category_id)')
       .order('name', { ascending: true });
 
     if (ayId) {
       query = query.eq('academic_year_id', ayId);
     }
 
-    if (!isAdmin) {
-      query = query.eq('is_active', true);
+    let { data: dbCategories, error } = await query;
+
+    // Fallback if no categories matched by academic_year_id: check by budget_id
+    if (!error && (!dbCategories || dbCategories.length === 0) && ayId) {
+      let ayLabel = academicYear;
+      if (!ayLabel) {
+        const { data: ayRow } = await supabaseAdmin
+          .from('academic_years')
+          .select('academic_year')
+          .eq('id', ayId)
+          .maybeSingle();
+        ayLabel = ayRow?.academic_year;
+      }
+
+      if (ayLabel) {
+        const cleanYear = ayLabel.trim().replace(/\s+/g, '').replace(/[–—/]/g, '-');
+        const { data: bRow } = await supabaseAdmin
+          .from('budgets')
+          .select('id')
+          .eq('financial_year', cleanYear)
+          .maybeSingle();
+
+        if (bRow) {
+          const { data: bCats, error: bErr } = await supabaseAdmin
+            .from('budget_categories')
+            .select('id, budget_id, academic_year_id, name, allocated_amount, spent_amount, created_at, subcategories(id, name, category_id)')
+            .eq('budget_id', bRow.id)
+            .order('name', { ascending: true });
+
+          if (!bErr && bCats && bCats.length > 0) {
+            dbCategories = bCats;
+          }
+        }
+      }
     }
 
-    const { data: dbCategories, error } = await query;
-
-    if (!error && dbCategories && dbCategories.length > 0) {
-      return res.json({
-        success: true,
-        categories: dbCategories.map(c => ({
-          id: c.id,
-          academicYearId: c.academic_year_id,
-          name: c.name,
-          allocatedAmount: Number(c.allocated_amount || 0),
-          spentAmount: Number(c.spent_amount || 0),
-          isActive: Boolean(c.is_active),
-          createdAt: c.created_at
-        }))
-      });
+    if (error) {
+      console.error('Error fetching categories from database:', error.message);
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    // Fallback to memory store
-    let memList = [...memoryCategories];
-    if (ayId) {
-      memList = memList.filter(c => c.academic_year_id === ayId || ayId.includes(c.academic_year_id));
-    }
-    if (!isAdmin) {
-      memList = memList.filter(c => c.is_active);
-    }
+    const categoriesList = (dbCategories || []).map(c => ({
+      id: c.id,
+      academicYearId: c.academic_year_id || ayId,
+      budgetId: c.budget_id,
+      name: c.name,
+      budget: Number(c.allocated_amount || 0),
+      allocatedAmount: Number(c.allocated_amount || 0),
+      spentAmount: Number(c.spent_amount || 0),
+      createdAt: c.created_at,
+      subcategories: (c.subcategories || []).map(s => ({
+        id: s.id,
+        name: s.name,
+        categoryId: s.category_id || c.id
+      }))
+    }));
 
     return res.json({
       success: true,
-      categories: memList.map(c => ({
-        id: c.id,
-        academicYearId: c.academic_year_id,
-        name: c.name,
-        allocatedAmount: Number(c.allocated_amount || 0),
-        spentAmount: Number(c.spent_amount || 0),
-        isActive: Boolean(c.is_active),
-        createdAt: c.created_at
-      }))
+      categories: categoriesList
     });
   } catch (err) {
     console.error('Error fetching categories:', err);
@@ -144,7 +116,7 @@ router.get('/', authenticateUser, async (req, res) => {
 // POST /api/categories - Admin creates a new category for an academic year
 router.post('/', authenticateUser, requireAdmin, async (req, res) => {
   try {
-    const { academicYearId, name } = req.body;
+    const { academicYearId, name, budget, allocatedAmount } = req.body;
 
     if (!academicYearId) {
       return res.status(400).json({ success: false, error: 'Academic Year ID is required.' });
@@ -154,6 +126,7 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
     }
 
     const trimmedName = name.trim();
+    const allocated = Number(budget !== undefined ? budget : (allocatedAmount || 0));
 
     // Check duplicate within the same academic year (Supabase)
     const { data: existingSupabase } = await supabaseAdmin
@@ -170,22 +143,46 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
       });
     }
 
-    // Check duplicate in memory fallback
-    if (memoryCategories.some(c => c.academic_year_id === academicYearId && c.name.toLowerCase() === trimmedName.toLowerCase())) {
-      return res.status(400).json({
-        success: false,
-        error: `Category "${trimmedName}" already exists for this Academic Year.`
-      });
+    // Resolve budget_id (NOT NULL column on budget_categories)
+    let budgetId = null;
+    const { data: ayRow } = await supabaseAdmin
+      .from('academic_years')
+      .select('academic_year')
+      .eq('id', academicYearId)
+      .maybeSingle();
+
+    if (ayRow?.academic_year) {
+      const { data: bRow } = await supabaseAdmin
+        .from('budgets')
+        .select('id')
+        .eq('financial_year', ayRow.academic_year)
+        .maybeSingle();
+      budgetId = bRow?.id;
+    }
+
+    if (!budgetId) {
+      const { data: firstBudget } = await supabaseAdmin
+        .from('budgets')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+      budgetId = firstBudget?.id;
     }
 
     // Try Supabase insert
+    const insertData = {
+      academic_year_id: academicYearId,
+      name: trimmedName,
+      allocated_amount: allocated,
+      spent_amount: 0
+    };
+    if (budgetId) {
+      insertData.budget_id = budgetId;
+    }
+
     const { data: newCat, error: insertError } = await supabaseAdmin
       .from('budget_categories')
-      .insert({
-        academic_year_id: academicYearId,
-        name: trimmedName,
-        is_active: true
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -193,18 +190,14 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
       const formatted = {
         id: newCat.id,
         academicYearId: newCat.academic_year_id,
+        budgetId: newCat.budget_id,
         name: newCat.name,
-        isActive: Boolean(newCat.is_active),
+        budget: Number(newCat.allocated_amount || 0),
+        allocatedAmount: Number(newCat.allocated_amount || 0),
+        spentAmount: Number(newCat.spent_amount || 0),
+        subcategories: [],
         createdAt: newCat.created_at
       };
-
-      memoryCategories.push({
-        id: newCat.id,
-        academic_year_id: newCat.academic_year_id,
-        name: newCat.name,
-        is_active: true,
-        created_at: newCat.created_at
-      });
 
       return res.status(201).json({
         success: true,
@@ -213,26 +206,9 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
       });
     }
 
-    // Memory fallback
-    const memItem = {
-      id: `cat-${Date.now()}`,
-      academic_year_id: academicYearId,
-      name: trimmedName,
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
-    memoryCategories.push(memItem);
-
-    return res.status(201).json({
-      success: true,
-      message: `Category "${trimmedName}" added successfully.`,
-      category: {
-        id: memItem.id,
-        academicYearId: memItem.academic_year_id,
-        name: memItem.name,
-        isActive: true,
-        createdAt: memItem.created_at
-      }
+    return res.status(400).json({
+      success: false,
+      error: insertError ? insertError.message : 'Failed to create category in database.'
     });
   } catch (err) {
     console.error('Error creating category:', err);
@@ -240,11 +216,11 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
   }
 });
 
-// PUT/PATCH /api/categories/:id - Admin updates category (name / active status)
+// PUT/PATCH /api/categories/:id - Admin updates category
 router.patch('/:id', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, isActive } = req.body;
+    const { name, budget, allocatedAmount } = req.body;
 
     const updates = {};
     if (name !== undefined) {
@@ -254,24 +230,16 @@ router.patch('/:id', authenticateUser, requireAdmin, async (req, res) => {
       }
       updates.name = trimmed;
     }
-    if (isActive !== undefined) {
-      updates.is_active = Boolean(isActive);
+    if (budget !== undefined || allocatedAmount !== undefined) {
+      updates.allocated_amount = Number(budget !== undefined ? budget : allocatedAmount);
     }
-    updates.updated_at = new Date().toISOString();
 
     const { data: updated, error } = await supabaseAdmin
       .from('budget_categories')
       .update(updates)
       .eq('id', id)
-      .select()
+      .select('id, academic_year_id, budget_id, name, allocated_amount, spent_amount, created_at, subcategories(id, name, category_id)')
       .single();
-
-    // Also update in memory
-    const memIdx = memoryCategories.findIndex(c => c.id === id);
-    if (memIdx !== -1) {
-      if (updates.name) memoryCategories[memIdx].name = updates.name;
-      if (updates.is_active !== undefined) memoryCategories[memIdx].is_active = updates.is_active;
-    }
 
     if (!error && updated) {
       return res.json({
@@ -280,34 +248,28 @@ router.patch('/:id', authenticateUser, requireAdmin, async (req, res) => {
         category: {
           id: updated.id,
           academicYearId: updated.academic_year_id,
+          budgetId: updated.budget_id,
           name: updated.name,
-          isActive: Boolean(updated.is_active)
+          budget: Number(updated.allocated_amount || 0),
+          allocatedAmount: Number(updated.allocated_amount || 0),
+          spentAmount: Number(updated.spent_amount || 0),
+          subcategories: (updated.subcategories || []).map(s => ({
+            id: s.id,
+            name: s.name,
+            categoryId: s.category_id || updated.id
+          }))
         }
       });
     }
 
-    if (memIdx !== -1) {
-      const cur = memoryCategories[memIdx];
-      return res.json({
-        success: true,
-        message: 'Category updated successfully.',
-        category: {
-          id: cur.id,
-          academicYearId: cur.academic_year_id,
-          name: cur.name,
-          isActive: Boolean(cur.is_active)
-        }
-      });
-    }
-
-    return res.status(404).json({ success: false, error: 'Category not found.' });
+    return res.status(404).json({ success: false, error: error?.message || 'Category not found.' });
   } catch (err) {
     console.error('Error updating category:', err);
     return res.status(500).json({ success: false, error: 'Server error updating category.' });
   }
 });
 
-// DELETE /api/categories/:id - Soft delete / Deactivate or delete category
+// DELETE /api/categories/:id - Delete category
 router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -320,26 +282,40 @@ router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
       .limit(1);
 
     if (proposalRef && proposalRef.length > 0) {
-      // Soft delete (deactivate)
-      await supabaseAdmin.from('budget_categories').update({ is_active: false }).eq('id', id);
-      const memItem = memoryCategories.find(c => c.id === id);
-      if (memItem) memItem.is_active = false;
-
-      return res.json({
-        success: true,
-        message: 'Category is referenced by existing proposals. It has been deactivated to preserve historical records.'
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete category: It is referenced by existing proposals.'
       });
     }
 
-    // Try hard delete if unreferenced
+    // Check if referenced by transactions
+    const { data: txnRef } = await supabaseAdmin
+      .from('transactions')
+      .select('id')
+      .eq('category_id', id)
+      .limit(1);
+
+    if (txnRef && txnRef.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete category: It has recorded transaction ledger entries.'
+      });
+    }
+
+    // Remove subcategories first
+    await supabaseAdmin
+      .from('subcategories')
+      .delete()
+      .eq('category_id', id);
+
+    // Hard delete category
     const { error: delError } = await supabaseAdmin
       .from('budget_categories')
       .delete()
       .eq('id', id);
 
-    const memIdx = memoryCategories.findIndex(c => c.id === id);
-    if (memIdx !== -1) {
-      memoryCategories.splice(memIdx, 1);
+    if (delError) {
+      return res.status(400).json({ success: false, error: delError.message });
     }
 
     return res.json({
@@ -360,68 +336,68 @@ router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
 router.get('/sub-categories', authenticateUser, async (req, res) => {
   try {
     const { categoryId, categoryName, academicYearId } = req.query;
-    const isAdmin = req.profile?.role === 'admin';
 
     let activeCatId = categoryId;
     if (!activeCatId && categoryName && academicYearId) {
-      const match = memoryCategories.find(c => c.academic_year_id === academicYearId && c.name.toLowerCase() === categoryName.trim().toLowerCase());
-      activeCatId = match?.id;
+      // Find category ID by name and academic_year_id in DB
+      const { data: catFound } = await supabaseAdmin
+        .from('budget_categories')
+        .select('id')
+        .eq('academic_year_id', academicYearId)
+        .ilike('name', categoryName.trim())
+        .maybeSingle();
+
+      if (catFound) {
+        activeCatId = catFound.id;
+      }
+    }
+
+    if (!activeCatId && !academicYearId) {
+      return res.json({ success: true, subCategories: [], subcategories: [] });
     }
 
     // Try Supabase first
     let query = supabaseAdmin
-      .from('budget_sub_categories')
-      .select('*')
+      .from('subcategories')
+      .select('id, category_id, name, created_at, updated_at')
       .order('name', { ascending: true });
 
     if (activeCatId) {
       query = query.eq('category_id', activeCatId);
-    }
-    if (academicYearId) {
-      query = query.eq('academic_year_id', academicYearId);
-    }
-    if (!isAdmin) {
-      query = query.eq('is_active', true);
+    } else if (academicYearId) {
+      // Find all category IDs for this academic year
+      const { data: catRows } = await supabaseAdmin
+        .from('budget_categories')
+        .select('id')
+        .eq('academic_year_id', academicYearId);
+
+      const catIds = (catRows || []).map(c => c.id);
+      if (catIds.length > 0) {
+        query = query.in('category_id', catIds);
+      } else {
+        return res.json({ success: true, subCategories: [], subcategories: [] });
+      }
     }
 
     const { data: dbSubs, error } = await query;
 
-    if (!error && dbSubs && dbSubs.length > 0) {
-      return res.json({
-        success: true,
-        subCategories: dbSubs.map(s => ({
-          id: s.id,
-          academicYearId: s.academic_year_id,
-          categoryId: s.category_id,
-          name: s.name,
-          isActive: Boolean(s.is_active),
-          createdAt: s.created_at
-        }))
-      });
+    if (error) {
+      console.error('Error querying subcategories from database:', error.message);
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    // Memory fallback
-    let memList = [...memorySubCategories];
-    if (activeCatId) {
-      memList = memList.filter(s => s.category_id === activeCatId);
-    }
-    if (academicYearId) {
-      memList = memList.filter(s => s.academic_year_id === academicYearId);
-    }
-    if (!isAdmin) {
-      memList = memList.filter(s => s.is_active);
-    }
+    const formattedList = (dbSubs || []).map(s => ({
+      id: s.id,
+      categoryId: s.category_id,
+      name: s.name,
+      createdAt: s.created_at,
+      updatedAt: s.updated_at
+    }));
 
     return res.json({
       success: true,
-      subCategories: memList.map(s => ({
-        id: s.id,
-        academicYearId: s.academic_year_id,
-        categoryId: s.category_id,
-        name: s.name,
-        isActive: Boolean(s.is_active),
-        createdAt: s.created_at
-      }))
+      subCategories: formattedList,
+      subcategories: formattedList
     });
   } catch (err) {
     console.error('Error fetching sub-categories:', err);
@@ -432,11 +408,8 @@ router.get('/sub-categories', authenticateUser, async (req, res) => {
 // POST /api/categories/sub-categories - Admin creates sub-category
 router.post('/sub-categories', authenticateUser, requireAdmin, async (req, res) => {
   try {
-    const { academicYearId, categoryId, name } = req.body;
+    const { categoryId, name } = req.body;
 
-    if (!academicYearId) {
-      return res.status(400).json({ success: false, error: 'Academic Year ID is required.' });
-    }
     if (!categoryId) {
       return res.status(400).json({ success: false, error: 'Category ID is required.' });
     }
@@ -448,7 +421,7 @@ router.post('/sub-categories', authenticateUser, requireAdmin, async (req, res) 
 
     // Check duplicate in category (Supabase)
     const { data: existingSupabase } = await supabaseAdmin
-      .from('budget_sub_categories')
+      .from('subcategories')
       .select('id')
       .eq('category_id', categoryId)
       .ilike('name', trimmedName)
@@ -461,22 +434,12 @@ router.post('/sub-categories', authenticateUser, requireAdmin, async (req, res) 
       });
     }
 
-    // Check duplicate in memory
-    if (memorySubCategories.some(s => s.category_id === categoryId && s.name.toLowerCase() === trimmedName.toLowerCase())) {
-      return res.status(400).json({
-        success: false,
-        error: `Sub-category "${trimmedName}" already exists for this Category.`
-      });
-    }
-
     // Try Supabase insert
     const { data: newSub, error: insertError } = await supabaseAdmin
-      .from('budget_sub_categories')
+      .from('subcategories')
       .insert({
-        academic_year_id: academicYearId,
         category_id: categoryId,
-        name: trimmedName,
-        is_active: true
+        name: trimmedName
       })
       .select()
       .single();
@@ -484,21 +447,10 @@ router.post('/sub-categories', authenticateUser, requireAdmin, async (req, res) 
     if (!insertError && newSub) {
       const formatted = {
         id: newSub.id,
-        academicYearId: newSub.academic_year_id,
         categoryId: newSub.category_id,
         name: newSub.name,
-        isActive: Boolean(newSub.is_active),
         createdAt: newSub.created_at
       };
-
-      memorySubCategories.push({
-        id: newSub.id,
-        academic_year_id: newSub.academic_year_id,
-        category_id: newSub.category_id,
-        name: newSub.name,
-        is_active: true,
-        created_at: newSub.created_at
-      });
 
       return res.status(201).json({
         success: true,
@@ -507,31 +459,12 @@ router.post('/sub-categories', authenticateUser, requireAdmin, async (req, res) 
       });
     }
 
-    // Memory fallback
-    const memItem = {
-      id: `sub-${Date.now()}`,
-      academic_year_id: academicYearId,
-      category_id: categoryId,
-      name: trimmedName,
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
-    memorySubCategories.push(memItem);
-
-    return res.status(201).json({
-      success: true,
-      message: `Sub-category "${trimmedName}" added successfully.`,
-      subCategory: {
-        id: memItem.id,
-        academicYearId: memItem.academic_year_id,
-        categoryId: memItem.category_id,
-        name: memItem.name,
-        isActive: true,
-        createdAt: memItem.created_at
-      }
+    return res.status(400).json({
+      success: false,
+      error: insertError ? insertError.message : 'Failed to create sub-category in database.'
     });
   } catch (err) {
-    console.error('Error creating sub-category:', err);
+    console.error('Error adding sub-category:', err);
     return res.status(500).json({ success: false, error: 'Server error creating sub-category.' });
   }
 });
@@ -540,7 +473,7 @@ router.post('/sub-categories', authenticateUser, requireAdmin, async (req, res) 
 router.patch('/sub-categories/:id', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, isActive } = req.body;
+    const { name } = req.body;
 
     const updates = {};
     if (name !== undefined) {
@@ -550,24 +483,14 @@ router.patch('/sub-categories/:id', authenticateUser, requireAdmin, async (req, 
       }
       updates.name = trimmed;
     }
-    if (isActive !== undefined) {
-      updates.is_active = Boolean(isActive);
-    }
     updates.updated_at = new Date().toISOString();
 
     const { data: updated, error } = await supabaseAdmin
-      .from('budget_sub_categories')
+      .from('subcategories')
       .update(updates)
       .eq('id', id)
       .select()
       .single();
-
-    // Memory update
-    const memIdx = memorySubCategories.findIndex(s => s.id === id);
-    if (memIdx !== -1) {
-      if (updates.name) memorySubCategories[memIdx].name = updates.name;
-      if (updates.is_active !== undefined) memorySubCategories[memIdx].is_active = updates.is_active;
-    }
 
     if (!error && updated) {
       return res.json({
@@ -575,37 +498,20 @@ router.patch('/sub-categories/:id', authenticateUser, requireAdmin, async (req, 
         message: 'Sub-category updated successfully.',
         subCategory: {
           id: updated.id,
-          academicYearId: updated.academic_year_id,
           categoryId: updated.category_id,
-          name: updated.name,
-          isActive: Boolean(updated.is_active)
+          name: updated.name
         }
       });
     }
 
-    if (memIdx !== -1) {
-      const cur = memorySubCategories[memIdx];
-      return res.json({
-        success: true,
-        message: 'Sub-category updated successfully.',
-        subCategory: {
-          id: cur.id,
-          academicYearId: cur.academic_year_id,
-          categoryId: cur.category_id,
-          name: cur.name,
-          isActive: Boolean(cur.is_active)
-        }
-      });
-    }
-
-    return res.status(404).json({ success: false, error: 'Sub-category not found.' });
+    return res.status(404).json({ success: false, error: error?.message || 'Sub-category not found.' });
   } catch (err) {
     console.error('Error updating sub-category:', err);
     return res.status(500).json({ success: false, error: 'Server error updating sub-category.' });
   }
 });
 
-// DELETE /api/categories/sub-categories/:id - Admin deletes or deactivates sub-category
+// DELETE /api/categories/sub-categories/:id - Admin deletes sub-category
 router.delete('/sub-categories/:id', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -614,26 +520,17 @@ router.delete('/sub-categories/:id', authenticateUser, requireAdmin, async (req,
     const { data: propRef } = await supabaseAdmin
       .from('proposals')
       .select('id')
-      .eq('sub_category_id', id)
+      .eq('subcategory_id', id)
       .limit(1);
 
     if (propRef && propRef.length > 0) {
-      await supabaseAdmin.from('budget_sub_categories').update({ is_active: false }).eq('id', id);
-      const memItem = memorySubCategories.find(s => s.id === id);
-      if (memItem) memItem.is_active = false;
-
-      return res.json({
-        success: true,
-        message: 'Sub-category is referenced by existing proposals. It has been deactivated to preserve historical records.'
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete sub-category: It is referenced by existing proposals.'
       });
     }
 
-    await supabaseAdmin.from('budget_sub_categories').delete().eq('id', id);
-
-    const memIdx = memorySubCategories.findIndex(s => s.id === id);
-    if (memIdx !== -1) {
-      memorySubCategories.splice(memIdx, 1);
-    }
+    await supabaseAdmin.from('subcategories').delete().eq('id', id);
 
     return res.json({
       success: true,

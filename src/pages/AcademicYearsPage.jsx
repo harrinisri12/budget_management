@@ -464,6 +464,9 @@ export const AcademicYearsPage = () => {
   // Preview Modal for existing academic years from register
   const [viewingYear, setViewingYear] = useState(null);
 
+  // Edit Academic Year via full wizard
+  const [editingYearId, setEditingYearId] = useState(null);
+
   // Edit Modal State
   const [editingYear, setEditingYear] = useState(null);
   const [editFormData, setEditFormData] = useState({
@@ -525,6 +528,7 @@ export const AcademicYearsPage = () => {
 
     // Fast synchronous check against loaded academicYears list
     const localMatch = (academicYears || []).some(ay => {
+      if (editingYearId && ay.id === editingYearId) return false;
       const ayCanon = canonicalAcademicYear(ay.academicYear || ay.academic_year || ay.name);
       return ayCanon === targetCanonical;
     });
@@ -532,6 +536,14 @@ export const AcademicYearsPage = () => {
     if (localMatch) {
       if (checkReqSeqRef.current === currentSeq) {
         setDuplicateError('Academic year already exists.');
+        setIsCheckingDuplicate(false);
+      }
+      return;
+    }
+
+    if (editingYearId) {
+      if (checkReqSeqRef.current === currentSeq) {
+        setDuplicateError('');
         setIsCheckingDuplicate(false);
       }
       return;
@@ -559,7 +571,7 @@ export const AcademicYearsPage = () => {
         setIsCheckingDuplicate(false);
       }
     }
-  }, [academicYears]);
+  }, [academicYears, editingYearId]);
 
   // Synchronize validation whenever active wizard step or startYear changes
   useEffect(() => {
@@ -591,9 +603,10 @@ export const AcademicYearsPage = () => {
     return categories.reduce((sum, cat) => sum + (Number(cat.budget) || 0), 0);
   }, [categories]);
 
-  // Reset wizard form
+  // Open wizard to create brand new academic year
   const handleOpenNewWizard = () => {
     loadCategoryOptions();
+    setEditingYearId(null);
     setStartYear(CURRENT_YEAR);
     setYearStatus('DRAFT');
     setStep1Error('');
@@ -610,6 +623,53 @@ export const AcademicYearsPage = () => {
     setActiveStep(1);
     setViewMode('wizard');
     checkDuplicateYear(CURRENT_YEAR);
+  };
+
+  // Open wizard to edit full configuration of an existing academic year
+  const handleOpenEditWizard = async (ay) => {
+    loadCategoryOptions();
+    setEditingYearId(ay.id);
+    const match = String(ay.academicYear || ay.name || '').match(/(\d{4})/);
+    const sYear = match ? parseInt(match[1], 10) : (ay.startYear || CURRENT_YEAR);
+    setStartYear(sYear);
+    setYearStatus(ay.status || (ay.isActive ? 'ACTIVE' : 'DRAFT'));
+    setStep1Error('');
+    setDuplicateError('');
+    setIsCheckingDuplicate(false);
+    setStep2Error('');
+    setStep3Error('');
+    setNewCatName('');
+    setNewCatBudget('');
+    setNewCatDesc('');
+    setNewSubcatInputs({});
+    setSaveSuccess(false);
+
+    // Fetch fresh academic year details to ensure full categories & subcategories from DB
+    let fullAy = ay;
+    try {
+      const res = await api.get(`/api/academic-years/${ay.id}`);
+      if (res?.success && res.academicYear) {
+        fullAy = res.academicYear;
+      }
+    } catch (e) {
+      console.warn('Note fetching full academic year details:', e.message);
+    }
+
+    const existingCats = (fullAy.categories || []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      description: c.description || '',
+      budget: Number(c.budget !== undefined ? c.budget : (c.allocated_amount || 0)),
+      subcategories: (c.subcategories || []).map((s) => ({
+        id: s.id,
+        name: typeof s === 'string' ? s : s.name
+      }))
+    }));
+    setCategories(existingCats);
+    setActiveStep(1);
+    setViewMode('wizard');
+    setViewingYear(null);
+    setEditingYear(null);
   };
 
   // ---------------------------------------------------------------------------
@@ -637,6 +697,7 @@ export const AcademicYearsPage = () => {
     // Check duplicate academic year
     const targetCanonical = `${s}-${s + 1}`;
     const isDuplicate = (academicYears || []).some(ay => {
+      if (editingYearId && ay.id === editingYearId) return false;
       const ayCanon = canonicalAcademicYear(ay.academicYear || ay.academic_year || ay.name);
       return ayCanon === targetCanonical;
     });
@@ -822,7 +883,12 @@ export const AcademicYearsPage = () => {
       }))
     };
 
-    const result = await createFullAcademicYear(payload);
+    let result;
+    if (editingYearId) {
+      result = await updateAcademicYear(editingYearId, payload);
+    } else {
+      result = await createFullAcademicYear(payload);
+    }
     setIsSaving(false);
 
     if (result.success) {
@@ -830,6 +896,7 @@ export const AcademicYearsPage = () => {
       setTimeout(() => {
         setViewMode('list');
         setSaveSuccess(false);
+        setEditingYearId(null);
       }, 1500);
     } else {
       if (result.error && result.error.toLowerCase().includes('already exists')) {
@@ -977,9 +1044,13 @@ export const AcademicYearsPage = () => {
               <section className="cbm-section">
                 <div className="cbm-section-header">
                   <div>
-                    <h2 className="cbm-section-title">Step 1: Select Academic Year Period</h2>
+                    <h2 className="cbm-section-title">
+                      {editingYearId ? `Edit Academic Year: ${displayYearName}` : 'Step 1: Select Academic Year Period'}
+                    </h2>
                     <p className="cbm-section-subtitle">
-                      Choose the starting year. The consecutive ending year and academic year designation will be generated automatically.
+                      {editingYearId
+                        ? `Modify category budgets, add/remove subcategories, and adjust lifecycle status for ${displayYearName}.`
+                        : 'Choose the starting year. The consecutive ending year and academic year designation will be generated automatically.'}
                     </p>
                   </div>
                 </div>
@@ -1722,7 +1793,17 @@ export const AcademicYearsPage = () => {
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                               {/* View Details */}
                               <button
-                                onClick={() => setViewingYear(ay)}
+                                onClick={async () => {
+                                  setViewingYear(ay);
+                                  try {
+                                    const res = await api.get(`/api/academic-years/${ay.id}`);
+                                    if (res?.success && res.academicYear) {
+                                      setViewingYear(res.academicYear);
+                                    }
+                                  } catch (e) {
+                                    console.warn('Note fetching fresh view details:', e.message);
+                                  }
+                                }}
                                 style={{
                                   padding: '4px 10px',
                                   borderRadius: 'var(--radius-sm)',
@@ -1742,18 +1823,9 @@ export const AcademicYearsPage = () => {
                                 <span>View</span>
                               </button>
 
-                              {/* Edit */}
+                              {/* Edit Configuration */}
                               <button
-                                onClick={() => {
-                                  setEditingYear(ay);
-                                  setEditFormData({
-                                    name: ay.name || ay.academicYear || '',
-                                    startDate: ay.startDate ? (ay.startDate.includes('T') ? ay.startDate.split('T')[0] : ay.startDate) : (ay.startYear ? `${ay.startYear}-06-01` : ''),
-                                    endDate: ay.endDate ? (ay.endDate.includes('T') ? ay.endDate.split('T')[0] : ay.endDate) : (ay.endYear ? `${ay.endYear}-05-31` : ''),
-                                    status: ay.status || (ay.isActive ? 'ACTIVE' : 'DRAFT'),
-                                    annualBudget: Number(ay.annualBudget || ay.budget || 0)
-                                  });
-                                }}
+                                onClick={() => handleOpenEditWizard(ay)}
                                 style={{
                                   padding: '4px 10px',
                                   borderRadius: 'var(--radius-sm)',
@@ -1767,7 +1839,7 @@ export const AcademicYearsPage = () => {
                                   alignItems: 'center',
                                   gap: 4
                                 }}
-                                title="Edit Academic Year"
+                                title="Edit Academic Year & Category Allocations"
                               >
                                 <Edit2 size={12} />
                                 <span>Edit</span>
@@ -1931,9 +2003,12 @@ export const AcademicYearsPage = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
                 <Button variant="outline" onClick={() => setViewingYear(null)}>
                   Close
+                </Button>
+                <Button variant="primary" icon={Edit2} onClick={() => handleOpenEditWizard(viewingYear)}>
+                  Edit Configuration
                 </Button>
               </div>
             </div>

@@ -2,10 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 import { useAuth } from './AuthContext';
-import { CATEGORY_COLOR_MAP } from '../data/categories';
 import { BudgetContext } from './BudgetContext';
 
-const CATEGORY_COLORS = CATEGORY_COLOR_MAP || {
+const CATEGORY_COLORS = {
   'CSEA Association': '#C5A059',
   'CCC Coding Club': '#121212',
   'Lab & Equipment': '#52525B',
@@ -90,7 +89,7 @@ export const BudgetProvider = ({ children }) => {
       // Direct Supabase query
       const { data, error } = await supabase
         .from('academic_years')
-        .select('*, budget_categories(id, allocated_amount, spent_amount)')
+        .select('*, budget_categories(id, name, allocated_amount, spent_amount, subcategories(id, name, category_id))')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -109,6 +108,20 @@ export const BudgetProvider = ({ children }) => {
         const isAct = ay.status === 'ACTIVE' || ay.status === 'Active' || Boolean(ay.is_active);
         const finalBudget = Number(ay.budget !== undefined ? ay.budget : (ay.annual_budget || 0));
 
+        const cats = (ay.budget_categories || []).map(c => ({
+          id: c.id,
+          name: c.name,
+          description: '',
+          budget: Number(c.allocated_amount || 0),
+          allocated_amount: Number(c.allocated_amount || 0),
+          spent_amount: Number(c.spent_amount || 0),
+          subcategories: (c.subcategories || []).map(s => ({
+            id: s.id,
+            name: s.name,
+            categoryId: s.category_id || c.id
+          }))
+        }));
+
         return {
           id: ay.id,
           startYear: sYear,
@@ -121,8 +134,8 @@ export const BudgetProvider = ({ children }) => {
           isActive: isAct,
           annualBudget: finalBudget,
           budget: finalBudget,
-          categoriesCount: (ay.budget_categories || []).length,
-          categories: ay.budget_categories || [],
+          categoriesCount: cats.length,
+          categories: cats,
           createdAt: ay.created_at,
           updatedAt: ay.updated_at
         };
@@ -197,11 +210,15 @@ export const BudgetProvider = ({ children }) => {
         categories: (cats || []).map(c => ({
           id: c.id,
           name: c.name,
-          description: c.description || '',
+          description: '',
           budget: Number(c.allocated_amount || 0),
           allocated_amount: Number(c.allocated_amount || 0),
           spent_amount: Number(c.spent_amount || 0),
-          subcategories: c.subcategories || []
+          subcategories: (c.subcategories || []).map(s => ({
+            id: s.id,
+            name: typeof s === 'string' ? s : s.name,
+            categoryId: s.category_id || c.id
+          }))
         }))
       };
 
@@ -325,6 +342,7 @@ export const BudgetProvider = ({ children }) => {
         title: p.title,
         programDate: p.program_date ? new Date(p.program_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
         guestDetails: p.guest_details || '',
+        eventDetails: (p.event_details && typeof p.event_details === 'object') ? p.event_details : {},
         amount: Number(p.amount || 0),
         status: p.status,
         adminRemarks: p.admin_remarks || ''
@@ -736,6 +754,10 @@ export const BudgetProvider = ({ children }) => {
           return { success: true, proposal: res.proposal };
         }
       } catch (apiErr) {
+        if (apiErr.message && (apiErr.message.includes('schema migration') || apiErr.message.includes('event_details') || apiErr.message.includes('Validation') || apiErr.message.includes('required'))) {
+          showToast(apiErr.message, 'error');
+          return { success: false, error: apiErr.message };
+        }
         console.warn('API proposal submit notice, attempting direct Supabase insert:', apiErr.message);
       }
 
@@ -782,6 +804,12 @@ export const BudgetProvider = ({ children }) => {
 
       if (sbErr) {
         console.error('Direct Supabase insert error:', sbErr.message);
+        if (sbErr.message && (sbErr.message.includes('event_details') || sbErr.code === '42703')) {
+          const schemaErrorMsg = 'Database schema migration required: The "event_details" column is missing from the "proposals" table. Please apply the migration in Supabase SQL Editor: ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS event_details JSONB NOT NULL DEFAULT \'{}\'::jsonb;';
+          showToast(schemaErrorMsg, 'error');
+          return { success: false, error: schemaErrorMsg };
+        }
+        showToast(sbErr.message, 'error');
         return { success: false, error: sbErr.message };
       }
 
@@ -799,7 +827,8 @@ export const BudgetProvider = ({ children }) => {
           subCategory: sbProp.sub_category,
           amount: sbProp.amount,
           status: sbProp.status,
-          proposalDate: sbProp.proposal_date
+          proposalDate: sbProp.proposal_date,
+          eventDetails: (sbProp.event_details && typeof sbProp.event_details === 'object') ? sbProp.event_details : (proposalData.eventDetails || {})
         }
       };
     } catch (err) {
@@ -857,7 +886,7 @@ export const BudgetProvider = ({ children }) => {
     // Calculate individual quota from active academic year budget divided across faculty or configured category
     const activeBudget = Number(activeAcademicYear?.budget || activeAcademicYear?.annualBudget || 0);
     const totalFacultyCount = Math.max(1, facultyList.length);
-    const calculatedQuota = activeBudget > 0 ? Math.round(activeBudget / totalFacultyCount) : 150000;
+    const calculatedQuota = activeBudget > 0 ? Math.round(activeBudget / totalFacultyCount) : 0;
     const remainingBalance = Math.max(0, calculatedQuota - approvedAmount);
 
     return {

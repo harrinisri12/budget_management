@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FacultyLayout } from '../components/layout/FacultyLayout';
 import { useAuth } from '../context/AuthContext';
 import { useBudget } from '../context/BudgetContext';
@@ -17,9 +17,7 @@ export const NewProposalPage = () => {
   const { user } = useAuth();
   const {
     academicYears,
-    activeAcademicYear,
     fetchActiveAcademicYearConfig,
-    fetchAcademicYearDetails,
     addProposal,
     getFacultyMetrics
   } = useBudget();
@@ -31,12 +29,21 @@ export const NewProposalPage = () => {
   // ---------------------------------------------------------------------------
   // Step 1: Proposal Configuration State
   // ---------------------------------------------------------------------------
+  const [availableAcademicYears, setAvailableAcademicYears] = useState([]);
   const [selectedAyId, setSelectedAyId] = useState('');
   const [configuredCategories, setConfiguredCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [categoriesError, setCategoriesError] = useState('');
-  const [selectedCategoryName, setSelectedCategoryName] = useState('');
-  const [selectedSubCategoryName, setSelectedSubCategoryName] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+
+  const [availableSubcategories, setAvailableSubcategories] = useState([]);
+  const [subcategoriesLoading, setSubcategoriesLoading] = useState(false);
+  const [subcategoriesError, setSubcategoriesError] = useState('');
+  const [selectedSubCategoryId, setSelectedSubCategoryId] = useState('');
+
+  // Request ID refs to prevent stale API responses from replacing newer data
+  const latestAyReqId = useRef(0);
+  const latestCatReqId = useRef(0);
 
   // Fixed Submission Date
   const [submissionDateStr] = useState(() =>
@@ -44,183 +51,286 @@ export const NewProposalPage = () => {
   );
   const [todayIso] = useState(() => new Date().toISOString().split('T')[0]);
 
-  // Determine active academic year object
-  const activeAy = useMemo(() => {
-    if (activeAcademicYear && (activeAcademicYear.status === 'ACTIVE' || activeAcademicYear.isActive)) {
-      return activeAcademicYear;
+  // Load subcategories strictly for a given category ID using subcategories.category_id = selectedCategoryId
+  const loadSubcategoriesForCat = useCallback(async (catId) => {
+    if (!catId) {
+      setAvailableSubcategories([]);
+      setSelectedSubCategoryId('');
+      setSubcategoriesLoading(false);
+      setSubcategoriesError('');
+      return;
     }
-    return (academicYears || []).find((ay) => ay.status === 'ACTIVE' || ay.isActive) || null;
-  }, [activeAcademicYear, academicYears]);
 
-  // Initialize selectedAyId from active academic year
-  useEffect(() => {
-    if (activeAy && !selectedAyId) {
-      setSelectedAyId(activeAy.id);
-    }
-  }, [activeAy, selectedAyId]);
+    const reqId = ++latestCatReqId.current;
+    setSubcategoriesLoading(true);
+    setSubcategoriesError('');
 
-  // Load active academic year config on mount
-  useEffect(() => {
-    fetchActiveAcademicYearConfig();
-  }, [fetchActiveAcademicYearConfig]);
-
-  // Function to load categories and subcategories for the selected academic year
-  const loadCategoriesForAy = useCallback(
-    async (ayId) => {
-      if (!ayId) return;
-      setCategoriesLoading(true);
-      setCategoriesError('');
-
+    try {
+      // 1. Primary: Load via backend API
       try {
-        // 1. Try activeAcademicYear in context if matches
-        if (activeAcademicYear && activeAcademicYear.id === ayId && activeAcademicYear.categories?.length > 0) {
-          setConfiguredCategories(activeAcademicYear.categories);
-          setCategoriesLoading(false);
+        const res = await api.get(`/api/categories/sub-categories?categoryId=${encodeURIComponent(catId)}`);
+        if (latestCatReqId.current !== reqId) return; // Stale response discarded
+
+        if (res?.success) {
+          const rawList = res.subCategories || res.subcategories || [];
+          const formatted = rawList.map((s) => ({
+            id: s.id,
+            name: typeof s === 'string' ? s : s.name,
+            categoryId: s.categoryId || s.category_id || catId
+          }));
+          setAvailableSubcategories(formatted);
+          setSubcategoriesLoading(false);
           return;
         }
+      } catch (apiErr) {
+        console.warn('API /api/categories/sub-categories notice, falling back to direct query:', apiErr.message);
+      }
 
-        // 2. Try fetching academic year details from API
-        if (fetchAcademicYearDetails) {
-          const ayDetails = await fetchAcademicYearDetails(ayId);
-          if (ayDetails && ayDetails.categories && ayDetails.categories.length > 0) {
-            setConfiguredCategories(ayDetails.categories);
-            setCategoriesLoading(false);
-            return;
-          }
-        }
+      // 2. Direct Supabase query fallback
+      const { data: dbSubs, error: subErr } = await supabase
+        .from('subcategories')
+        .select('id, name, category_id')
+        .eq('category_id', catId)
+        .order('name', { ascending: true });
 
-        // 3. Fallback to direct Supabase query
-        const { data: dbCats, error: catErr } = await supabase
-          .from('budget_categories')
-          .select('*, subcategories(*)')
-          .eq('academic_year_id', ayId)
-          .order('name', { ascending: true });
+      if (latestCatReqId.current !== reqId) return; // Stale response discarded
 
-        if (catErr) {
-          throw new Error(catErr.message);
-        }
+      if (subErr) {
+        throw new Error(subErr.message);
+      }
 
-        if (dbCats && dbCats.length > 0) {
-          const formatted = dbCats.map((c) => ({
+      const formatted = (dbSubs || []).map((s) => ({
+        id: s.id,
+        name: s.name,
+        categoryId: s.category_id || catId
+      }));
+      setAvailableSubcategories(formatted);
+    } catch (err) {
+      if (latestCatReqId.current !== reqId) return;
+      console.error('Error loading subcategories:', err.message);
+      setSubcategoriesError('Unable to load subcategories. Please click Retry.');
+      setAvailableSubcategories([]);
+    } finally {
+      if (latestCatReqId.current === reqId) {
+        setSubcategoriesLoading(false);
+      }
+    }
+  }, []);
+
+  // Load categories strictly for a given academic year ID using budget_categories.academic_year_id = selectedAcademicYearId
+  const loadCategoriesForAy = useCallback(async (ayId) => {
+    if (!ayId) {
+      setConfiguredCategories([]);
+      setSelectedCategoryId('');
+      setAvailableSubcategories([]);
+      setSelectedSubCategoryId('');
+      setCategoriesLoading(false);
+      setCategoriesError('');
+      return;
+    }
+
+    const reqId = ++latestAyReqId.current;
+    setCategoriesLoading(true);
+    setCategoriesError('');
+
+    try {
+      // 1. Primary: Fetch categories from backend API endpoint scoped to this academic year
+      try {
+        const res = await api.get(`/api/categories?academicYearId=${encodeURIComponent(ayId)}`);
+        if (latestAyReqId.current !== reqId) return; // Stale response discarded
+
+        if (res?.success && Array.isArray(res.categories)) {
+          const formatted = res.categories.map((c) => ({
             id: c.id,
             name: c.name,
-            description: c.description || '',
-            budget: Number(c.allocated_amount || 0),
-            allocated_amount: Number(c.allocated_amount || 0),
-            spent_amount: Number(c.spent_amount || 0),
+            academicYearId: c.academicYearId || c.academic_year_id || ayId,
+            budgetId: c.budgetId || c.budget_id,
+            budget: Number(c.budget !== undefined ? c.budget : (c.allocatedAmount || c.allocated_amount || 0)),
+            allocatedAmount: Number(c.allocatedAmount !== undefined ? c.allocatedAmount : (c.budget || c.allocated_amount || 0)),
+            spentAmount: Number(c.spentAmount || c.spent_amount || 0),
             subcategories: (c.subcategories || []).map((s) => ({
               id: s.id,
-              name: s.name,
-              categoryId: s.category_id
+              name: typeof s === 'string' ? s : s.name,
+              categoryId: s.categoryId || s.category_id || c.id
             }))
           }));
           setConfiguredCategories(formatted);
-        } else {
-          // If no categories for that specific academic year, fallback to active academic year categories
-          if (activeAy && activeAy.categories && activeAy.categories.length > 0) {
-            setConfiguredCategories(activeAy.categories);
-          } else {
-            setConfiguredCategories([]);
-          }
+          setCategoriesLoading(false);
+          return;
         }
-      } catch (err) {
-        console.warn('Could not load categories for academic year:', err.message);
-        setCategoriesError('Unable to load categories for the selected academic year.');
-        if (activeAy && activeAy.categories) {
-          setConfiguredCategories(activeAy.categories);
-        }
-      } finally {
+      } catch (apiErr) {
+        console.warn('API /api/categories notice, falling back to direct database query:', apiErr.message);
+      }
+
+      // 2. Direct Supabase query scoped strictly to this academic year
+      const { data: dbCats, error: catErr } = await supabase
+        .from('budget_categories')
+        .select('id, budget_id, academic_year_id, name, allocated_amount, spent_amount, created_at, subcategories(id, name, category_id)')
+        .eq('academic_year_id', ayId)
+        .order('name', { ascending: true });
+
+      if (latestAyReqId.current !== reqId) return; // Stale response discarded
+
+      if (catErr) {
+        throw new Error(catErr.message);
+      }
+
+      const formatted = (dbCats || []).map((c) => ({
+        id: c.id,
+        name: c.name,
+        academicYearId: c.academic_year_id || ayId,
+        budgetId: c.budget_id,
+        budget: Number(c.allocated_amount || 0),
+        allocatedAmount: Number(c.allocated_amount || 0),
+        spentAmount: Number(c.spent_amount || 0),
+        subcategories: (c.subcategories || []).map((s) => ({
+          id: s.id,
+          name: typeof s === 'string' ? s : s.name,
+          categoryId: s.category_id || c.id
+        }))
+      }));
+      setConfiguredCategories(formatted);
+    } catch (err) {
+      if (latestAyReqId.current !== reqId) return;
+      console.error('Could not load categories for academic year:', err.message);
+      setCategoriesError('Unable to load categories for the selected academic year. Please click Retry.');
+      setConfiguredCategories([]);
+    } finally {
+      if (latestAyReqId.current === reqId) {
         setCategoriesLoading(false);
       }
-    },
-    [activeAcademicYear, activeAy, fetchAcademicYearDetails]
-  );
-
-  // Reload categories whenever selectedAyId changes
-  useEffect(() => {
-    if (selectedAyId) {
-      loadCategoriesForAy(selectedAyId);
     }
-  }, [selectedAyId, loadCategoriesForAy]);
+  }, []);
 
-  // Selected Academic Year Object
-  const currentAyObj = useMemo(() => {
-    return (
-      (academicYears || []).find((ay) => ay.id === selectedAyId) ||
-      activeAy ||
-      null
-    );
-  }, [academicYears, selectedAyId, activeAy]);
-
-  // Selected Academic Year Label
-  const selectedAcademicYearLabel = useMemo(() => {
-    if (!currentAyObj) return 'Academic Year';
-    return currentAyObj.name || currentAyObj.academicYear || `${currentAyObj.startYear}-${currentAyObj.endYear}`;
-  }, [currentAyObj]);
-
-  // Synchronize category selection when categories change
-  useEffect(() => {
-    if (configuredCategories.length > 0) {
-      const exists = configuredCategories.some((c) => c.name === selectedCategoryName);
-      if (!exists) {
-        const firstCat = configuredCategories[0];
-        setSelectedCategoryName(firstCat.name);
-        const subs = firstCat.subcategories || [];
-        setSelectedSubCategoryName(subs.length > 0 ? subs[0].name : '');
+  // Load available academic years from backend API / database
+  const loadAcademicYears = useCallback(async () => {
+    try {
+      // 1. Primary: Load via backend API
+      try {
+        const res = await api.get('/api/academic-years');
+        if (res?.success && Array.isArray(res.academicYears) && res.academicYears.length > 0) {
+          const list = res.academicYears.map((ay) => ({
+            id: ay.id,
+            academicYear: ay.academicYear || ay.academic_year || ay.name,
+            name: ay.name || ay.academicYear || ay.academic_year,
+            budget: Number(ay.budget !== undefined ? ay.budget : (ay.annualBudget || 0)),
+            annualBudget: Number(ay.annualBudget !== undefined ? ay.annualBudget : (ay.budget || 0)),
+            isActive: Boolean(ay.isActive || ay.is_active || ay.status === 'ACTIVE' || ay.status === 'Active'),
+            status: (ay.status || 'DRAFT').toUpperCase()
+          }));
+          setAvailableAcademicYears(list);
+          return list;
+        }
+      } catch (apiErr) {
+        console.warn('API /api/academic-years notice, falling back to direct query:', apiErr.message);
       }
-    } else {
-      setSelectedCategoryName('');
-      setSelectedSubCategoryName('');
-    }
-  }, [configuredCategories, selectedCategoryName]);
 
-  // Selected Category Object
-  const selectedCategoryObj = useMemo(() => {
-    return configuredCategories.find((c) => c.name === selectedCategoryName) || null;
-  }, [configuredCategories, selectedCategoryName]);
+      // 2. Direct Supabase query fallback
+      const { data: dbAys, error: dbErr } = await supabase
+        .from('academic_years')
+        .select('id, academic_year, budget, is_active, status, start_date, end_date')
+        .order('created_at', { ascending: false });
 
-  // Available Subcategories for currently selected Category
-  const availableSubcategories = useMemo(() => {
-    return selectedCategoryObj?.subcategories || [];
-  }, [selectedCategoryObj]);
-
-  // Synchronize subcategory selection when availableSubcategories changes
-  useEffect(() => {
-    if (availableSubcategories.length > 0) {
-      const exists = availableSubcategories.some((s) => s.name === selectedSubCategoryName);
-      if (!exists) {
-        setSelectedSubCategoryName(availableSubcategories[0].name);
+      if (!dbErr && dbAys && dbAys.length > 0) {
+        const formatted = dbAys.map((ay) => {
+          const isAct = ay.status === 'ACTIVE' || ay.status === 'Active' || Boolean(ay.is_active);
+          return {
+            id: ay.id,
+            academicYear: ay.academic_year,
+            name: ay.academic_year,
+            budget: Number(ay.budget || 0),
+            annualBudget: Number(ay.budget || 0),
+            isActive: isAct,
+            status: isAct ? 'ACTIVE' : (ay.status || 'DRAFT')
+          };
+        });
+        setAvailableAcademicYears(formatted);
+        return formatted;
       }
-    } else {
-      setSelectedSubCategoryName('');
+    } catch (err) {
+      console.error('Error loading academic years:', err);
     }
-  }, [availableSubcategories, selectedSubCategoryName]);
+    return [];
+  }, []);
+
+  // Load academic years on mount and auto-select active cycle
+  useEffect(() => {
+    fetchActiveAcademicYearConfig();
+    loadAcademicYears().then((years) => {
+      if (years && years.length > 0) {
+        const active = years.find((ay) => ay.isActive || ay.status === 'ACTIVE') || years[0];
+        if (active?.id) {
+          setSelectedAyId(active.id);
+          loadCategoriesForAy(active.id);
+        }
+      }
+    });
+  }, [fetchActiveAcademicYearConfig, loadAcademicYears, loadCategoriesForAy]);
 
   // Handle academic year change
   const handleAyChange = (newAyId) => {
     setSelectedAyId(newAyId);
-    setSelectedCategoryName('');
-    setSelectedSubCategoryName('');
+    setSelectedCategoryId('');
+    setSelectedSubCategoryId('');
+    setConfiguredCategories([]);
+    setAvailableSubcategories([]);
+    setCategoriesError('');
+    setSubcategoriesError('');
     setEventData({});
     setRepeatableEvents([]);
+    if (newAyId) {
+      loadCategoriesForAy(newAyId);
+    }
   };
 
   // Handle category change
-  const handleCategoryChange = (newCatName) => {
-    setSelectedCategoryName(newCatName);
-    const catObj = configuredCategories.find((c) => c.name === newCatName);
-    const subs = catObj?.subcategories || [];
-    setSelectedSubCategoryName(subs.length > 0 ? subs[0].name : '');
+  const handleCategoryChange = (newCatId) => {
+    setSelectedCategoryId(newCatId);
+    setSelectedSubCategoryId('');
+    setAvailableSubcategories([]);
+    setSubcategoriesError('');
+    setEventData({});
+    setRepeatableEvents([]);
+    if (newCatId) {
+      loadSubcategoriesForCat(newCatId);
+    }
+  };
+
+  // Handle subcategory change
+  const handleSubCategoryChange = (newSubId) => {
+    setSelectedSubCategoryId(newSubId);
     setEventData({});
     setRepeatableEvents([]);
   };
 
-  // Handle subcategory change
-  const handleSubCategoryChange = (newSubName) => {
-    setSelectedSubCategoryName(newSubName);
-    setEventData({});
-    setRepeatableEvents([]);
-  };
+  // Selected Academic Year Object
+  const currentAyObj = useMemo(() => {
+    const combined = availableAcademicYears.length > 0 ? availableAcademicYears : (academicYears || []);
+    return (
+      combined.find((ay) => ay.id === selectedAyId) ||
+      null
+    );
+  }, [availableAcademicYears, academicYears, selectedAyId]);
+
+  // Selected Academic Year Label
+  const selectedAcademicYearLabel = useMemo(() => {
+    if (!currentAyObj) return '';
+    return currentAyObj.name || currentAyObj.academicYear || `${currentAyObj.startYear}-${currentAyObj.endYear}`;
+  }, [currentAyObj]);
+
+  // Selected Category Object
+  const selectedCategoryObj = useMemo(() => {
+    return configuredCategories.find((c) => c.id === selectedCategoryId) || null;
+  }, [configuredCategories, selectedCategoryId]);
+
+  const selectedCategoryName = selectedCategoryObj?.name || '';
+
+  // Selected Subcategory Object
+  const selectedSubCategoryObj = useMemo(() => {
+    return availableSubcategories.find((s) => s.id === selectedSubCategoryId) || null;
+  }, [availableSubcategories, selectedSubCategoryId]);
+
+  const selectedSubCategoryName = selectedSubCategoryObj?.name || '';
 
   // ---------------------------------------------------------------------------
   // Dynamic Schema Resolution (Category & Subcategory)
@@ -376,10 +486,10 @@ export const NewProposalPage = () => {
   };
 
   // Authoritative Budget Metrics
-  const metrics = getFacultyMetrics(user?.email);
-  const allocatedQuota = metrics.availableBalance || 150000;
-  const approvedCommittedExpenditure = metrics.approvedAmount || 0;
-  const currentAvailableBalance = metrics.remainingBalance || 150000;
+  const metrics = (typeof getFacultyMetrics === 'function' ? getFacultyMetrics(user?.email) : null) || {};
+  const allocatedQuota = Number(metrics.availableBalance || 0);
+  const approvedCommittedExpenditure = Number(metrics.approvedAmount || 0);
+  const currentAvailableBalance = Number(metrics.remainingBalance ?? 0);
 
   const totalProposedAmount = useMemo(() => {
     return expenses.reduce((sum, item) => sum + (Number(item.proposedAmount) || 0), 0);
@@ -403,8 +513,13 @@ export const NewProposalPage = () => {
       return;
     }
 
-    if (!selectedCategoryName) {
+    if (!selectedCategoryId) {
       setSubmissionError('Please select a funding Category.');
+      return;
+    }
+
+    if (availableSubcategories.length > 0 && !selectedSubCategoryId) {
+      setSubmissionError('Please select a Subcategory event classification.');
       return;
     }
 
@@ -440,9 +555,6 @@ export const NewProposalPage = () => {
         const parts = [gName, gDesig, gOrg].filter(Boolean);
         formattedGuestDetails = parts.join(', ');
       }
-
-      // Find subcategory UUID if available
-      const selectedSubObj = availableSubcategories.find((s) => s.name === selectedSubCategoryName);
 
       // Build rich, structured event details payload
       const richEventDetails = {
@@ -485,15 +597,15 @@ export const NewProposalPage = () => {
 
       const payload = {
         proposalId: proposalIdPreview,
-        academicYearId: currentAyObj.id,
+        academicYearId: selectedAyId || currentAyObj.id,
         academicYear: selectedAcademicYearLabel,
         proposalDate: todayIso,
         facultyName: user?.name || 'Faculty Member',
         facultyEmail: user?.email || 'faculty@kongu.edu',
         category: selectedCategoryName,
-        categoryId: selectedCategoryObj?.id || null,
+        categoryId: selectedCategoryId,
         subCategory: availableSubcategories.length > 0 ? selectedSubCategoryName : '',
-        subcategoryId: selectedSubObj?.id || null,
+        subcategoryId: availableSubcategories.length > 0 ? (selectedSubCategoryId || null) : null,
         title: title.trim(),
         programDate,
         guestDetails: formattedGuestDetails,
@@ -597,7 +709,7 @@ export const NewProposalPage = () => {
           {/* STEP 1: Academic Year & Category Selection */}
           {currentStep === 1 && (
             <Step1ProposalConfig
-              academicYears={academicYears}
+              academicYears={availableAcademicYears.length > 0 ? availableAcademicYears : academicYears}
               selectedAyId={selectedAyId}
               onAyChange={handleAyChange}
               submissionDateStr={submissionDateStr}
@@ -605,10 +717,13 @@ export const NewProposalPage = () => {
               categoriesLoading={categoriesLoading}
               categoriesError={categoriesError}
               onReloadCategories={() => loadCategoriesForAy(selectedAyId)}
-              selectedCategoryName={selectedCategoryName}
+              selectedCategoryId={selectedCategoryId}
               onCategoryChange={handleCategoryChange}
               availableSubcategories={availableSubcategories}
-              selectedSubCategoryName={selectedSubCategoryName}
+              subcategoriesLoading={subcategoriesLoading}
+              subcategoriesError={subcategoriesError}
+              onReloadSubcategories={() => loadSubcategoriesForCat(selectedCategoryId)}
+              selectedSubCategoryId={selectedSubCategoryId}
               onSubCategoryChange={handleSubCategoryChange}
               onContinue={handleContinueStep1}
             />

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Calendar, ArrowRight, AlertTriangle, Layers, Info, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Calendar, ArrowRight, AlertTriangle, Layers, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Button } from '../common/Button';
 
 export const Step1ProposalConfig = ({
@@ -11,35 +11,42 @@ export const Step1ProposalConfig = ({
   categoriesLoading,
   categoriesError,
   onReloadCategories,
-  selectedCategoryName,
+  selectedCategoryId,
   onCategoryChange,
-  availableSubcategories,
-  selectedSubCategoryName,
+  availableSubcategories = [],
+  subcategoriesLoading = false,
+  subcategoriesError = '',
+  onReloadSubcategories,
+  selectedSubCategoryId,
   onSubCategoryChange,
   onContinue
 }) => {
   // Filter only academic years permitted for proposal submission (ACTIVE)
   const permittedAcademicYears = useMemo(() => {
-    return (academicYears || []).filter(
+    const active = (academicYears || []).filter(
       (ay) => ay.status === 'ACTIVE' || ay.status === 'Active' || Boolean(ay.isActive || ay.is_active)
     );
+    return active.length > 0 ? active : (academicYears || []);
   }, [academicYears]);
 
-  // Selected academic year object
+  // Selected academic year object (strictly matching selectedAyId)
   const currentAy = useMemo(() => {
-    return permittedAcademicYears.find((ay) => ay.id === selectedAyId) || permittedAcademicYears[0] || null;
+    return permittedAcademicYears.find((ay) => ay.id === selectedAyId) || null;
   }, [permittedAcademicYears, selectedAyId]);
 
   // Selected category object
   const currentCat = useMemo(() => {
-    return (categories || []).find((c) => c.name === selectedCategoryName) || null;
-  }, [categories, selectedCategoryName]);
+    return (categories || []).find((c) => c.id === selectedCategoryId) || null;
+  }, [categories, selectedCategoryId]);
 
   const canProceed = Boolean(
-    currentAy &&
-    selectedCategoryName &&
-    (!availableSubcategories.length || selectedSubCategoryName) &&
-    !categoriesLoading
+    selectedAyId &&
+    selectedCategoryId &&
+    (!availableSubcategories.length || selectedSubCategoryId) &&
+    !categoriesLoading &&
+    !subcategoriesLoading &&
+    !categoriesError &&
+    !subcategoriesError
   );
 
   return (
@@ -147,14 +154,15 @@ export const Step1ProposalConfig = ({
           <label htmlFor="ay-select" className="cbm-label">
             Academic Year <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
-          {permittedAcademicYears.length > 1 ? (
+          {permittedAcademicYears.length > 0 ? (
             <select
               id="ay-select"
-              value={selectedAyId || (currentAy?.id || '')}
+              value={selectedAyId || ''}
               onChange={(e) => onAyChange(e.target.value)}
               className="cbm-select"
               style={{ height: 42, fontSize: 13.5, fontWeight: 600 }}
             >
+              <option value="" disabled>-- Select Academic Year --</option>
               {permittedAcademicYears.map((ay) => (
                 <option key={ay.id} value={ay.id}>
                   {ay.name || ay.academicYear} (Annual Quota: ₹{Number(ay.budget || ay.annualBudget || 0).toLocaleString('en-IN')})
@@ -244,7 +252,16 @@ export const Step1ProposalConfig = ({
             )}
           </div>
 
-          {categoriesLoading ? (
+          {!selectedAyId ? (
+            <select
+              id="category-select"
+              disabled
+              className="cbm-select"
+              style={{ height: 42, fontSize: 13.5, color: 'var(--text-muted)', backgroundColor: 'var(--bg-page)' }}
+            >
+              <option value="">-- Select Academic Year First --</option>
+            </select>
+          ) : categoriesLoading ? (
             <div
               style={{
                 height: 42,
@@ -260,10 +277,51 @@ export const Step1ProposalConfig = ({
             >
               Loading configured categories...
             </div>
+          ) : categoriesError ? (
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--danger-bg, #FEF2F2)',
+                border: '1px solid var(--danger-border, #F87171)',
+                color: 'var(--danger-text, #991B1B)',
+                fontSize: 12.5,
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10
+              }}
+              role="alert"
+            >
+              <span>{categoriesError}</span>
+              {onReloadCategories && (
+                <button
+                  type="button"
+                  onClick={onReloadCategories}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 4,
+                    border: '1px solid var(--danger-border, #F87171)',
+                    backgroundColor: 'white',
+                    color: 'var(--danger-text, #991B1B)',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  <RefreshCw size={12} />
+                  Retry
+                </button>
+              )}
+            </div>
           ) : categories && categories.length > 0 ? (
             <select
               id="category-select"
-              value={selectedCategoryName}
+              value={selectedCategoryId || ''}
               onChange={(e) => onCategoryChange(e.target.value)}
               className="cbm-select"
               style={{ height: 42, fontSize: 13.5, fontWeight: 600 }}
@@ -271,8 +329,8 @@ export const Step1ProposalConfig = ({
             >
               <option value="" disabled>-- Select Administrative Category --</option>
               {categories.map((cat) => (
-                <option key={cat.id || cat.name} value={cat.name}>
-                  {cat.name} {cat.budget || cat.allocated_amount ? `(₹${Number(cat.budget || cat.allocated_amount).toLocaleString('en-IN')})` : ''}
+                <option key={cat.id} value={cat.id}>
+                  {cat.name} {cat.budget || cat.allocatedAmount || cat.allocated_amount ? `(₹${Number(cat.budget || cat.allocatedAmount || cat.allocated_amount).toLocaleString('en-IN')})` : ''}
                 </option>
               ))}
             </select>
@@ -298,14 +356,84 @@ export const Step1ProposalConfig = ({
 
         {/* Field 4: Subcategory (Dynamic based on selected Category) */}
         <div className="cbm-input-group">
-          <label htmlFor="subcategory-select" className="cbm-label">
-            Subcategory {availableSubcategories.length > 0 && <span style={{ color: 'var(--danger)' }}>*</span>}
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <label htmlFor="subcategory-select" className="cbm-label">
+              Subcategory {availableSubcategories.length > 0 && <span style={{ color: 'var(--danger)' }}>*</span>}
+            </label>
+            {subcategoriesLoading && (
+              <span style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600 }}>Loading subcategories...</span>
+            )}
+          </div>
 
-          {availableSubcategories.length > 0 ? (
+          {!selectedCategoryId ? (
             <select
               id="subcategory-select"
-              value={selectedSubCategoryName}
+              disabled
+              className="cbm-select"
+              style={{ height: 42, fontSize: 13.5, color: 'var(--text-muted)', backgroundColor: 'var(--bg-page)' }}
+            >
+              <option value="">-- Select Category First --</option>
+            </select>
+          ) : subcategoriesLoading ? (
+            <div
+              style={{
+                height: 42,
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--bg-page)',
+                border: '1px solid var(--border)',
+                fontSize: 13,
+                color: 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 14px'
+              }}
+            >
+              <span>Loading subcategories...</span>
+            </div>
+          ) : subcategoriesError ? (
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--danger-bg, #FEF2F2)',
+                border: '1px solid var(--danger-border, #F87171)',
+                color: 'var(--danger-text, #991B1B)',
+                fontSize: 12.5,
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10
+              }}
+              role="alert"
+            >
+              <span>{subcategoriesError}</span>
+              {onReloadSubcategories && (
+                <button
+                  type="button"
+                  onClick={onReloadSubcategories}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 4,
+                    border: '1px solid var(--danger-border, #F87171)',
+                    backgroundColor: 'white',
+                    color: 'var(--danger-text, #991B1B)',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  <RefreshCw size={12} /> Retry
+                </button>
+              )}
+            </div>
+          ) : availableSubcategories.length > 0 ? (
+            <select
+              id="subcategory-select"
+              value={selectedSubCategoryId || ''}
               onChange={(e) => onSubCategoryChange(e.target.value)}
               className="cbm-select"
               style={{ height: 42, fontSize: 13.5, fontWeight: 600 }}
@@ -313,7 +441,7 @@ export const Step1ProposalConfig = ({
             >
               <option value="" disabled>-- Select Subcategory Event Type --</option>
               {availableSubcategories.map((sub) => (
-                <option key={sub.id || sub.name} value={sub.name}>
+                <option key={sub.id} value={sub.id}>
                   {sub.name}
                 </option>
               ))}

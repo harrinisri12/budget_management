@@ -22,6 +22,7 @@ import { BudgetOverviewPage } from './pages/BudgetOverviewPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Admin Route Guard
 const AdminRoute = ({ children }) => {
@@ -79,10 +80,11 @@ const PublicRoute = ({ children }) => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BudgetProvider>
-        <BrowserRouter>
-          <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <BudgetProvider>
+          <BrowserRouter>
+            <Routes>
             {/* Login & Recovery Routes */}
             <Route
               path="/login"
@@ -300,5 +302,6 @@ export default function App() {
         </BrowserRouter>
       </BudgetProvider>
     </AuthProvider>
+  </ErrorBoundary>
   );
 }

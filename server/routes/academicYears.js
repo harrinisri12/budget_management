@@ -46,27 +46,47 @@ async function loadFullAcademicYearFromDb(ayId) {
     // Fetch categories belonging to this academic year
     let cats = [];
     try {
-      const { data: categories, error: catErr } = await supabaseAdmin
+      let { data: categories, error: catErr } = await supabaseAdmin
         .from('budget_categories')
-        .select('*, subcategories(*)')
+        .select('id, budget_id, academic_year_id, name, allocated_amount, spent_amount, created_at, subcategories(id, name, category_id)')
         .eq('academic_year_id', ayId)
         .order('allocated_amount', { ascending: false });
 
-      if (!catErr && categories) {
+      if (!catErr && (!categories || categories.length === 0) && ay.academic_year) {
+        // Fallback: Check if categories are linked via budget_id for this financial_year
+        const cleanYear = ay.academic_year.trim().replace(/\s+/g, '').replace(/[–—/]/g, '-');
+        const { data: bRow } = await supabaseAdmin
+          .from('budgets')
+          .select('id')
+          .eq('financial_year', cleanYear)
+          .maybeSingle();
+
+        if (bRow) {
+          const { data: bCats, error: bErr } = await supabaseAdmin
+            .from('budget_categories')
+            .select('id, budget_id, academic_year_id, name, allocated_amount, spent_amount, created_at, subcategories(id, name, category_id)')
+            .eq('budget_id', bRow.id)
+            .order('allocated_amount', { ascending: false });
+          if (!bErr && bCats && bCats.length > 0) {
+            categories = bCats;
+          }
+        }
+      }
+
+      if (!catErr && categories && categories.length > 0) {
         cats = categories.map(c => ({
           id: c.id,
-          academicYearId: c.academic_year_id,
+          academicYearId: c.academic_year_id || ayId,
+          budgetId: c.budget_id,
           name: c.name,
-          description: c.description || '',
+          description: '',
           budget: Number(c.allocated_amount || 0),
           allocated_amount: Number(c.allocated_amount || 0),
           spent_amount: Number(c.spent_amount || 0),
           subcategories: (c.subcategories || []).map(s => ({
             id: s.id,
             name: s.name,
-            categoryId: s.category_id,
-            allocated_amount: Number(s.allocated_amount || 0),
-            spent_amount: Number(s.spent_amount || 0)
+            categoryId: s.category_id || c.id
           }))
         }));
       }
@@ -114,7 +134,7 @@ router.get('/', authenticateUser, async (req, res) => {
 
     let query = supabaseAdmin
       .from('academic_years')
-      .select('*, budget_categories(id, allocated_amount, spent_amount)')
+      .select('*, budget_categories(id, name, allocated_amount, spent_amount, subcategories(id, name, category_id))')
       .order('created_at', { ascending: false });
 
     if (!isManagement) {
@@ -139,6 +159,20 @@ router.get('/', authenticateUser, async (req, res) => {
       const sDate = ay.start_date || `${sYear}-06-01`;
       const eDate = ay.end_date || `${eYear}-05-31`;
 
+      const cats = (ay.budget_categories || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        description: '',
+        budget: Number(c.allocated_amount || 0),
+        allocated_amount: Number(c.allocated_amount || 0),
+        spent_amount: Number(c.spent_amount || 0),
+        subcategories: (c.subcategories || []).map(s => ({
+          id: s.id,
+          name: s.name,
+          categoryId: s.category_id || c.id
+        }))
+      }));
+
       return {
         id: ay.id,
         startYear: sYear,
@@ -151,8 +185,8 @@ router.get('/', authenticateUser, async (req, res) => {
         isActive: normStatus === 'ACTIVE' || Boolean(ay.is_active),
         annualBudget: finalBudget,
         budget: finalBudget,
-        categoriesCount: (ay.budget_categories || []).length,
-        categories: ay.budget_categories || [],
+        categoriesCount: cats.length,
+        categories: cats,
         createdAt: ay.created_at,
         updatedAt: ay.updated_at
       };
@@ -247,7 +281,7 @@ router.get('/category-options', authenticateUser, async (req, res) => {
   try {
     const { data: dbCategories, error: catErr } = await supabaseAdmin
       .from('budget_categories')
-      .select('name, description, subcategories(name)')
+      .select('name, subcategories(name)')
       .order('name', { ascending: true });
 
     if (catErr) {
@@ -265,15 +299,12 @@ router.get('/category-options', authenticateUser, async (req, res) => {
       if (!categoryMap.has(key)) {
         categoryMap.set(key, {
           name,
-          description: cat.description || '',
+          description: '',
           subcategories: new Set()
         });
       }
 
       const entry = categoryMap.get(key);
-      if (cat.description && !entry.description) {
-        entry.description = cat.description;
-      }
 
       (cat.subcategories || []).forEach(sub => {
         const subName = (typeof sub === 'string' ? sub : sub?.name || '').trim();
@@ -417,26 +448,68 @@ router.post('/', authenticateUser, requireAdminOrHod, async (req, res) => {
 
     // 6. Insert Categories & Subcategories
     if (categories && categories.length > 0) {
+      // Find or create budget row for this academic year
+      let budgetId = null;
+      const { data: bRow } = await supabaseAdmin
+        .from('budgets')
+        .select('id')
+        .eq('financial_year', cleanAcademicYear)
+        .maybeSingle();
+
+      if (bRow) {
+        budgetId = bRow.id;
+      } else {
+        const { data: dept } = await supabaseAdmin
+          .from('departments')
+          .select('id')
+          .eq('code', 'CSE')
+          .maybeSingle();
+
+        let deptId = dept?.id;
+        if (!deptId) {
+          const { data: fallbackDept } = await supabaseAdmin
+            .from('departments')
+            .select('id')
+            .limit(1)
+            .maybeSingle();
+          deptId = fallbackDept?.id || null;
+        }
+
+        const { data: newB } = await supabaseAdmin
+          .from('budgets')
+          .insert({
+            department_id: deptId,
+            financial_year: cleanAcademicYear,
+            total_budget: totalBudget
+          })
+          .select('id')
+          .single();
+
+        budgetId = newB?.id;
+      }
+
       for (const cat of categories) {
         const catAllocated = Number(cat.budget || cat.allocated_amount || 0);
+        const insertPayload = {
+          academic_year_id: ayId,
+          name: cat.name,
+          allocated_amount: catAllocated,
+          spent_amount: 0
+        };
+        if (budgetId) {
+          insertPayload.budget_id = budgetId;
+        }
+
         const { data: insCat, error: catErr } = await supabaseAdmin
           .from('budget_categories')
-          .insert({
-            academic_year_id: ayId,
-            name: cat.name,
-            description: cat.description || '',
-            allocated_amount: catAllocated,
-            spent_amount: 0
-          })
+          .insert(insertPayload)
           .select()
           .single();
 
         if (!catErr && insCat && cat.subcategories && cat.subcategories.length > 0) {
           const subInserts = cat.subcategories.map(s => ({
             category_id: insCat.id,
-            name: typeof s === 'string' ? s : s.name,
-            allocated_amount: 0,
-            spent_amount: 0
+            name: typeof s === 'string' ? s : s.name
           }));
 
           await supabaseAdmin
@@ -487,23 +560,48 @@ const handleUpdateAcademicYear = async (req, res) => {
       budget,
       status,
       isActive,
-      is_active
+      is_active,
+      categories
     } = req.body;
 
     const updates = {
       updated_at: new Date().toISOString()
     };
 
+    let targetAcademicYear = null;
     if (academicYear !== undefined) {
-      updates.academic_year = canonicalAcademicYear(academicYear);
+      targetAcademicYear = canonicalAcademicYear(academicYear);
+      updates.academic_year = targetAcademicYear;
     } else if (name !== undefined) {
-      updates.academic_year = canonicalAcademicYear(name);
+      targetAcademicYear = canonicalAcademicYear(name);
+      updates.academic_year = targetAcademicYear;
     } else if (startYear !== undefined) {
       const sy = parseInt(startYear, 10);
-      if (!isNaN(sy)) updates.academic_year = `${sy}-${sy + 1}`;
+      if (!isNaN(sy)) {
+        targetAcademicYear = `${sy}-${sy + 1}`;
+        updates.academic_year = targetAcademicYear;
+      }
     }
 
-    const bVal = budget !== undefined ? budget : annualBudget;
+    if (!targetAcademicYear) {
+      const { data: curAy } = await supabaseAdmin
+        .from('academic_years')
+        .select('academic_year')
+        .eq('id', id)
+        .maybeSingle();
+      targetAcademicYear = curAy?.academic_year || '2026-2027';
+    }
+
+    let bVal = budget !== undefined ? budget : annualBudget;
+
+    // If categories array is provided, calculate sum of category budgets
+    if (Array.isArray(categories) && categories.length > 0) {
+      const sumCats = categories.reduce((sum, c) => sum + Number(c.budget || c.allocated_amount || 0), 0);
+      if (sumCats > 0) {
+        bVal = sumCats;
+      }
+    }
+
     if (bVal !== undefined) {
       updates.budget = Number(bVal);
     }
@@ -536,6 +634,186 @@ const handleUpdateAcademicYear = async (req, res) => {
     if (error) {
       console.error('Database error updating academic year:', error.message);
       return res.status(400).json({ success: false, error: error.message });
+    }
+
+    // Handle Categories & Subcategories update if provided
+    if (Array.isArray(categories)) {
+      // 1. Resolve or create budgets entry
+      let budgetId = null;
+      const { data: bRow } = await supabaseAdmin
+        .from('budgets')
+        .select('id')
+        .eq('financial_year', targetAcademicYear)
+        .maybeSingle();
+
+      if (bRow) {
+        budgetId = bRow.id;
+        if (updates.budget !== undefined) {
+          await supabaseAdmin
+            .from('budgets')
+            .update({ total_budget: updates.budget })
+            .eq('id', budgetId);
+        }
+      } else {
+        const { data: dept } = await supabaseAdmin
+          .from('departments')
+          .select('id')
+          .eq('code', 'CSE')
+          .maybeSingle();
+
+        let deptId = dept?.id;
+        if (!deptId) {
+          const { data: fallbackDept } = await supabaseAdmin
+            .from('departments')
+            .select('id')
+            .limit(1)
+            .maybeSingle();
+          deptId = fallbackDept?.id || null;
+        }
+
+        const { data: newB } = await supabaseAdmin
+          .from('budgets')
+          .insert({
+            department_id: deptId,
+            financial_year: targetAcademicYear,
+            total_budget: updates.budget || 0
+          })
+          .select('id')
+          .single();
+
+        budgetId = newB?.id;
+      }
+
+      // 2. Fetch existing categories for this academic year
+      const { data: existingCats } = await supabaseAdmin
+        .from('budget_categories')
+        .select('id, name')
+        .eq('academic_year_id', id);
+
+      const isUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+      const processedCatIds = new Set();
+
+      for (const cat of categories) {
+        const catName = (cat.name || '').trim();
+        if (!catName) continue;
+        const catAllocated = Number(cat.budget !== undefined ? cat.budget : (cat.allocated_amount || 0));
+
+        let catId = null;
+        const matchingExisting = (existingCats || []).find(ec =>
+          (isUuid(cat.id) && ec.id === cat.id) ||
+          ec.name.toLowerCase() === catName.toLowerCase()
+        );
+
+        if (matchingExisting) {
+          catId = matchingExisting.id;
+          await supabaseAdmin
+            .from('budget_categories')
+            .update({
+              name: catName,
+              allocated_amount: catAllocated
+            })
+            .eq('id', catId);
+        } else {
+          const insertPayload = {
+            academic_year_id: id,
+            name: catName,
+            allocated_amount: catAllocated,
+            spent_amount: 0
+          };
+          if (budgetId) insertPayload.budget_id = budgetId;
+
+          const { data: newCat } = await supabaseAdmin
+            .from('budget_categories')
+            .insert(insertPayload)
+            .select('id')
+            .single();
+
+          catId = newCat?.id;
+        }
+
+        if (catId) {
+          processedCatIds.add(catId);
+
+          // Handle subcategories for this category
+          const { data: currentSubs } = await supabaseAdmin
+            .from('subcategories')
+            .select('id, name')
+            .eq('category_id', catId);
+
+          const desiredSubs = (cat.subcategories || []).map(s => {
+            const sName = typeof s === 'string' ? s.trim() : (s?.name || '').trim();
+            const sId = (typeof s === 'object' && isUuid(s?.id)) ? s.id : null;
+            return { id: sId, name: sName };
+          }).filter(s => s.name);
+
+          const processedSubIds = new Set();
+
+          for (const dSub of desiredSubs) {
+            const existingSub = (currentSubs || []).find(cs =>
+              (dSub.id && cs.id === dSub.id) ||
+              cs.name.toLowerCase() === dSub.name.toLowerCase()
+            );
+
+            if (existingSub) {
+              processedSubIds.add(existingSub.id);
+              if (existingSub.name !== dSub.name) {
+                await supabaseAdmin
+                  .from('subcategories')
+                  .update({ name: dSub.name, updated_at: new Date().toISOString() })
+                  .eq('id', existingSub.id);
+              }
+            } else {
+              const { data: insSub } = await supabaseAdmin
+                .from('subcategories')
+                .insert({
+                  category_id: catId,
+                  name: dSub.name
+                })
+                .select('id')
+                .single();
+
+              if (insSub) processedSubIds.add(insSub.id);
+            }
+          }
+
+          // Delete subcategories removed by admin (if not referenced by proposals)
+          for (const cs of (currentSubs || [])) {
+            if (!processedSubIds.has(cs.id)) {
+              const { data: propRef } = await supabaseAdmin
+                .from('proposals')
+                .select('id')
+                .eq('subcategory_id', cs.id)
+                .limit(1);
+
+              if (!propRef || propRef.length === 0) {
+                await supabaseAdmin.from('subcategories').delete().eq('id', cs.id);
+              }
+            }
+          }
+        }
+      }
+
+      // Check categories removed from academic year
+      for (const ec of (existingCats || [])) {
+        if (!processedCatIds.has(ec.id)) {
+          const { data: propRef } = await supabaseAdmin
+            .from('proposals')
+            .select('id')
+            .eq('category_id', ec.id)
+            .limit(1);
+
+          const { data: txnRef } = await supabaseAdmin
+            .from('transactions')
+            .select('id')
+            .eq('category_id', ec.id)
+            .limit(1);
+
+          if ((!propRef || propRef.length === 0) && (!txnRef || txnRef.length === 0)) {
+            await supabaseAdmin.from('subcategories').delete().eq('category_id', ec.id);
+            await supabaseAdmin.from('budget_categories').delete().eq('id', ec.id);
+          }
+        }
+      }
     }
 
     const fullUpdated = await loadFullAcademicYearFromDb(id);

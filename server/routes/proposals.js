@@ -28,7 +28,7 @@ const formatProposalRecord = (p) => {
     title: p.title,
     programDate: p.program_date ? new Date(p.program_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
     guestDetails: p.guest_details || '',
-    eventDetails: p.event_details || {},
+    eventDetails: (p.event_details && typeof p.event_details === 'object') ? p.event_details : {},
     amount: Number(p.amount || 0),
     status: p.status,
     adminRemarks: p.admin_remarks || '',
@@ -163,29 +163,118 @@ router.post('/', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Valid proposed amount greater than 0 is required.' });
     }
 
-    // 4. Resolve category ID & subcategory ID in database
-    let resolvedCategoryId = categoryId;
-    if (!resolvedCategoryId && resolvedAyId) {
-      const { data: catRecord } = await supabaseAdmin
+    // 4. Validate and resolve Category
+    let catRecord = null;
+    if (categoryId) {
+      const { data: catById } = await supabaseAdmin
         .from('budget_categories')
-        .select('id')
-        .eq('academic_year_id', resolvedAyId)
-        .ilike('name', trimmedCat)
+        .select('id, academic_year_id, budget_id, name')
+        .eq('id', categoryId)
         .maybeSingle();
-
-      resolvedCategoryId = catRecord?.id;
+      catRecord = catById;
+    } else {
+      const { data: catByName } = await supabaseAdmin
+        .from('budget_categories')
+        .select('id, academic_year_id, budget_id, name')
+        .ilike('name', trimmedCat)
+        .eq('academic_year_id', resolvedAyId)
+        .maybeSingle();
+      catRecord = catByName;
     }
 
-    let resolvedSubcategoryId = subcategoryId;
-    if (!resolvedSubcategoryId && resolvedCategoryId && subCategory) {
-      const { data: subRecord } = await supabaseAdmin
-        .from('subcategories')
-        .select('id')
-        .eq('category_id', resolvedCategoryId)
-        .ilike('name', subCategory.trim())
+    if (!catRecord) {
+      return res.status(400).json({
+        success: false,
+        error: `Category "${trimmedCat}" was not found in the database for the selected academic year.`
+      });
+    }
+
+    // Verify category belongs to the selected academic year
+    let categoryMatchesYear = catRecord.academic_year_id === resolvedAyId;
+    if (!categoryMatchesYear && catRecord.budget_id) {
+      const { data: bRow } = await supabaseAdmin
+        .from('budgets')
+        .select('financial_year')
+        .eq('id', catRecord.budget_id)
         .maybeSingle();
 
-      resolvedSubcategoryId = subRecord?.id;
+      const { data: ayRow } = await supabaseAdmin
+        .from('academic_years')
+        .select('academic_year')
+        .eq('id', resolvedAyId)
+        .maybeSingle();
+
+      if (bRow?.financial_year && ayRow?.academic_year) {
+        const cleanB = bRow.financial_year.replace(/\s+/g, '').replace(/[–—/]/g, '-');
+        const cleanAy = ayRow.academic_year.replace(/\s+/g, '').replace(/[–—/]/g, '-');
+        categoryMatchesYear = cleanB === cleanAy;
+      }
+    }
+
+    if (!categoryMatchesYear) {
+      return res.status(400).json({
+        success: false,
+        error: 'The selected category does not belong to the selected academic year.'
+      });
+    }
+
+    const resolvedCategoryId = catRecord.id;
+
+    // 5. Validate and resolve Subcategory
+    const { data: validSubs, error: subsErr } = await supabaseAdmin
+      .from('subcategories')
+      .select('id, name')
+      .eq('category_id', resolvedCategoryId);
+
+    if (subsErr) {
+      console.error('Error fetching valid subcategories:', subsErr.message);
+      return res.status(500).json({ success: false, error: 'Database error validating subcategories.' });
+    }
+
+    let resolvedSubcategoryId = null;
+    let resolvedSubCategoryText = '';
+
+    if (validSubs && validSubs.length > 0) {
+      // This category HAS subcategories configured: subcategory selection is mandatory
+      if (!subcategoryId && (!subCategory || !subCategory.trim())) {
+        return res.status(400).json({
+          success: false,
+          error: `Please select a valid subcategory for category "${catRecord.name}".`
+        });
+      }
+
+      let subMatch = null;
+      if (subcategoryId) {
+        subMatch = validSubs.find(s => s.id === subcategoryId);
+        if (!subMatch) {
+          return res.status(400).json({
+            success: false,
+            error: 'The selected subcategory does not belong to the selected category or academic year.'
+          });
+        }
+      } else if (subCategory && subCategory.trim()) {
+        const cleanSubName = subCategory.trim().toLowerCase();
+        subMatch = validSubs.find(s => s.name.trim().toLowerCase() === cleanSubName);
+        if (!subMatch) {
+          return res.status(400).json({
+            success: false,
+            error: 'The selected subcategory does not belong to the selected category or academic year.'
+          });
+        }
+      }
+
+      resolvedSubcategoryId = subMatch.id;
+      resolvedSubCategoryText = subMatch.name;
+    } else {
+      // Direct category (no subcategories configured in DB)
+      if (subcategoryId) {
+        return res.status(400).json({
+          success: false,
+          error: 'The selected subcategory does not belong to this category (this category has no subcategories).'
+        });
+      }
+      resolvedSubcategoryId = null;
+      resolvedSubCategoryText = subCategory ? subCategory.trim() : '';
     }
 
     // 5. Generate secure, unique proposal number matching institutional convention
@@ -240,8 +329,8 @@ router.post('/', authenticateUser, async (req, res) => {
       academic_year_id: resolvedAyId || null,
       category_id: resolvedCategoryId || null,
       subcategory_id: resolvedSubcategoryId || null,
-      category: trimmedCat,
-      sub_category: (subCategory || '').trim() || null,
+      category: catRecord.name,
+      sub_category: resolvedSubCategoryText || (subCategory || '').trim() || null,
       title: title.trim(),
       proposal_date: proposalDate || new Date().toISOString().split('T')[0],
       program_date: programDate,
@@ -259,6 +348,12 @@ router.post('/', authenticateUser, async (req, res) => {
 
     if (error) {
       console.error('Error inserting proposal in database:', error.message);
+      if (error.message && (error.message.includes('event_details') || error.code === '42703')) {
+        return res.status(400).json({
+          success: false,
+          error: 'Database schema migration required: The "event_details" column is missing from the "proposals" table. Please apply the migration in Supabase SQL Editor: ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS event_details JSONB NOT NULL DEFAULT \'{}\'::jsonb;'
+        });
+      }
       return res.status(400).json({ success: false, error: error.message });
     }
 
