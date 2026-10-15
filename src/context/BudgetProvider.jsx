@@ -880,17 +880,21 @@ export const BudgetProvider = ({ children }) => {
       ? proposals.filter((p) => (p.facultyEmail && p.facultyEmail.trim().toLowerCase() === cleanEmail) || (user && p.facultyId === user.id))
       : proposals;
 
-    const totalProposed = facultyProposals.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    // Sum all non-rejected proposals as "total proposed" (Pending + Under Review + Approved)
+    const activeProposals = facultyProposals.filter(p => p.status !== 'Rejected');
+    const totalProposed = activeProposals.reduce((sum, p) => sum + Number(p.amount || 0), 0);
     const approvedAmount = facultyProposals.filter(p => p.status === 'Approved').reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-    // Calculate individual quota from active academic year budget divided across faculty or configured category
-    const activeBudget = Number(activeAcademicYear?.budget || activeAcademicYear?.annualBudget || 0);
-    const totalFacultyCount = Math.max(1, facultyList.length);
-    const calculatedQuota = activeBudget > 0 ? Math.round(activeBudget / totalFacultyCount) : 0;
-    const remainingBalance = Math.max(0, calculatedQuota - approvedAmount);
+    // The annual quota is the total active academic year budget.
+    // budget_categories hold departmental activity allocations, not per-faculty splits.
+    // Each faculty member's quota equals the full configured academic year budget.
+    const annualQuota = Number(activeAcademicYear?.budget || activeAcademicYear?.annualBudget || 0);
+
+    // Remaining = quota minus all committed/active proposal amounts (approved)
+    const remainingBalance = Math.max(0, annualQuota - approvedAmount);
 
     return {
-      availableBalance: calculatedQuota,
+      availableBalance: annualQuota,
       totalProposed,
       approvedAmount,
       remainingBalance,

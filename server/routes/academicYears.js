@@ -279,9 +279,11 @@ router.get('/active', authenticateUser, async (req, res) => {
 // ------------------------------------------------------------------------------
 router.get('/category-options', authenticateUser, async (req, res) => {
   try {
+    // Fetch categories using only confirmed schema columns (no embedded join
+    // to avoid stale PostgREST schema-cache errors on budget_categories).
     const { data: dbCategories, error: catErr } = await supabaseAdmin
       .from('budget_categories')
-      .select('name, subcategories(name)')
+      .select('id, name')
       .order('name', { ascending: true });
 
     if (catErr) {
@@ -289,6 +291,30 @@ router.get('/category-options', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: catErr.message });
     }
 
+    // Fetch subcategories separately using only confirmed schema columns.
+    // subcategories.description exists in the schema but is not needed here.
+    const { data: dbSubcategories, error: subErr } = await supabaseAdmin
+      .from('subcategories')
+      .select('category_id, name')
+      .order('name', { ascending: true });
+
+    if (subErr) {
+      console.warn('Note: error querying subcategory options from DB:', subErr.message);
+      // Non-fatal: continue without subcategories rather than failing the whole request
+    }
+
+    // Build a map from category_id -> [subName, ...]
+    const subsByCategory = new Map();
+    (dbSubcategories || []).forEach(sub => {
+      const subName = (sub.name || '').trim();
+      if (!subName || !sub.category_id) return;
+      if (!subsByCategory.has(sub.category_id)) {
+        subsByCategory.set(sub.category_id, new Set());
+      }
+      subsByCategory.get(sub.category_id).add(subName);
+    });
+
+    // Deduplicate categories by name (case-insensitive) and collect subcategory names
     const categoryMap = new Map();
 
     (dbCategories || []).forEach(cat => {
@@ -299,24 +325,17 @@ router.get('/category-options', authenticateUser, async (req, res) => {
       if (!categoryMap.has(key)) {
         categoryMap.set(key, {
           name,
-          description: '',
           subcategories: new Set()
         });
       }
 
       const entry = categoryMap.get(key);
-
-      (cat.subcategories || []).forEach(sub => {
-        const subName = (typeof sub === 'string' ? sub : sub?.name || '').trim();
-        if (subName) {
-          entry.subcategories.add(subName);
-        }
-      });
+      const catSubs = subsByCategory.get(cat.id) || new Set();
+      catSubs.forEach(subName => entry.subcategories.add(subName));
     });
 
     const categoryOptions = Array.from(categoryMap.values()).map(entry => ({
       name: entry.name,
-      description: entry.description,
       subcategories: Array.from(entry.subcategories)
     }));
 
