@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { AuthContext } from './AuthContext';
 
@@ -16,94 +16,196 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch full user profile from profiles table linked to auth.users
-  const fetchUserProfile = async (authUser) => {
-    if (!authUser) {
-      setUser(null);
+  // Tracks the current user's ID so stale async responses can be discarded
+  const currentUserIdRef = useRef(null);
+  // In-flight promise cache: concurrent callers for the same user share one request
+  const profileFetchRef = useRef(null);
+  // Prevents state updates after unmount
+  const mountedRef = useRef(true);
+
+  // Build merged user object from an auth user + profiles row
+  const buildMergedUser = useCallback((authUser, profile) => {
+    if (!authUser || !profile) return null;
+    const assignedRole = normalizeApplicationRole(profile.role);
+    return {
+      id: authUser.id,
+      email: authUser.email,
+      name: profile.name || authUser.email.split('@')[0],
+      role: assignedRole,
+      designation: profile.designation || (
+        assignedRole === 'hod'
+          ? 'Department Head / HOD'
+          : assignedRole === 'admin'
+            ? 'Budget Coordinator'
+            : 'Faculty Member'
+      ),
+      employeeId: profile.employee_id || '',
+      department: profile.departments?.name || 'Computer Science and Engineering (CSE)',
+      departmentCode: profile.departments?.code || 'CSE',
+      phone: profile.phone || '',
+      status: profile.status || 'Active'
+    };
+  }, []);
+
+
+  // Fetch full user profile from profiles table linked to auth.users.
+  // Uses an in-flight promise cache so concurrent callers for the same user
+  // share one database request instead of issuing duplicates.
+  const fetchUserProfile = useCallback(async (authUser) => {
+    if (!authUser?.id) {
+      if (mountedRef.current) setUser(null);
       return null;
     }
 
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*, departments(id, name, code)')
-        .eq('id', authUser.id)
-        .maybeSingle();
+    const fetchingForUserId = authUser.id;
 
-      if (error) {
-        console.error('Error fetching user profile from database:', error.message);
-        setUser(null);
+    // Reuse an active in-flight request for the same user
+    if (profileFetchRef.current && profileFetchRef.current.userId === fetchingForUserId) {
+      try {
+        return await profileFetchRef.current.promise;
+      } catch {
         return null;
       }
+    }
 
-      if (!profile) {
-        setUser(null);
+    const promise = (async () => {
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*, departments(id, name, code)')
+          .eq('id', fetchingForUserId)
+          .maybeSingle();
+
+        if (error) {
+          // Database error — do not silently treat as a missing profile
+          console.error('Database error fetching user profile:', error.message);
+          return null;
+        }
+
+        if (!profile) {
+          console.warn('No profile found for user:', fetchingForUserId);
+          return null;
+        }
+
+        return buildMergedUser(authUser, profile);
+      } catch (err) {
+        console.error('Unexpected error fetching profile:', err);
         return null;
+      } finally {
+        // Clear the cache entry so future calls (e.g. refreshProfile) get fresh data
+        if (profileFetchRef.current?.userId === fetchingForUserId) {
+          profileFetchRef.current = null;
+        }
       }
+    })();
 
-      const assignedRole = normalizeApplicationRole(profile.role);
+    profileFetchRef.current = { userId: fetchingForUserId, promise };
 
-      const mergedUser = {
-        id: authUser.id,
-        email: authUser.email,
-        name: profile.name || authUser.email.split('@')[0],
-        role: assignedRole,
-        designation: profile.designation || (assignedRole === 'hod' ? 'Department Head / HOD' : assignedRole === 'admin' ? 'Budget Coordinator' : 'Faculty Member'),
-        employeeId: profile.employee_id || '',
-        department: profile.departments?.name || 'Computer Science and Engineering (CSE)',
-        departmentCode: profile.departments?.code || 'CSE',
-        phone: profile.phone || '',
-        status: profile.status || 'Active'
-      };
+    const mergedUser = await promise;
 
+    // Only update state if still mounted AND this is still the current active user
+    if (mountedRef.current && currentUserIdRef.current === fetchingForUserId) {
       setUser(mergedUser);
-      return mergedUser;
-    } catch (err) {
-      console.error('Error fetching profile in AuthProvider:', err);
-      setUser(null);
-      return null;
     }
-  };
+
+    return mergedUser;
+  }, [buildMergedUser]);
 
   // Listen to Supabase Auth State Changes
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
+
+    // Prevents the auth state change handler from duplicating the profile load
+    // that initializeAuth performs for the INITIAL_SESSION event.
+    let initializationComplete = false;
+
+    // Subscribe BEFORE calling initializeAuth to ensure no events are missed.
+    // The initializationComplete flag prevents double-fetching INITIAL_SESSION.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      // CRITICAL: Do NOT await inside this callback.
+      // The Supabase SDK does not await the return value of this callback;
+      // async work inside it runs detached and causes race conditions.
+      // Synchronous state updates happen here; async profile work is
+      // scheduled via setTimeout so the callback returns promptly.
+
+      if (!mountedRef.current) return;
+
+      setSession(newSession);
+
+      if (event === 'SIGNED_OUT') {
+        currentUserIdRef.current = null;
+        profileFetchRef.current = null;
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      if (event === 'TOKEN_REFRESHED') {
+        // Session silently refreshed — profile data has not changed
+        return;
+      }
+
+      if (newSession?.user) {
+        const incomingUserId = newSession.user.id;
+
+        // INITIAL_SESSION is handled by initializeAuth; skip to avoid duplicate fetch
+        if (event === 'INITIAL_SESSION' && !initializationComplete) {
+          return;
+        }
+
+        currentUserIdRef.current = incomingUserId;
+
+        // Schedule async work outside the callback to keep it synchronous
+        setTimeout(() => {
+          if (!mountedRef.current || currentUserIdRef.current !== incomingUserId) return;
+          fetchUserProfile(newSession.user).then(() => {
+            if (mountedRef.current) setLoading(false);
+          });
+        }, 0);
+      } else {
+        currentUserIdRef.current = null;
+        profileFetchRef.current = null;
+        setUser(null);
+        setLoading(false);
+      }
+    });
 
     async function initializeAuth() {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
-        if (mounted) {
-          setSession(initialSession);
-          if (initialSession?.user) {
-            await fetchUserProfile(initialSession.user);
-          } else {
-            setUser(null);
-          }
+
+        if (!mountedRef.current) return;
+
+        setSession(initialSession);
+
+        if (initialSession?.user) {
+          currentUserIdRef.current = initialSession.user.id;
+          await fetchUserProfile(initialSession.user);
+        } else {
+          currentUserIdRef.current = null;
+          setUser(null);
         }
       } catch (err) {
         console.warn('Supabase session init warning:', err);
+        if (mountedRef.current) {
+          currentUserIdRef.current = null;
+          setUser(null);
+        }
       } finally {
-        if (mounted) setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+          initializationComplete = true;
+        }
       }
     }
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      setSession(newSession);
-      if (newSession?.user) {
-        await fetchUserProfile(newSession.user);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-
     return () => {
-      mounted = false;
+      mountedRef.current = false;
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [fetchUserProfile]);
 
   // Admin / HOD / General Login (Email + Password, optional role)
   const login = async (email, password, role) => {
@@ -141,11 +243,20 @@ export const AuthProvider = ({ children }) => {
 
       const profile = await fetchUserProfile(data.user);
 
-      if (role && profile) {
-        const normalizedCheck = normalizeApplicationRole(role);
-        if (profile.role !== normalizedCheck && profile.role !== 'admin' && profile.role !== 'hod') {
+      if (!profile) {
+        // Sign out to avoid leaving a partially authenticated session
+        await supabase.auth.signOut();
+        return { success: false, message: 'Unable to load your account profile. Please contact your administrator.' };
+      }
+
+      // If a specific portal role was requested, verify the user qualifies.
+      // Admin and HOD both access the same admin portal.
+      // Faculty users must not access the admin portal.
+      if (role) {
+        const normalizedRequested = normalizeApplicationRole(role);
+        if ((normalizedRequested === 'admin' || normalizedRequested === 'hod') && profile.role === 'faculty') {
           await supabase.auth.signOut();
-          return { success: false, message: `Access denied: Account is not authorized for ${role} role.` };
+          return { success: false, message: 'Access denied: Account does not have admin or HOD portal access.' };
         }
       }
 
@@ -199,10 +310,21 @@ export const AuthProvider = ({ children }) => {
 
       const profile = await fetchUserProfile(data.user);
 
-      // Verify user is faculty
-      if (profile && profile.role !== 'faculty' && profile.role !== 'admin' && profile.role !== 'hod') {
+      if (!profile) {
         await supabase.auth.signOut();
-        return { success: false, message: 'Access denied: You do not have faculty portal permissions.' };
+        return { success: false, message: 'Unable to load your account profile. Please contact your administrator.' };
+      }
+
+      // Only faculty-role users may access the faculty portal.
+      // HOD and admin users must use the admin portal at /login.
+      if (profile.role !== 'faculty') {
+        await supabase.auth.signOut();
+        return {
+          success: false,
+          message: profile.role === 'hod' || profile.role === 'admin'
+            ? 'Please use the Admin/HOD login portal to access your account.'
+            : 'Access denied: You do not have faculty portal permissions.'
+        };
       }
 
       return { success: true, user: profile };
@@ -215,15 +337,19 @@ export const AuthProvider = ({ children }) => {
   // Current user accessor
   const getCurrentUser = () => user;
 
-  // Sign Out
+  // Sign Out — always clears local state even if the Supabase request fails
   const logout = async () => {
     try {
       await supabase.auth.signOut();
     } catch (err) {
       console.warn('Sign out warning:', err);
     } finally {
-      setUser(null);
-      setSession(null);
+      currentUserIdRef.current = null;
+      profileFetchRef.current = null;
+      if (mountedRef.current) {
+        setUser(null);
+        setSession(null);
+      }
     }
   };
 
@@ -273,10 +399,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Refresh profile using getSession() (local storage read) instead of
+  // getUser() (network call to /auth/v1/user) to avoid unnecessary 403s
+  // when the token is expired and auto-refresh has not yet completed.
   const refreshProfile = async () => {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (currentUser) {
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const currentUser = currentSession?.user;
+
+      if (!currentUser) {
+        console.warn('refreshProfile: no active session found.');
+        return;
+      }
+
+      // Invalidate the cache so an explicit refresh always reads fresh data
+      if (profileFetchRef.current?.userId === currentUser.id) {
+        profileFetchRef.current = null;
+      }
+
       await fetchUserProfile(currentUser);
+    } catch (err) {
+      console.error('Error refreshing profile:', err);
     }
   };
 
@@ -295,7 +438,6 @@ export const AuthProvider = ({ children }) => {
         loginFaculty,
         logout,
         getCurrentUser,
-        onAuthStateChange: (cb) => supabase.auth.onAuthStateChange(cb),
         resetPassword,
         updatePassword,
         refreshProfile

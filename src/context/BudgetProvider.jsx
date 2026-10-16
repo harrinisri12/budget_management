@@ -89,7 +89,7 @@ export const BudgetProvider = ({ children }) => {
       // Direct Supabase query
       const { data, error } = await supabase
         .from('academic_years')
-        .select('*, budget_categories(id, name, allocated_amount, spent_amount, subcategories(id, name, category_id))')
+        .select('*, budget_categories(id, name, allocated_amount, spent_amount, subcategories(id, name))')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -188,7 +188,7 @@ export const BudgetProvider = ({ children }) => {
 
       const { data: cats } = await supabase
         .from('budget_categories')
-        .select('*, subcategories(*)')
+        .select('*, subcategories(id, name)')
         .eq('academic_year_id', dbActive.id)
         .order('allocated_amount', { ascending: false });
 
