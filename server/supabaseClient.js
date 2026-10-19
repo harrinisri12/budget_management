@@ -19,3 +19,20 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseSecretKey, {
     persistSession: false
   }
 });
+
+// Create user-authenticated client passing user token for RLS
+export const getSupabaseClientForUser = (token) => {
+  if (!token) return supabaseAdmin;
+  return createClient(supabaseUrl, supabaseSecretKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  });
+};
+

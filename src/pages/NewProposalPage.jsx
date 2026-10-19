@@ -8,7 +8,7 @@ import { Step2ProposalDetails } from '../components/proposal/Step2ProposalDetail
 import { Step3BudgetDetails } from '../components/proposal/Step3BudgetDetails';
 import { Step4ReviewSubmit } from '../components/proposal/Step4ReviewSubmit';
 import { Step5SubmissionComplete } from '../components/proposal/Step5SubmissionComplete';
-import { getProposalSchema } from '../config/proposalFormSchemas';
+import { getProposalSchema, calculateHackathonDuration } from '../config/proposalFormSchemas';
 import { slugify } from '../utils/slugify';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
@@ -51,7 +51,7 @@ export const NewProposalPage = () => {
   );
   const [todayIso] = useState(() => new Date().toISOString().split('T')[0]);
 
-  // Load subcategories strictly for a given category ID using subcategories.category_id = selectedCategoryId
+  // Load subcategories strictly for a given category ID
   const loadSubcategoriesForCat = useCallback(async (catId) => {
     if (!catId) {
       setAvailableSubcategories([]);
@@ -69,7 +69,7 @@ export const NewProposalPage = () => {
       // 1. Primary: Load via backend API
       try {
         const res = await api.get(`/api/categories/sub-categories?categoryId=${encodeURIComponent(catId)}`);
-        if (latestCatReqId.current !== reqId) return; // Stale response discarded
+        if (latestCatReqId.current !== reqId) return;
 
         if (res?.success) {
           const rawList = res.subCategories || res.subcategories || [];
@@ -93,7 +93,7 @@ export const NewProposalPage = () => {
         .eq('category_id', catId)
         .order('name', { ascending: true });
 
-      if (latestCatReqId.current !== reqId) return; // Stale response discarded
+      if (latestCatReqId.current !== reqId) return;
 
       if (subErr) {
         throw new Error(subErr.message);
@@ -117,7 +117,7 @@ export const NewProposalPage = () => {
     }
   }, []);
 
-  // Load categories strictly for a given academic year ID using budget_categories.academic_year_id = selectedAcademicYearId
+  // Load categories strictly for a given academic year ID
   const loadCategoriesForAy = useCallback(async (ayId) => {
     if (!ayId) {
       setConfiguredCategories([]);
@@ -137,7 +137,7 @@ export const NewProposalPage = () => {
       // 1. Primary: Fetch categories from backend API endpoint scoped to this academic year
       try {
         const res = await api.get(`/api/categories?academicYearId=${encodeURIComponent(ayId)}`);
-        if (latestAyReqId.current !== reqId) return; // Stale response discarded
+        if (latestAyReqId.current !== reqId) return;
 
         if (res?.success && Array.isArray(res.categories)) {
           const formatted = res.categories.map((c) => ({
@@ -169,7 +169,7 @@ export const NewProposalPage = () => {
         .eq('academic_year_id', ayId)
         .order('name', { ascending: true });
 
-      if (latestAyReqId.current !== reqId) return; // Stale response discarded
+      if (latestAyReqId.current !== reqId) return;
 
       if (catErr) {
         throw new Error(catErr.message);
@@ -277,7 +277,6 @@ export const NewProposalPage = () => {
     setCategoriesError('');
     setSubcategoriesError('');
     setEventData({});
-    setRepeatableEvents([]);
     if (newAyId) {
       loadCategoriesForAy(newAyId);
     }
@@ -289,8 +288,7 @@ export const NewProposalPage = () => {
     setSelectedSubCategoryId('');
     setAvailableSubcategories([]);
     setSubcategoriesError('');
-    setEventData({});
-    setRepeatableEvents([]);
+    setEventData({}); // Reset dynamic activity fields
     if (newCatId) {
       loadSubcategoriesForCat(newCatId);
     }
@@ -299,8 +297,7 @@ export const NewProposalPage = () => {
   // Handle subcategory change
   const handleSubCategoryChange = (newSubId) => {
     setSelectedSubCategoryId(newSubId);
-    setEventData({});
-    setRepeatableEvents([]);
+    setEventData({}); // Reset dynamic activity fields when subcategory changes
   };
 
   // Selected Academic Year Object
@@ -353,7 +350,7 @@ export const NewProposalPage = () => {
   }, [currentAyObj, selectedAcademicYearLabel, selectedCategoryName, selectedSubCategoryName]);
 
   // ---------------------------------------------------------------------------
-  // Step 2: Programme Details State
+  // Step 2: Programme Details State (Mandatory Common Fields + Dynamic Fields)
   // ---------------------------------------------------------------------------
   const [title, setTitle] = useState('');
   const [programDate, setProgramDate] = useState('');
@@ -369,19 +366,8 @@ export const NewProposalPage = () => {
   );
   const [coordinatorContact, setCoordinatorContact] = useState(user?.phone || '');
 
-  // Category-specific answers dictionary
+  // Category-specific dynamic answers dictionary
   const [eventData, setEventData] = useState({});
-
-  // Repeatable Events (for Releases / Renaissance / Crecita / Presidential Events)
-  const [repeatableEvents, setRepeatableEvents] = useState([
-    {
-      id: 'event-1',
-      eventName: '',
-      eventDate: '',
-      venue: '',
-      eventDescription: ''
-    }
-  ]);
 
   const handleToggleAudience = (audienceName) => {
     setSelectedAudiences((prev) =>
@@ -398,33 +384,11 @@ export const NewProposalPage = () => {
     }));
   };
 
-  const handleAddRepeatableEvent = () => {
-    setRepeatableEvents((prev) => [
-      ...prev,
-      {
-        id: `event-${Date.now()}`,
-        eventName: '',
-        eventDate: programDate || '',
-        venue: venue || '',
-        eventDescription: ''
-      }
-    ]);
-  };
-
-  const handleRemoveRepeatableEvent = (id) => {
-    setRepeatableEvents((prev) => prev.filter((ev) => ev.id !== id));
-  };
-
-  const handleRepeatableEventChange = (id, field, value) => {
-    setRepeatableEvents((prev) =>
-      prev.map((ev) => (ev.id === id ? { ...ev, [field]: value } : ev))
-    );
-  };
-
   // ---------------------------------------------------------------------------
-  // Step 3: Budget & Expenditure State (Repeatable Expense Table)
+  // Step 3: Budget Details State (Single Amount Per Proposal)
   // ---------------------------------------------------------------------------
   const [fundingSource, setFundingSource] = useState('Department Budget Allocation');
+  const [proposedAmount, setProposedAmount] = useState('');
   const [budgetRemarks, setBudgetRemarks] = useState('');
 
   // Update default funding source when schema changes
@@ -434,57 +398,6 @@ export const NewProposalPage = () => {
     }
   }, [activeSchema]);
 
-  const [expenses, setExpenses] = useState([
-    {
-      id: 'exp-1',
-      purpose: 'Remuneration / Honorarium for Resource Person',
-      proposedAmount: 10000,
-      revisedAmount: '',
-      actualAmount: '',
-      remarks: 'Standard institutional honorarium'
-    },
-    {
-      id: 'exp-2',
-      purpose: 'Travel Allowance (TA) / Conveyance',
-      proposedAmount: 5000,
-      revisedAmount: '',
-      actualAmount: '',
-      remarks: 'Local conveyance & airport transit'
-    },
-    {
-      id: 'exp-3',
-      purpose: 'Refreshments, Working Lunch & Tea',
-      proposedAmount: 3500,
-      revisedAmount: '',
-      actualAmount: '',
-      remarks: 'Participant refreshments & lunch'
-    }
-  ]);
-
-  const handleAddExpense = (initialPurpose = '') => {
-    setExpenses((prev) => [
-      ...prev,
-      {
-        id: `exp-${Date.now()}`,
-        purpose: initialPurpose || '',
-        proposedAmount: '',
-        revisedAmount: '',
-        actualAmount: '',
-        remarks: ''
-      }
-    ]);
-  };
-
-  const handleRemoveExpense = (id) => {
-    setExpenses((prev) => prev.filter((e) => e.id !== id));
-  };
-
-  const handleExpenseChange = (id, field, value) => {
-    setExpenses((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, [field]: value } : e))
-    );
-  };
-
   // Authoritative Budget Metrics
   const metrics = (typeof getFacultyMetrics === 'function' ? getFacultyMetrics(user?.email) : null) || {};
   const allocatedQuota = Number(metrics.availableBalance || 0);
@@ -492,11 +405,13 @@ export const NewProposalPage = () => {
   const currentAvailableBalance = Number(metrics.remainingBalance ?? 0);
 
   const totalProposedAmount = useMemo(() => {
-    return expenses.reduce((sum, item) => sum + (Number(item.proposedAmount) || 0), 0);
-  }, [expenses]);
+    const val = Number(proposedAmount);
+    return !isNaN(val) && val > 0 ? val : 0;
+  }, [proposedAmount]);
 
+  const hasQuotaTracking = allocatedQuota > 0 || currentAvailableBalance > 0;
   const remainingBalanceAfterProposal = currentAvailableBalance - totalProposedAmount;
-  const isOverBudget = totalProposedAmount > currentAvailableBalance;
+  const isOverBudget = hasQuotaTracking && totalProposedAmount > currentAvailableBalance;
 
   // ---------------------------------------------------------------------------
   // Step 4: Submission State & Handler
@@ -514,7 +429,7 @@ export const NewProposalPage = () => {
     }
 
     if (!selectedCategoryId) {
-      setSubmissionError('Please select a funding Category.');
+      setSubmissionError('Please select a Category.');
       return;
     }
 
@@ -529,12 +444,12 @@ export const NewProposalPage = () => {
     }
 
     if (!programDate) {
-      setSubmissionError('Please select the Programme Date.');
+      setSubmissionError('Please select the Programme Start Date.');
       return;
     }
 
     if (totalProposedAmount <= 0) {
-      setSubmissionError('Please specify proposed expenditure amounts greater than ₹0.');
+      setSubmissionError('Please specify a valid proposed budget amount greater than ₹0.');
       return;
     }
 
@@ -548,23 +463,29 @@ export const NewProposalPage = () => {
     try {
       // Build formatted guest string for backwards compatibility
       let formattedGuestDetails = '';
-      if (activeSchema.requiresGuestDetails) {
-        const gName = eventData.guestName || eventData.resourcePersonName || '';
-        const gDesig = eventData.guestDesignation || eventData.resourcePersonDesignation || '';
-        const gOrg = eventData.guestOrg || eventData.resourcePersonOrg || '';
-        const parts = [gName, gDesig, gOrg].filter(Boolean);
-        formattedGuestDetails = parts.join(', ');
-      }
+      const gName = eventData.guestName || eventData.resourcePersonName || '';
+      const gDesig = eventData.guestDesignation || eventData.resourcePersonDesignation || '';
+      const gOrg = eventData.guestOrg || eventData.resourcePersonOrg || '';
+      const parts = [gName, gDesig, gOrg].filter(Boolean);
+      formattedGuestDetails = parts.join(', ');
+
+      // Live Hackathon duration calculation if applicable
+      const hackathonDuration = activeSchema.type === 'hackathon'
+        ? calculateHackathonDuration(programDate, endDate, startTime, endTime)
+        : null;
 
       // Build rich, structured event details payload
       const richEventDetails = {
         schemaType: activeSchema.type,
+        categoryName: selectedCategoryName,
+        subCategoryName: selectedSubCategoryName,
         programmeDetails: {
           title: title.trim(),
           programDate,
           endDate: endDate || null,
           startTime,
           endTime,
+          durationHours: hackathonDuration?.isValid ? hackathonDuration.hours : null,
           venue,
           programmeLevel,
           audiences: selectedAudiences,
@@ -575,24 +496,10 @@ export const NewProposalPage = () => {
           }
         },
         categoryDetails: { ...eventData },
-        repeatableEvents: activeSchema.hasRepeatableEvents ? repeatableEvents : [],
-        expenses: expenses.map((e, idx) => ({
-          sno: idx + 1,
-          purpose: e.purpose,
-          proposedAmount: Number(e.proposedAmount) || 0,
-          revisedAmount: null,
-          actualAmount: null,
-          remarks: e.remarks || ''
-        })),
         fundingSource,
-        budgetRemarks,
-        financialComputation: {
-          allocatedQuota,
-          approvedCommittedExpenditure,
-          availableBalanceBefore: currentAvailableBalance,
-          totalProposedAmount,
-          remainingBalanceAfter: remainingBalanceAfterProposal
-        }
+        budgetRemarks: budgetRemarks.trim() || null,
+        totalProposedAmount,
+        amount: totalProposedAmount
       };
 
       const payload = {
@@ -640,20 +547,8 @@ export const NewProposalPage = () => {
     setVenue('CC3 Seminar Hall');
     setSelectedAudiences(['Students (UG)']);
     setEventData({});
-    setRepeatableEvents([
-      { id: 'event-1', eventName: '', eventDate: '', venue: '', eventDescription: '' }
-    ]);
+    setProposedAmount('');
     setBudgetRemarks('');
-    setExpenses([
-      {
-        id: 'exp-1',
-        purpose: 'Remuneration / Honorarium for Resource Person',
-        proposedAmount: 10000,
-        revisedAmount: '',
-        actualAmount: '',
-        remarks: 'Standard institutional honorarium'
-      }
-    ]);
     setSubmittedProposal(null);
     setSubmissionError('');
     setCurrentStep(1);
@@ -760,26 +655,20 @@ export const NewProposalPage = () => {
               onCoordinatorContactChange={setCoordinatorContact}
               eventData={eventData}
               onEventDataChange={handleEventDataChange}
-              repeatableEvents={repeatableEvents}
-              onAddRepeatableEvent={handleAddRepeatableEvent}
-              onRemoveRepeatableEvent={handleRemoveRepeatableEvent}
-              onRepeatableEventChange={handleRepeatableEventChange}
               onBack={() => setCurrentStep(1)}
               onContinue={handleContinueStep2}
             />
           )}
 
-          {/* STEP 3: Budget & Repeatable Expenditure Details */}
+          {/* STEP 3: Single Budget Amount Details */}
           {currentStep === 3 && (
             <Step3BudgetDetails
               academicYearLabel={selectedAcademicYearLabel}
               allocatedQuota={allocatedQuota}
               approvedCommittedExpenditure={approvedCommittedExpenditure}
               availableBalance={currentAvailableBalance}
-              expenses={expenses}
-              onAddExpense={handleAddExpense}
-              onRemoveExpense={handleRemoveExpense}
-              onExpenseChange={handleExpenseChange}
+              proposedAmount={proposedAmount}
+              onProposedAmountChange={setProposedAmount}
               fundingSource={fundingSource}
               onFundingSourceChange={setFundingSource}
               budgetRemarks={budgetRemarks}
@@ -810,11 +699,9 @@ export const NewProposalPage = () => {
               coordinatorDesignation={coordinatorDesignation}
               coordinatorContact={coordinatorContact}
               eventData={eventData}
-              repeatableEvents={repeatableEvents}
               fundingSource={fundingSource}
               budgetRemarks={budgetRemarks}
-              expenses={expenses}
-              totalProposedAmount={totalProposedAmount}
+              proposedAmount={totalProposedAmount}
               availableBalance={currentAvailableBalance}
               remainingBalance={remainingBalanceAfterProposal}
               isOverBudget={isOverBudget}

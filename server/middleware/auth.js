@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../supabaseClient.js';
+import { supabaseAdmin, getSupabaseClientForUser } from '../supabaseClient.js';
 
 export const authenticateUser = async (req, res, next) => {
   try {
@@ -23,15 +23,29 @@ export const authenticateUser = async (req, res, next) => {
     }
 
     const user = authData.user;
+    const userClient = getSupabaseClientForUser(token);
+    req.supabase = userClient;
 
-    // Load actual profile from public.profiles
-    const { data: profile, error: profileError } = await supabaseAdmin
+    // Load actual profile from public.profiles using authenticated client
+    let { data: profile, error: profileError } = await userClient
       .from('profiles')
       .select('*, departments(id, name, code)')
       .eq('id', user.id)
       .maybeSingle();
 
-    if (profileError) {
+    if (!profile) {
+      // Fallback: try querying without departments join in case department_id is null
+      const { data: plainProfile } = await userClient
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (plainProfile) {
+        profile = plainProfile;
+      }
+    }
+
+    if (profileError && !profile) {
       console.error('Error fetching user profile in auth middleware:', profileError.message);
       return res.status(500).json({
         success: false,

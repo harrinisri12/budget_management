@@ -33,9 +33,9 @@ function displayAcademicYear(raw) {
 }
 
 // Helper to assemble full nested academic year object from DB
-async function loadFullAcademicYearFromDb(ayId) {
+async function loadFullAcademicYearFromDb(ayId, db = supabaseAdmin) {
   try {
-    const { data: ay, error: ayErr } = await supabaseAdmin
+    const { data: ay, error: ayErr } = await db
       .from('academic_years')
       .select('*')
       .eq('id', ayId)
@@ -46,7 +46,7 @@ async function loadFullAcademicYearFromDb(ayId) {
     // Fetch categories belonging to this academic year
     let cats = [];
     try {
-      let { data: categories, error: catErr } = await supabaseAdmin
+      let { data: categories, error: catErr } = await db
         .from('budget_categories')
         .select('id, budget_id, academic_year_id, name, allocated_amount, spent_amount, created_at, subcategories(id, name, category_id)')
         .eq('academic_year_id', ayId)
@@ -55,14 +55,14 @@ async function loadFullAcademicYearFromDb(ayId) {
       if (!catErr && (!categories || categories.length === 0) && ay.academic_year) {
         // Fallback: Check if categories are linked via budget_id for this financial_year
         const cleanYear = ay.academic_year.trim().replace(/\s+/g, '').replace(/[–—/]/g, '-');
-        const { data: bRow } = await supabaseAdmin
+        const { data: bRow } = await db
           .from('budgets')
           .select('id')
           .eq('financial_year', cleanYear)
           .maybeSingle();
 
         if (bRow) {
-          const { data: bCats, error: bErr } = await supabaseAdmin
+          const { data: bCats, error: bErr } = await db
             .from('budget_categories')
             .select('id, budget_id, academic_year_id, name, allocated_amount, spent_amount, created_at, subcategories(id, name, category_id)')
             .eq('budget_id', bRow.id)
@@ -132,7 +132,8 @@ router.get('/', authenticateUser, async (req, res) => {
   try {
     const isManagement = req.profile.role === 'admin' || req.profile.role === 'hod';
 
-    let query = supabaseAdmin
+    const db = req.supabase || supabaseAdmin;
+    let query = db
       .from('academic_years')
       .select('*, budget_categories(id, name, allocated_amount, spent_amount, subcategories(id, name, category_id))')
       .order('created_at', { ascending: false });
@@ -245,7 +246,8 @@ router.get('/check-duplicate', authenticateUser, async (req, res) => {
 // ------------------------------------------------------------------------------
 router.get('/active', authenticateUser, async (req, res) => {
   try {
-    const { data: dbActive, error } = await supabaseAdmin
+    const db = req.supabase || supabaseAdmin;
+    const { data: dbActive, error } = await db
       .from('academic_years')
       .select('id')
       .or('status.eq.ACTIVE,is_active.eq.true')
@@ -262,7 +264,7 @@ router.get('/active', authenticateUser, async (req, res) => {
       return res.status(404).json({ success: false, error: 'No active academic year configured in database.' });
     }
 
-    const fullActive = await loadFullAcademicYearFromDb(dbActive.id);
+    const fullActive = await loadFullAcademicYearFromDb(dbActive.id, db);
     if (!fullActive) {
       return res.status(404).json({ success: false, error: 'Could not load active academic year details.' });
     }
@@ -279,9 +281,10 @@ router.get('/active', authenticateUser, async (req, res) => {
 // ------------------------------------------------------------------------------
 router.get('/category-options', authenticateUser, async (req, res) => {
   try {
+    const db = req.supabase || supabaseAdmin;
     // Fetch categories using only confirmed schema columns (no embedded join
     // to avoid stale PostgREST schema-cache errors on budget_categories).
-    const { data: dbCategories, error: catErr } = await supabaseAdmin
+    const { data: dbCategories, error: catErr } = await db
       .from('budget_categories')
       .select('id, name')
       .order('name', { ascending: true });
@@ -293,7 +296,7 @@ router.get('/category-options', authenticateUser, async (req, res) => {
 
     // Fetch subcategories separately using only confirmed schema columns.
     // subcategories.description exists in the schema but is not needed here.
-    const { data: dbSubcategories, error: subErr } = await supabaseAdmin
+    const { data: dbSubcategories, error: subErr } = await db
       .from('subcategories')
       .select('category_id, name')
       .order('name', { ascending: true });

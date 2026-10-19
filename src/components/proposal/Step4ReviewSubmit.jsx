@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   FileCheck,
   Edit2,
@@ -7,18 +7,16 @@ import {
   MapPin,
   Clock,
   Award,
-  Users,
   UserCheck,
   Receipt,
-  Calculator,
   ArrowLeft,
   Send,
   AlertCircle,
-  HelpCircle,
   CheckCircle2,
-  Building
+  Timer
 } from 'lucide-react';
 import { Button } from '../common/Button';
+import { calculateHackathonDuration } from '../../config/proposalFormSchemas';
 
 export const Step4ReviewSubmit = ({
   academicYearLabel,
@@ -39,14 +37,12 @@ export const Step4ReviewSubmit = ({
   coordinatorDesignation,
   coordinatorContact,
   eventData = {},
-  repeatableEvents = [],
   fundingSource,
   budgetRemarks,
-  expenses = [],
-  totalProposedAmount = 0,
+  proposedAmount = 0,
   availableBalance = 0,
   remainingBalance = 0,
-  isOverBudget = false,
+  isOverBudget: _isOverBudget = false,
   isSubmitting = false,
   error = '',
   onEditStep,
@@ -54,6 +50,12 @@ export const Step4ReviewSubmit = ({
   onSubmit
 }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const numericAmount = Number(proposedAmount) || 0;
+
+  const isHackathon = Boolean(schema?.isHackathon || schema?.type === 'hackathon');
+  const hackathonDuration = useMemo(() => {
+    return isHackathon ? calculateHackathonDuration(programDate, endDate, startTime, endTime) : null;
+  }, [isHackathon, programDate, endDate, startTime, endTime]);
 
   const formatDisplayDate = (dateIso) => {
     if (!dateIso) return '—';
@@ -78,10 +80,10 @@ export const Step4ReviewSubmit = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className="cbm-form-ribbon">Step 4 of 5</span>
-                <h2 className="cbm-section-title" style={{ margin: 0, fontSize: 18 }}>Review Your Proposal</h2>
+                <h2 className="cbm-section-title" style={{ margin: 0, fontSize: 18 }}>Review & Confirm Proposal</h2>
               </div>
               <p className="cbm-section-subtitle" style={{ marginTop: 4 }}>
-                Review all configuration, programme specifications, and itemised expenditure details before final administrative submission.
+                Review all institutional specifications, scheduling parameters, and single budget amount before final submission.
               </p>
             </div>
 
@@ -161,34 +163,34 @@ export const Step4ReviewSubmit = ({
               </div>
 
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Category</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--text-body)' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Main Category</span>
+                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>
                   {categoryName}
                 </p>
               </div>
 
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Subcategory</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--primary)' }}>
-                  {subCategoryName || 'Direct Category'}
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Subcategory / Activity</span>
+                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
+                  {subCategoryName || '(Direct Main Category)'}
                 </p>
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>System Proposal ID Preview</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Proposal ID Preview</span>
+                <p style={{ margin: '3px 0 0 0', fontSize: 12.5, fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace' }}>
                   {proposalIdPreview}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* SECTION 2: PROGRAMME DETAILS SUMMARY */}
+          {/* SECTION 2: PROGRAMME DETAILS & SPECIFICATIONS */}
           <div style={{ padding: '18px 20px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Calendar size={16} color="var(--primary)" />
-                2. Programme Proposal Details
+                2. Programme Details & Activity Specifications
               </h3>
               <button
                 type="button"
@@ -200,170 +202,142 @@ export const Step4ReviewSubmit = ({
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Title */}
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Programme Title</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 14.5, fontWeight: 700, color: 'var(--text-heading)' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Programme / Proposal Title</span>
+                <p style={{ margin: '3px 0 0 0', fontSize: 14, fontWeight: 700, color: 'var(--text-heading)' }}>
                   {title}
                 </p>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+              {/* Schedule, Venue & Level Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border)' }}>
                 <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Programme Schedule</span>
-                  <p style={{ margin: '3px 0 0 0', fontSize: 13, color: 'var(--text-body)' }}>
-                    {formatDisplayDate(programDate)} {endDate ? `to ${formatDisplayDate(endDate)}` : ''}
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Calendar size={12} /> Start Date
+                  </span>
+                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
+                    {formatDisplayDate(programDate)}
+                  </p>
+                </div>
+
+                {endDate && (
+                  <div>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Calendar size={12} /> End Date
+                    </span>
+                    <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
+                      {formatDisplayDate(endDate)}
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Clock size={12} /> Session Timings
+                  </span>
+                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
+                    {startTime} to {endTime}
+                  </p>
+                </div>
+
+                {/* If Hackathon: Display duration */}
+                {isHackathon && hackathonDuration?.isValid && (
+                  <div>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Timer size={12} /> Total Hackathon Duration
+                    </span>
+                    <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 800, color: '#0369A1' }}>
+                      {hackathonDuration.displayText}
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <MapPin size={12} /> Venue / Location
+                  </span>
+                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
+                    {venue}
                   </p>
                 </div>
 
                 <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Session Time</span>
-                  <p style={{ margin: '3px 0 0 0', fontSize: 13, color: 'var(--text-body)' }}>
-                    {startTime ? `${startTime} ${endTime ? `– ${endTime}` : ''}` : 'As Scheduled'}
-                  </p>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Venue</span>
-                  <p style={{ margin: '3px 0 0 0', fontSize: 13, color: 'var(--text-body)' }}>
-                    {venue || 'Department Seminar Hall'}
-                  </p>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Level</span>
-                  <p style={{ margin: '3px 0 0 0', fontSize: 13, color: 'var(--text-body)' }}>
-                    {programmeLevel || 'Department'}
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Award size={12} /> Programme Level
+                  </span>
+                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
+                    {programmeLevel}
                   </p>
                 </div>
               </div>
 
-              {selectedAudiences.length > 0 && (
-                <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Target Audience</span>
-                  <p style={{ margin: '3px 0 0 0', fontSize: 13, color: 'var(--text-body)' }}>
-                    {selectedAudiences.join(', ')}
-                  </p>
-                </div>
-              )}
-
-              {coordinatorName && (
-                <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Faculty Coordinator</span>
-                  <p style={{ margin: '3px 0 0 0', fontSize: 13, color: 'var(--text-body)' }}>
-                    {coordinatorName} {coordinatorDesignation ? `(${coordinatorDesignation})` : ''} {coordinatorContact ? `• ${coordinatorContact}` : ''}
-                  </p>
-                </div>
-              )}
-
-              {/* Category-Specific Details Breakdown */}
-              {schema.type === 'guest_lecture' && (eventData.guestName || eventData.guestOrg) && (
-                <div style={{ marginTop: 6, padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>
-                    Guest Speaker Credentials
-                  </span>
-                  <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-heading)' }}>
-                    {eventData.guestName} — {eventData.guestDesignation}, {eventData.guestOrg}
-                  </p>
-                  {eventData.lectureTopic && (
-                    <p style={{ margin: '2px 0 0 0', fontSize: 12.5, color: 'var(--text-muted)' }}>
-                      Topic: <em>{eventData.lectureTopic}</em>
-                    </p>
-                  )}
-                  {eventData.purpose && (
-                    <p style={{ margin: '6px 0 0 0', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                      Purpose: {eventData.purpose}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {schema.type === 'workshop' && (eventData.resourcePersonName || eventData.topic) && (
-                <div style={{ marginTop: 6, padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>
-                    Workshop Resource Person & Topic
-                  </span>
-                  <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-heading)' }}>
-                    {eventData.resourcePersonName} ({eventData.resourcePersonDesignation}, {eventData.resourcePersonOrg})
-                  </p>
-                  <p style={{ margin: '2px 0 0 0', fontSize: 12.5, color: 'var(--text-muted)' }}>
-                    Topic: <strong>{eventData.topic}</strong>
-                  </p>
-                  {eventData.prerequisites && (
-                    <p style={{ margin: '4px 0 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
-                      Lab Prerequisites: {eventData.prerequisites}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {schema.type === 'partial_guest' && (
-                <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 10 }}>
-                  <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>
-                      Invited Expert Details
+              {/* Target Audience */}
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Target Audience</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                  {selectedAudiences.map((aud) => (
+                    <span
+                      key={aud}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 4,
+                        backgroundColor: '#EDE9FE',
+                        color: '#5B21B6',
+                        fontSize: 11.5,
+                        fontWeight: 600
+                      }}
+                    >
+                      {aud}
                     </span>
-                    <p style={{ margin: '2px 0 0 0', fontSize: 12.5, fontWeight: 600, color: 'var(--text-heading)' }}>
-                      {eventData.guestName} ({eventData.guestDesignation})
-                    </p>
-                    <p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
-                      {eventData.guestOrg} • Topic: {eventData.lectureTopic}
-                    </p>
-                  </div>
-
-                  <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FCFBF7', border: '1px dashed var(--gold-border)' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-text)', textTransform: 'uppercase' }}>
-                      Host Faculty Mapping
-                    </span>
-                    <p style={{ margin: '2px 0 0 0', fontSize: 12.5, fontWeight: 600, color: 'var(--text-heading)' }}>
-                      {eventData.hostName} ({eventData.hostDesignation})
-                    </p>
-                    <p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
-                      Ref Code: <strong>{eventData.hostCode}</strong> • Course: {eventData.subjectCodeName}
-                    </p>
-                  </div>
+                  ))}
                 </div>
-              )}
+              </div>
 
-              {/* Repeatable Events Preview */}
-              {schema.hasRepeatableEvents && repeatableEvents.length > 0 && (
-                <div style={{ marginTop: 6, padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>
-                    Itemised Events Schedule ({repeatableEvents.length} Events Added)
+              {/* Coordinator Details */}
+              <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <UserCheck size={13} /> Faculty Coordinator
+                </span>
+                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-heading)' }}>
+                  {coordinatorName} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>— {coordinatorDesignation} ({coordinatorContact})</span>
+                </p>
+              </div>
+
+              {/* Dynamic Programme-Specific Fields */}
+              {schema?.fields && schema.fields.length > 0 && (
+                <div style={{ marginTop: 4, padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--gold-border)' }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                    {schema.name} Specific Parameters
                   </span>
-                  <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {repeatableEvents.map((ev, i) => (
-                      <div key={ev.id || i} style={{ fontSize: 12.5, padding: '4px 0', borderBottom: i < repeatableEvents.length - 1 ? '1px dashed var(--border-subtle)' : 'none' }}>
-                        <strong>#{i + 1} {ev.eventName}</strong> {ev.eventDate ? `• Date: ${formatDisplayDate(ev.eventDate)}` : ''} {ev.venue ? `• Venue: ${ev.venue}` : ''}
-                        {ev.eventDescription && <p style={{ margin: '2px 0 0 0', fontSize: 11.5, color: 'var(--text-muted)' }}>{ev.eventDescription}</p>}
-                      </div>
-                    ))}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
+                    {schema.fields.map((field) => {
+                      const val = eventData[field.key];
+                      if (!val) return null;
+                      return (
+                        <div key={field.key} style={{ gridColumn: field.type === 'textarea' ? '1 / -1' : 'auto' }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                            {field.label}
+                          </span>
+                          <p style={{ margin: '2px 0 0 0', fontSize: 12.5, fontWeight: 500, color: 'var(--text-heading)', whiteSpace: 'pre-wrap' }}>
+                            {String(val)}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              )}
-
-              {schema.type === 'senior_junior' && eventData.seniorParticipants && (
-                <div style={{ marginTop: 6, padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>
-                    Mentoring Session Details
-                  </span>
-                  <p style={{ margin: '2px 0 0 0', fontSize: 12.5 }}>
-                    <strong>Senior Mentors:</strong> {eventData.seniorParticipants}
-                  </p>
-                  <p style={{ margin: '2px 0 0 0', fontSize: 12.5 }}>
-                    <strong>Junior Target Group:</strong> {eventData.juniorGroup}
-                  </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* SECTION 3: BUDGET & EXPENDITURE SUMMARY */}
-          <div style={{ padding: '18px 20px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Receipt size={16} color="var(--primary)" />
-                3. Proposed Expenditure & Budget Breakdown
+          {/* SECTION 3: BUDGET & FUNDING SUMMARY (SINGLE AMOUNT - NO ITEMIZED TABLE) */}
+          <div style={{ padding: '20px 22px', borderRadius: 'var(--radius-md)', backgroundColor: '#FFFFFF', border: '1.5px solid var(--gold-border)', boxShadow: 'var(--shadow-xs)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Receipt size={17} color="var(--primary)" />
+                3. Proposed Budget & Funding Details
               </h3>
               <button
                 type="button"
@@ -375,62 +349,44 @@ export const Step4ReviewSubmit = ({
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: 16 }}>
                 <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Funding Source</span>
-                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Funding Source Head</span>
+                  <p style={{ margin: '3px 0 0 0', fontSize: 14, fontWeight: 700, color: 'var(--text-heading)' }}>
                     {fundingSource}
                   </p>
                 </div>
-                {budgetRemarks && (
-                  <div>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Budget Remarks</span>
-                    <p style={{ margin: '2px 0 0 0', fontSize: 12.5, color: 'var(--text-muted)' }}>
-                      {budgetRemarks}
-                    </p>
-                  </div>
-                )}
+
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Proposed Budget Amount</span>
+                  <p style={{ margin: '3px 0 0 0', fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>
+                    ₹{numericAmount.toLocaleString('en-IN')}
+                  </p>
+                </div>
               </div>
 
-              {/* Itemised Expense Table Preview */}
-              <div className="cbm-expenditure-wrap" style={{ marginTop: 6 }}>
-                <table className="cbm-expenditure-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: 45, textAlign: 'center' }}>S. No.</th>
-                      <th>Purpose / Expense Description</th>
-                      <th style={{ width: 140, textAlign: 'right' }}>Proposed (₹)</th>
-                      <th>Remarks</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expenses.map((exp, idx) => (
-                      <tr key={exp.id || idx}>
-                        <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--primary)' }}>{idx + 1}</td>
-                        <td style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{exp.purpose}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text-heading)' }}>
-                          ₹{(Number(exp.proposedAmount) || 0).toLocaleString('en-IN')}
-                        </td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{exp.remarks || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ backgroundColor: '#F8F9FA', fontWeight: 800 }}>
-                      <td colSpan={2} style={{ padding: '10px 12px', fontSize: 13, textTransform: 'uppercase' }}>
-                        Total Proposed Amount:
-                      </td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', fontSize: 15, color: 'var(--primary)' }}>
-                        ₹{totalProposedAmount.toLocaleString('en-IN')}
-                      </td>
-                      <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        Remaining Balance: ₹{remainingBalance.toLocaleString('en-IN')}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+              {/* Budget Justification (Displayed only when provided) */}
+              {budgetRemarks && budgetRemarks.trim() && (
+                <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Budget Justification / Special Remarks
+                  </span>
+                  <p style={{ margin: '4px 0 0 0', fontSize: 12.5, color: 'var(--text-body)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
+                    {budgetRemarks}
+                  </p>
+                </div>
+              )}
+
+              {/* Quota balance info if tracked */}
+              {availableBalance > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-muted)', paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
+                  <span>Current Available Quota: ₹{availableBalance.toLocaleString('en-IN')}</span>
+                  <span style={{ fontWeight: 600, color: remainingBalance >= 0 ? 'var(--success-text)' : 'var(--danger-text)' }}>
+                    Estimated Remaining: ₹{remainingBalance.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -462,7 +418,7 @@ export const Step4ReviewSubmit = ({
             type="button"
             variant="primary"
             onClick={() => setShowConfirmModal(true)}
-            disabled={isOverBudget || totalProposedAmount <= 0 || isSubmitting}
+            disabled={numericAmount <= 0 || isSubmitting}
             isLoading={isSubmitting}
             icon={Send}
             style={{ height: 42, padding: '0 28px', fontSize: 14 }}
@@ -504,7 +460,7 @@ export const Step4ReviewSubmit = ({
                 Confirm Proposal Submission
               </h3>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
-                Are you sure you want to submit this budget proposal for <strong>{title}</strong> totaling <strong>₹{totalProposedAmount.toLocaleString('en-IN')}</strong>?
+                Are you sure you want to submit this budget proposal for <strong>{title}</strong> totaling <strong>₹{numericAmount.toLocaleString('en-IN')}</strong>?
               </p>
 
               <div
@@ -526,9 +482,13 @@ export const Step4ReviewSubmit = ({
                   <span style={{ color: 'var(--text-muted)' }}>Category / Subcategory:</span>
                   <span style={{ fontWeight: 600 }}>{categoryName} {subCategoryName ? `(${subCategoryName})` : ''}</span>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Funding Source:</span>
+                  <span style={{ fontWeight: 600 }}>{fundingSource}</span>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Remaining Quota Balance:</span>
-                  <span style={{ fontWeight: 700, color: 'var(--success-text)' }}>₹{remainingBalance.toLocaleString('en-IN')}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Total Proposed Amount:</span>
+                  <span style={{ fontWeight: 800, color: 'var(--primary)' }}>₹{numericAmount.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>

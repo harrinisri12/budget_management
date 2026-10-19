@@ -16,7 +16,8 @@ const CATEGORY_COLORS = {
 // GET /api/budgets - Get budget info
 router.get('/', authenticateUser, async (req, res) => {
   try {
-    const { data: budgets, error } = await supabaseAdmin
+    const db = req.supabase || supabaseAdmin;
+    const { data: budgets, error } = await db
       .from('budgets')
       .select('*, departments(name, code)')
       .order('created_at', { ascending: false });
@@ -35,7 +36,8 @@ router.get('/', authenticateUser, async (req, res) => {
 // GET /api/budget-categories - Get categories with allocations
 router.get('/categories', authenticateUser, async (req, res) => {
   try {
-    const { data: categories, error } = await supabaseAdmin
+    const db = req.supabase || supabaseAdmin;
+    const { data: categories, error } = await db
       .from('budget_categories')
       .select('*')
       .order('allocated_amount', { ascending: false });
@@ -54,8 +56,9 @@ router.get('/categories', authenticateUser, async (req, res) => {
 // GET /api/dashboard - Aggregated 100% database-driven dashboard KPIs & analytics
 router.get('/dashboard', authenticateUser, async (req, res) => {
   try {
+    const db = req.supabase || supabaseAdmin;
     // 1. Fetch active academic year from Supabase
-    const { data: activeAy } = await supabaseAdmin
+    const { data: activeAy } = await db
       .from('academic_years')
       .select('id, academic_year, budget, is_active, status')
       .or('status.eq.ACTIVE,is_active.eq.true')
@@ -67,7 +70,7 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
     const totalBudget = Number(activeAy?.budget || 0);
 
     // 2. Fetch category allocations belonging to the active academic year
-    let catQuery = supabaseAdmin
+    let catQuery = db
       .from('budget_categories')
       .select('*')
       .order('allocated_amount', { ascending: false });
@@ -84,7 +87,7 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
     const remaining = Math.max(0, totalBudget - totalSpent);
 
     // 3. Fetch proposals for active academic year to calculate pending metrics
-    let propQuery = supabaseAdmin
+    let propQuery = db
       .from('proposals')
       .select('id, amount, status, academic_year_id');
 
@@ -114,7 +117,7 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
     });
 
     // 5. Calculate monthly spending from real database transactions or approved proposals
-    const { data: txns } = await supabaseAdmin
+    const { data: txns } = await db
       .from('transactions')
       .select('amount, transaction_date, status')
       .order('transaction_date', { ascending: true });
@@ -132,7 +135,7 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
       });
     } else {
       // Calculate from real approved proposals if transactions table has no entries yet
-      const { data: approvedProps } = await supabaseAdmin
+      const { data: approvedProps } = await db
         .from('proposals')
         .select('amount, proposal_date, program_date, status')
         .eq('status', 'Approved');

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Lock,
   ArrowRight,
@@ -9,13 +9,17 @@ import {
   Users,
   Award,
   UserCheck,
-  Plus,
-  Trash2,
   Building,
-  GraduationCap
+  AlertTriangle,
+  Timer
 } from 'lucide-react';
 import { Button } from '../common/Button';
-import { AUDIENCE_OPTIONS, PROGRAMME_LEVEL_OPTIONS } from '../../config/proposalFormSchemas';
+import {
+  AUDIENCE_OPTIONS,
+  PROGRAMME_LEVEL_OPTIONS,
+  calculateHackathonDuration,
+  validateScheduleSequence
+} from '../../config/proposalFormSchemas';
 
 export const Step2ProposalDetails = ({
   proposalIdPreview,
@@ -48,46 +52,94 @@ export const Step2ProposalDetails = ({
   // Dynamic category details
   eventData = {},
   onEventDataChange,
-  // Repeatable events (Releases / Presidential)
-  repeatableEvents = [],
-  onAddRepeatableEvent,
-  onRemoveRepeatableEvent,
-  onRepeatableEventChange,
   // Navigation
   onBack,
   onContinue
 }) => {
-  const isMultiDay = schema.type === 'workshop' || schema.type === 'orientation' || schema.type === 'generic';
+  const isHackathon = Boolean(schema?.isHackathon || schema?.type === 'hackathon');
+  const requiresMultiDay = Boolean(schema?.requiresMultiDay);
 
-  // Validation
-  const validateForm = () => {
-    if (!title.trim()) return false;
-    if (!programDate) return false;
+  // Live Hackathon Duration Calculation
+  const hackathonDuration = useMemo(() => {
+    return calculateHackathonDuration(programDate, endDate, startTime, endTime);
+  }, [programDate, endDate, startTime, endTime]);
 
-    // Check required fields in the dynamic schema
-    if (schema.fields) {
+  // Schedule sequence validation (end not before start, end time > start time on same day, etc.)
+  const scheduleValidation = useMemo(() => {
+    return validateScheduleSequence(programDate, endDate, startTime, endTime);
+  }, [programDate, endDate, startTime, endTime]);
+
+  // Comprehensive Form Validation
+  const validationErrors = useMemo(() => {
+    const errors = [];
+
+    // Common fields validation
+    if (!title || !title.trim()) {
+      errors.push('Programme / Proposal Title is required.');
+    }
+    if (!programDate) {
+      errors.push('Start Date of Programme is required.');
+    }
+    if (requiresMultiDay && !endDate) {
+      errors.push(`End Date of Programme is required for ${schema.name || 'this activity'}.`);
+    }
+    if (!startTime || !endTime) {
+      errors.push('Session start and end times are required.');
+    }
+    if (!scheduleValidation.isValid) {
+      errors.push(scheduleValidation.error);
+    }
+    if (!venue || !venue.trim()) {
+      errors.push('Programme Venue / Location is required.');
+    }
+    if (!programmeLevel || !programmeLevel.trim()) {
+      errors.push('Programme Level is required.');
+    }
+    if (!selectedAudiences || selectedAudiences.length === 0) {
+      errors.push('Please select at least one Target Audience group.');
+    }
+    if (!coordinatorName || !coordinatorName.trim()) {
+      errors.push('Faculty Coordinator Name is required.');
+    }
+    if (!coordinatorDesignation || !coordinatorDesignation.trim()) {
+      errors.push('Coordinator Designation is required.');
+    }
+    if (!coordinatorContact || !coordinatorContact.trim()) {
+      errors.push('Coordinator Contact Phone / Extension is required.');
+    }
+
+    // Dynamic schema fields validation (only fields marked required: true)
+    if (schema?.fields) {
       for (const field of schema.fields) {
         if (field.required) {
           const val = eventData[field.key];
-          if (!val || (typeof val === 'string' && !val.trim())) {
-            return false;
+          if (val === undefined || val === null || (typeof val === 'string' && !val.trim())) {
+            errors.push(`"${field.label}" is required.`);
           }
         }
       }
     }
 
-    // If repeatable events are required (Releases / Presidential), check at least 1 event exists
-    if (schema.hasRepeatableEvents) {
-      if (!repeatableEvents || repeatableEvents.length === 0) return false;
-      for (const ev of repeatableEvents) {
-        if (!ev.eventName || !ev.eventName.trim()) return false;
-      }
-    }
+    return errors;
+  }, [
+    title,
+    programDate,
+    endDate,
+    startTime,
+    endTime,
+    scheduleValidation,
+    requiresMultiDay,
+    venue,
+    programmeLevel,
+    selectedAudiences,
+    coordinatorName,
+    coordinatorDesignation,
+    coordinatorContact,
+    schema,
+    eventData
+  ]);
 
-    return true;
-  };
-
-  const isValid = validateForm();
+  const isValid = validationErrors.length === 0;
 
   return (
     <div className="cbm-card" style={{ padding: '28px 32px' }}>
@@ -108,7 +160,7 @@ export const Step2ProposalDetails = ({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              Event Type:
+              Programme Type:
             </span>
             <span
               style={{
@@ -126,8 +178,8 @@ export const Step2ProposalDetails = ({
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-        {/* FIELD: PROPOSAL ID PREVIEW */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* SECTION: PROPOSAL ID PREVIEW */}
         <div className="cbm-input-group">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <label htmlFor="proposal-id-preview" className="cbm-label">
@@ -160,16 +212,21 @@ export const Step2ProposalDetails = ({
             </span>
           </div>
           <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-            Official continuous sequence number will be reserved atomically upon submission.
+            Official continuous sequence number will be assigned atomically upon submission without collisions.
           </span>
         </div>
 
-        {/* SECTION: COMMON PROGRAMME DETAILS */}
-        <div style={{ padding: '18px 20px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: 14, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Calendar size={16} color="var(--primary)" />
-            Core Programme Identification & Schedule
-          </h3>
+        {/* SECTION A: CORE PROGRAMME IDENTIFICATION & SCHEDULE (MANDATORY COMMON SECTION) */}
+        <div style={{ padding: '20px 22px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Calendar size={16} color="var(--primary)" />
+              Core Programme Identification & Schedule
+            </h3>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Mandatory Shared Section
+            </span>
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16 }}>
             {/* Programme Title */}
@@ -182,20 +239,20 @@ export const Step2ProposalDetails = ({
                 type="text"
                 value={title}
                 onChange={(e) => onTitleChange(e.target.value)}
-                placeholder="e.g. Industry Guest Lecture on Cloud Architecture / Two-Day Workshop on Generative AI"
+                placeholder="e.g. Industry Guest Lecture on Cloud Architecture / National Hackathon 2026"
                 required
                 className="cbm-input"
                 style={{ height: 42, fontSize: 13.5 }}
               />
             </div>
 
-            {/* Programme Date / Start Date */}
+            {/* Start Date */}
             <div className="cbm-input-group">
-              <label htmlFor="prog-date-input" className="cbm-label">
-                {isMultiDay ? 'Start Date of Programme' : 'Date of Programme'} <span style={{ color: 'var(--danger)' }}>*</span>
+              <label htmlFor="prog-start-date-input" className="cbm-label">
+                Start Date of Programme <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
-                id="prog-date-input"
+                id="prog-start-date-input"
                 type="date"
                 value={programDate}
                 onChange={(e) => onProgramDateChange(e.target.value)}
@@ -205,28 +262,32 @@ export const Step2ProposalDetails = ({
               />
             </div>
 
-            {/* End Date (for multi-day programmes) */}
-            {isMultiDay && (
-              <div className="cbm-input-group">
+            {/* End Date */}
+            <div className="cbm-input-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label htmlFor="prog-end-date-input" className="cbm-label">
-                  End Date of Programme <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>(If multi-day)</span>
+                  End Date of Programme {requiresMultiDay ? <span style={{ color: 'var(--danger)' }}>*</span> : null}
                 </label>
-                <input
-                  id="prog-end-date-input"
-                  type="date"
-                  value={endDate}
-                  min={programDate || undefined}
-                  onChange={(e) => onEndDateChange(e.target.value)}
-                  className="cbm-input"
-                  style={{ height: 42 }}
-                />
+                {!requiresMultiDay && (
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Optional (if multi-day)</span>
+                )}
               </div>
-            )}
+              <input
+                id="prog-end-date-input"
+                type="date"
+                value={endDate}
+                min={programDate || undefined}
+                onChange={(e) => onEndDateChange(e.target.value)}
+                required={requiresMultiDay}
+                className="cbm-input"
+                style={{ height: 42 }}
+              />
+            </div>
 
             {/* Timings: Start Time & End Time */}
             <div className="cbm-input-group">
               <label htmlFor="prog-time-start" className="cbm-label">
-                Session Start Time
+                Session Start Time <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <Clock size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
@@ -235,6 +296,7 @@ export const Step2ProposalDetails = ({
                   type="time"
                   value={startTime}
                   onChange={(e) => onStartTimeChange(e.target.value)}
+                  required
                   className="cbm-input"
                   style={{ height: 42, paddingLeft: 34 }}
                 />
@@ -243,7 +305,7 @@ export const Step2ProposalDetails = ({
 
             <div className="cbm-input-group">
               <label htmlFor="prog-time-end" className="cbm-label">
-                Session End Time
+                Session End Time <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <Clock size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
@@ -252,6 +314,7 @@ export const Step2ProposalDetails = ({
                   type="time"
                   value={endTime}
                   onChange={(e) => onEndTimeChange(e.target.value)}
+                  required
                   className="cbm-input"
                   style={{ height: 42, paddingLeft: 34 }}
                 />
@@ -261,7 +324,7 @@ export const Step2ProposalDetails = ({
             {/* Programme Venue */}
             <div className="cbm-input-group">
               <label htmlFor="prog-venue-input" className="cbm-label">
-                Programme Venue / Location
+                Programme Venue / Location <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <MapPin size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
@@ -271,6 +334,7 @@ export const Step2ProposalDetails = ({
                   value={venue}
                   onChange={(e) => onVenueChange(e.target.value)}
                   placeholder="e.g. CC3 Seminar Hall / Main Auditorium / CS Lab 4"
+                  required
                   className="cbm-input"
                   style={{ height: 42, paddingLeft: 34 }}
                 />
@@ -280,7 +344,7 @@ export const Step2ProposalDetails = ({
             {/* Programme Level */}
             <div className="cbm-input-group">
               <label htmlFor="prog-level-select" className="cbm-label">
-                Programme Level
+                Programme Level <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <Award size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
@@ -288,6 +352,7 @@ export const Step2ProposalDetails = ({
                   id="prog-level-select"
                   value={programmeLevel}
                   onChange={(e) => onProgrammeLevelChange(e.target.value)}
+                  required
                   className="cbm-select"
                   style={{ height: 42, paddingLeft: 34 }}
                 >
@@ -299,11 +364,115 @@ export const Step2ProposalDetails = ({
             </div>
           </div>
 
-          {/* Intended Audience Pills */}
-          <div style={{ marginTop: 16 }}>
-            <label className="cbm-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Users size={14} /> Intended Target Audience <span style={{ color: 'var(--text-muted)', fontSize: 11.5 }}>(Select applicable groups)</span>
-            </label>
+          {/* Schedule Sequence Error Alert */}
+          {!scheduleValidation.isValid && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--danger-bg)',
+                border: '1px solid var(--danger-border)',
+                color: 'var(--danger-text)',
+                fontSize: 12.5,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}
+              role="alert"
+            >
+              <AlertTriangle size={16} />
+              <span>{scheduleValidation.error}</span>
+            </div>
+          )}
+
+          {/* Live Hackathon Duration Card */}
+          {isHackathon && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: '14px 18px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: hackathonDuration?.isValid ? '#F0F9FF' : 'var(--bg-page)',
+                border: hackathonDuration?.isValid ? '1px solid #BAE6FD' : '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 12
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: '50%',
+                    backgroundColor: hackathonDuration?.isValid ? '#0284C7' : 'var(--slate-300)',
+                    color: '#FFFFFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Timer size={20} />
+                </div>
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Calculated Hackathon Duration (Auto-Computed)
+                  </span>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: hackathonDuration?.isValid ? '#0369A1' : 'var(--text-heading)' }}>
+                    {hackathonDuration?.isValid ? hackathonDuration.displayText : 'Awaiting start and end dates/times...'}
+                  </div>
+                </div>
+              </div>
+
+              {hackathonDuration?.isValid && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {hackathonDuration.isOvernight && (
+                    <span
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 4,
+                        backgroundColor: '#E0F2FE',
+                        color: '#0369A1',
+                        fontSize: 11,
+                        fontWeight: 700
+                      }}
+                    >
+                      Overnight Hackathon
+                    </span>
+                  )}
+                  {hackathonDuration.isMultiDay && (
+                    <span
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 4,
+                        backgroundColor: '#EDE9FE',
+                        color: '#6D28D9',
+                        fontSize: 11,
+                        fontWeight: 700
+                      }}
+                    >
+                      Multi-Day Event
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Intended Target Audience Checkbox Pills */}
+          <div style={{ marginTop: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label className="cbm-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Users size={14} /> Intended Target Audience <span style={{ color: 'var(--danger)' }}>*</span>
+              </label>
+              <span style={{ fontSize: 11, color: selectedAudiences.length > 0 ? 'var(--success-text)' : 'var(--danger)', fontWeight: 600 }}>
+                {selectedAudiences.length > 0 ? `✓ ${selectedAudiences.length} Selected` : 'Require at least one selection'}
+              </span>
+            </div>
             <div className="cbm-pill-group" style={{ marginTop: 6 }}>
               {AUDIENCE_OPTIONS.map((aud) => {
                 const isSelected = selectedAudiences.includes(aud);
@@ -324,17 +493,22 @@ export const Step2ProposalDetails = ({
           </div>
         </div>
 
-        {/* SECTION: FACULTY COORDINATOR DETAILS */}
-        <div style={{ padding: '18px 20px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: 14, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <UserCheck size={16} color="var(--primary)" />
-            Faculty Coordinator Details
-          </h3>
+        {/* SECTION B: FACULTY COORDINATOR DETAILS (MANDATORY COMMON SECTION) */}
+        <div style={{ padding: '20px 22px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <UserCheck size={16} color="var(--primary)" />
+              Faculty Coordinator Details
+            </h3>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Mandatory Shared Section
+            </span>
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 16 }}>
             <div className="cbm-input-group">
               <label htmlFor="coord-name-input" className="cbm-label">
-                Faculty Coordinator Name
+                Faculty Coordinator Name <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
                 id="coord-name-input"
@@ -342,6 +516,7 @@ export const Step2ProposalDetails = ({
                 value={coordinatorName}
                 onChange={(e) => onCoordinatorNameChange(e.target.value)}
                 placeholder="e.g. Dr. Arun Kumar P"
+                required
                 className="cbm-input"
                 style={{ height: 40 }}
               />
@@ -349,7 +524,7 @@ export const Step2ProposalDetails = ({
 
             <div className="cbm-input-group">
               <label htmlFor="coord-desig-input" className="cbm-label">
-                Designation
+                Designation <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
                 id="coord-desig-input"
@@ -357,6 +532,7 @@ export const Step2ProposalDetails = ({
                 value={coordinatorDesignation}
                 onChange={(e) => onCoordinatorDesignationChange(e.target.value)}
                 placeholder="e.g. Associate Professor / Assistant Professor"
+                required
                 className="cbm-input"
                 style={{ height: 40 }}
               />
@@ -364,7 +540,7 @@ export const Step2ProposalDetails = ({
 
             <div className="cbm-input-group">
               <label htmlFor="coord-contact-input" className="cbm-label">
-                Contact Phone / Ext.
+                Contact Phone / Ext. <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
                 id="coord-contact-input"
@@ -372,6 +548,7 @@ export const Step2ProposalDetails = ({
                 value={coordinatorContact}
                 onChange={(e) => onCoordinatorContactChange(e.target.value)}
                 placeholder="e.g. +91 98421 12345 / Ext 521"
+                required
                 className="cbm-input"
                 style={{ height: 40 }}
               />
@@ -379,11 +556,11 @@ export const Step2ProposalDetails = ({
           </div>
         </div>
 
-        {/* SECTION: DYNAMIC CATEGORY-SPECIFIC FORM FIELDS */}
-        {schema.fields && schema.fields.length > 0 && (
+        {/* SECTION C: DYNAMIC PROGRAMME-SPECIFIC FORM FIELDS */}
+        {schema?.fields && schema.fields.length > 0 && (
           <div
             style={{
-              padding: '20px 22px',
+              padding: '22px 24px',
               borderRadius: 'var(--radius-md)',
               backgroundColor: '#FFFFFF',
               border: '1.5px solid var(--gold-border)',
@@ -397,32 +574,28 @@ export const Step2ProposalDetails = ({
                   {schema.name} Specific Form Specifications
                 </h3>
                 <p style={{ margin: '3px 0 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
-                  Fields dynamically tailored for {subCategoryName || categoryName}.
+                  Fields dynamically generated for {subCategoryName ? `${subCategoryName} (${categoryName})` : categoryName}.
                 </p>
               </div>
-              <span className="cbm-form-ribbon">Specialized Schema</span>
+              <span className="cbm-form-ribbon">Programme-Specific</span>
             </div>
-
-            {/* If Partial Guest Lecture: separate Host section header */}
-            {schema.type === 'partial_guest' && (
-              <div style={{ marginBottom: 16, padding: '8px 12px', borderRadius: 4, backgroundColor: 'var(--bg-page)', fontSize: 12, color: 'var(--text-muted)' }}>
-                ℹ️ <strong>Institutional Requirement:</strong> Resource person details and internal host faculty details are tracked separately in the ledger.
-              </div>
-            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16 }}>
               {schema.fields.map((field) => {
-                const val = eventData[field.key] || '';
-                const isHostField = field.group === 'host';
+                const val = eventData[field.key] ?? (field.defaultValue || '');
 
                 if (field.type === 'textarea') {
                   return (
                     <div key={field.key} className="cbm-input-group" style={{ gridColumn: '1 / -1' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <label htmlFor={`field-${field.key}`} className="cbm-label">
-                          {field.label} {field.required && <span style={{ color: 'var(--danger)' }}>*</span>}
+                          {field.label} {field.required ? <span style={{ color: 'var(--danger)' }}>*</span> : null}
                         </label>
-                        {!field.required && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Optional</span>}
+                        {!field.required && (
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            (Optional)
+                          </span>
+                        )}
                       </div>
                       <textarea
                         id={`field-${field.key}`}
@@ -440,25 +613,56 @@ export const Step2ProposalDetails = ({
                   );
                 }
 
+                if (field.type === 'select') {
+                  return (
+                    <div key={field.key} className="cbm-input-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label htmlFor={`field-${field.key}`} className="cbm-label">
+                          {field.label} {field.required ? <span style={{ color: 'var(--danger)' }}>*</span> : null}
+                        </label>
+                        {!field.required && (
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            (Optional)
+                          </span>
+                        )}
+                      </div>
+                      <select
+                        id={`field-${field.key}`}
+                        value={val}
+                        onChange={(e) => onEventDataChange(field.key, e.target.value)}
+                        required={field.required}
+                        className="cbm-select"
+                        style={{ height: 40 }}
+                      >
+                        <option value="">-- Select {field.label} --</option>
+                        {(field.options || []).map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                      {field.helper && (
+                        <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>{field.helper}</span>
+                      )}
+                    </div>
+                  );
+                }
+
                 return (
-                  <div
-                    key={field.key}
-                    className="cbm-input-group"
-                    style={{
-                      backgroundColor: isHostField ? '#FCFBF7' : 'transparent',
-                      padding: isHostField ? '10px 12px' : '0',
-                      borderRadius: isHostField ? 'var(--radius-sm)' : '0',
-                      border: isHostField ? '1px dashed var(--gold-border)' : 'none'
-                    }}
-                  >
-                    <label htmlFor={`field-${field.key}`} className="cbm-label">
-                      {isHostField && <span style={{ color: 'var(--primary)', fontWeight: 700 }}>[HOST] </span>}
-                      {field.label} {field.required && <span style={{ color: 'var(--danger)' }}>*</span>}
-                    </label>
+                  <div key={field.key} className="cbm-input-group">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label htmlFor={`field-${field.key}`} className="cbm-label">
+                        {field.label} {field.required ? <span style={{ color: 'var(--danger)' }}>*</span> : null}
+                      </label>
+                      {!field.required && (
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          (Optional)
+                        </span>
+                      )}
+                    </div>
                     <input
                       id={`field-${field.key}`}
                       type={field.type || 'text'}
                       value={val}
+                      min={field.min}
                       onChange={(e) => onEventDataChange(field.key, e.target.value)}
                       placeholder={field.placeholder}
                       required={field.required}
@@ -475,154 +679,27 @@ export const Step2ProposalDetails = ({
           </div>
         )}
 
-        {/* SECTION: REPEATABLE EVENTS SECTION (For Releases / Presidential Event Programmes) */}
-        {schema.hasRepeatableEvents && (
+        {/* Validation Errors Summary (if any) */}
+        {!isValid && validationErrors.length > 0 && (
           <div
             style={{
-              padding: '20px 22px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: '#FFFFFF',
-              border: '1.5px solid var(--border)',
-              boxShadow: 'var(--shadow-xs)'
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: 'var(--warning-bg)',
+              border: '1px solid var(--warning-border)',
+              color: 'var(--warning-text)',
+              fontSize: 12.5
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <GraduationCap size={16} color="var(--primary)" />
-                  Repeatable Programme Events Register
-                </h3>
-                <p style={{ margin: '3px 0 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
-                  Add multiple itemised event entries conducted under this programme release.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={onAddRepeatableEvent}
-                className="cbm-btn cbm-btn-outline"
-                style={{ height: 34, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                <Plus size={14} /> Add Event Entry
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 4 }}>
+              <AlertTriangle size={15} />
+              <span>Please complete the required details before proceeding:</span>
             </div>
-
-            {repeatableEvents.length === 0 ? (
-              <div
-                style={{
-                  padding: '28px',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--bg-page)',
-                  border: '1px dashed var(--border)',
-                  textAlign: 'center',
-                  color: 'var(--text-muted)'
-                }}
-              >
-                <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>No event entries added yet.</p>
-                <button
-                  type="button"
-                  onClick={onAddRepeatableEvent}
-                  className="cbm-btn cbm-btn-primary cbm-btn-sm"
-                >
-                  <Plus size={14} /> Add First Event
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {repeatableEvents.map((eventItem, idx) => (
-                  <div
-                    key={eventItem.id || idx}
-                    style={{
-                      padding: '16px',
-                      borderRadius: 'var(--radius-sm)',
-                      backgroundColor: 'var(--bg-page)',
-                      border: '1px solid var(--border)',
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>
-                        Event #{idx + 1}
-                      </span>
-                      {repeatableEvents.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => onRemoveRepeatableEvent(eventItem.id)}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--danger)',
-                            cursor: 'pointer',
-                            padding: 4,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            fontSize: 11.5,
-                            fontWeight: 600
-                          }}
-                          aria-label={`Remove Event #${idx + 1}`}
-                        >
-                          <Trash2 size={13} /> Remove
-                        </button>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
-                      <div className="cbm-input-group">
-                        <label className="cbm-label">
-                          Event Name / Competition Title <span style={{ color: 'var(--danger)' }}>*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={eventItem.eventName || ''}
-                          onChange={(e) => onRepeatableEventChange(eventItem.id, 'eventName', e.target.value)}
-                          placeholder="e.g. Code Relay / Web Debugging / Paper Presentation"
-                          required
-                          className="cbm-input"
-                          style={{ height: 38 }}
-                        />
-                      </div>
-
-                      <div className="cbm-input-group">
-                        <label className="cbm-label">Event Date</label>
-                        <input
-                          type="date"
-                          value={eventItem.eventDate || ''}
-                          onChange={(e) => onRepeatableEventChange(eventItem.id, 'eventDate', e.target.value)}
-                          className="cbm-input"
-                          style={{ height: 38 }}
-                        />
-                      </div>
-
-                      <div className="cbm-input-group">
-                        <label className="cbm-label">Session Venue / Lab</label>
-                        <input
-                          type="text"
-                          value={eventItem.venue || ''}
-                          onChange={(e) => onRepeatableEventChange(eventItem.id, 'venue', e.target.value)}
-                          placeholder="e.g. Lab 5 / Seminar Hall 2"
-                          className="cbm-input"
-                          style={{ height: 38 }}
-                        />
-                      </div>
-
-                      <div className="cbm-input-group" style={{ gridColumn: '1 / -1' }}>
-                        <label className="cbm-label">
-                          Event Description / Rules / Highlights
-                        </label>
-                        <textarea
-                          value={eventItem.eventDescription || ''}
-                          onChange={(e) => onRepeatableEventChange(eventItem.id, 'eventDescription', e.target.value)}
-                          placeholder="Brief description of the round format, timing, criteria, or student incharge..."
-                          rows={2}
-                          className="cbm-textarea"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ul style={{ margin: '4px 0 0 18px', padding: 0 }}>
+              {validationErrors.map((err, idx) => (
+                <li key={idx} style={{ lineHeight: 1.4 }}>{err}</li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

@@ -40,7 +40,8 @@ const formatProposalRecord = (p) => {
 // GET /api/proposals - Get real database proposals (Admin/HOD sees all, Faculty sees own)
 router.get('/', authenticateUser, async (req, res) => {
   try {
-    let query = supabaseAdmin
+    const db = req.supabase || supabaseAdmin;
+    let query = db
       .from('proposals')
       .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
       .order('created_at', { ascending: false });
@@ -68,6 +69,7 @@ router.get('/', authenticateUser, async (req, res) => {
 // POST /api/proposals - Faculty submits a new proposal
 router.post('/', authenticateUser, async (req, res) => {
   try {
+    const db = req.supabase || supabaseAdmin;
     const {
       academicYearId,
       academicYear,
@@ -98,7 +100,7 @@ router.post('/', authenticateUser, async (req, res) => {
     let resolvedAyText = academicYear;
 
     if (!resolvedAyId) {
-      const { data: activeAy, error: ayErr } = await supabaseAdmin
+      const { data: activeAy, error: ayErr } = await db
         .from('academic_years')
         .select('id, academic_year, status, is_active')
         .or('status.eq.ACTIVE,is_active.eq.true')
@@ -125,7 +127,7 @@ router.post('/', authenticateUser, async (req, res) => {
 
     // 1b. Verify Academic Year permits submissions (Active)
     if (resolvedAyId) {
-      const { data: targetAy } = await supabaseAdmin
+      const { data: targetAy } = await db
         .from('academic_years')
         .select('id, academic_year, status, is_active')
         .eq('id', resolvedAyId)
@@ -163,17 +165,32 @@ router.post('/', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Valid proposed amount greater than 0 is required.' });
     }
 
+    // Schedule sequence validation
+    const activeEventDetails = eventDetails || event_details || {};
+    const progDetails = (activeEventDetails && typeof activeEventDetails === 'object') ? activeEventDetails.programmeDetails : null;
+    if (progDetails) {
+      if (progDetails.endDate && progDetails.endDate < programDate) {
+        return res.status(400).json({ success: false, error: 'End date cannot precede the start date.' });
+      }
+      if (progDetails.startTime && progDetails.endTime) {
+        const effectiveEnd = progDetails.endDate || programDate;
+        if (effectiveEnd === programDate && progDetails.endTime <= progDetails.startTime) {
+          return res.status(400).json({ success: false, error: 'Session end time must follow start time on the same day.' });
+        }
+      }
+    }
+
     // 4. Validate and resolve Category
     let catRecord = null;
     if (categoryId) {
-      const { data: catById } = await supabaseAdmin
+      const { data: catById } = await db
         .from('budget_categories')
         .select('id, academic_year_id, budget_id, name')
         .eq('id', categoryId)
         .maybeSingle();
       catRecord = catById;
     } else {
-      const { data: catByName } = await supabaseAdmin
+      const { data: catByName } = await db
         .from('budget_categories')
         .select('id, academic_year_id, budget_id, name')
         .ilike('name', trimmedCat)
@@ -192,13 +209,13 @@ router.post('/', authenticateUser, async (req, res) => {
     // Verify category belongs to the selected academic year
     let categoryMatchesYear = catRecord.academic_year_id === resolvedAyId;
     if (!categoryMatchesYear && catRecord.budget_id) {
-      const { data: bRow } = await supabaseAdmin
+      const { data: bRow } = await db
         .from('budgets')
         .select('financial_year')
         .eq('id', catRecord.budget_id)
         .maybeSingle();
 
-      const { data: ayRow } = await supabaseAdmin
+      const { data: ayRow } = await db
         .from('academic_years')
         .select('academic_year')
         .eq('id', resolvedAyId)
@@ -221,7 +238,7 @@ router.post('/', authenticateUser, async (req, res) => {
     const resolvedCategoryId = catRecord.id;
 
     // 5. Validate and resolve Subcategory
-    const { data: validSubs, error: subsErr } = await supabaseAdmin
+    const { data: validSubs, error: subsErr } = await db
       .from('subcategories')
       .select('id, name')
       .eq('category_id', resolvedCategoryId);
@@ -293,7 +310,7 @@ router.post('/', authenticateUser, async (req, res) => {
         ? `KEC/${ayClean}/${catSlug}/${subCatSlug}`
         : `KEC/${ayClean}/${catSlug}`;
 
-      const { count } = await supabaseAdmin
+      const { count } = await db
         .from('proposals')
         .select('id', { count: 'exact', head: true });
 
@@ -305,7 +322,7 @@ router.post('/', authenticateUser, async (req, res) => {
       let attempts = 0;
       while (!isUnique && attempts < 15) {
         attempts++;
-        const { data: existing } = await supabaseAdmin
+        const { data: existing } = await db
           .from('proposals')
           .select('id')
           .eq('proposal_number', candidateId)
@@ -320,8 +337,6 @@ router.post('/', authenticateUser, async (req, res) => {
       }
       generatedProposalNumber = candidateId;
     }
-
-    const activeEventDetails = eventDetails || event_details || {};
 
     const insertPayload = {
       proposal_number: generatedProposalNumber,
@@ -340,11 +355,23 @@ router.post('/', authenticateUser, async (req, res) => {
       status: 'Pending'
     };
 
-    const { data: newProposal, error } = await supabaseAdmin
+    let { data: newProposal, error } = await db
       .from('proposals')
       .insert(insertPayload)
       .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
       .single();
+
+    if (error && db !== supabaseAdmin) {
+      const fallbackResult = await supabaseAdmin
+        .from('proposals')
+        .insert(insertPayload)
+        .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
+        .single();
+      if (!fallbackResult.error) {
+        newProposal = fallbackResult.data;
+        error = null;
+      }
+    }
 
     if (error) {
       console.error('Error inserting proposal in database:', error.message);

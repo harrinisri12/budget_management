@@ -9,14 +9,14 @@ const router = express.Router();
 
 
 // Helper: resolve academic year ID from parameter or string
-export const resolveAcademicYearId = async (ayInput) => {
+export const resolveAcademicYearId = async (ayInput, db = supabaseAdmin) => {
   if (!ayInput) return null;
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ayInput) || ayInput.startsWith('ay-');
   if (isUuid) return ayInput;
 
   // Search by academic_year string e.g. "2026-2027" or "2026 - 2027"
   const cleanAy = ayInput.trim().replace(/\s+/g, '').replace(/[–—/]/g, '-');
-  const { data } = await supabaseAdmin
+  const { data } = await db
     .from('academic_years')
     .select('id, academic_year')
     .or(`academic_year.eq.${cleanAy},academic_year.ilike.%${cleanAy}%`)
@@ -30,14 +30,15 @@ export const resolveAcademicYearId = async (ayInput) => {
 router.get('/', authenticateUser, async (req, res) => {
   try {
     const { academicYearId, academicYear, academic_year_id } = req.query;
+    const db = req.supabase || supabaseAdmin;
 
     let ayId = academicYearId || academic_year_id;
     if (!ayId && academicYear) {
-      ayId = await resolveAcademicYearId(academicYear);
+      ayId = await resolveAcademicYearId(academicYear, db);
     }
 
-    // Try Supabase first
-    let query = supabaseAdmin
+    // Query Supabase using authenticated client
+    let query = db
       .from('budget_categories')
       .select('id, budget_id, academic_year_id, name, allocated_amount, spent_amount, created_at, subcategories(id, name, category_id)')
       .order('name', { ascending: true });
@@ -52,7 +53,7 @@ router.get('/', authenticateUser, async (req, res) => {
     if (!error && (!dbCategories || dbCategories.length === 0) && ayId) {
       let ayLabel = academicYear;
       if (!ayLabel) {
-        const { data: ayRow } = await supabaseAdmin
+        const { data: ayRow } = await db
           .from('academic_years')
           .select('academic_year')
           .eq('id', ayId)
@@ -62,14 +63,14 @@ router.get('/', authenticateUser, async (req, res) => {
 
       if (ayLabel) {
         const cleanYear = ayLabel.trim().replace(/\s+/g, '').replace(/[–—/]/g, '-');
-        const { data: bRow } = await supabaseAdmin
+        const { data: bRow } = await db
           .from('budgets')
           .select('id')
           .eq('financial_year', cleanYear)
           .maybeSingle();
 
         if (bRow) {
-          const { data: bCats, error: bErr } = await supabaseAdmin
+          const { data: bCats, error: bErr } = await db
             .from('budget_categories')
             .select('id, budget_id, academic_year_id, name, allocated_amount, spent_amount, created_at, subcategories(id, name, category_id)')
             .eq('budget_id', bRow.id)
@@ -117,6 +118,7 @@ router.get('/', authenticateUser, async (req, res) => {
 router.post('/', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { academicYearId, name, budget, allocatedAmount } = req.body;
+    const db = req.supabase || supabaseAdmin;
 
     if (!academicYearId) {
       return res.status(400).json({ success: false, error: 'Academic Year ID is required.' });
@@ -129,7 +131,7 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
     const allocated = Number(budget !== undefined ? budget : (allocatedAmount || 0));
 
     // Check duplicate within the same academic year (Supabase)
-    const { data: existingSupabase } = await supabaseAdmin
+    const { data: existingSupabase } = await db
       .from('budget_categories')
       .select('id')
       .eq('academic_year_id', academicYearId)
@@ -145,14 +147,14 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
 
     // Resolve budget_id (NOT NULL column on budget_categories)
     let budgetId = null;
-    const { data: ayRow } = await supabaseAdmin
+    const { data: ayRow } = await db
       .from('academic_years')
       .select('academic_year')
       .eq('id', academicYearId)
       .maybeSingle();
 
     if (ayRow?.academic_year) {
-      const { data: bRow } = await supabaseAdmin
+      const { data: bRow } = await db
         .from('budgets')
         .select('id')
         .eq('financial_year', ayRow.academic_year)
@@ -161,7 +163,7 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
     }
 
     if (!budgetId) {
-      const { data: firstBudget } = await supabaseAdmin
+      const { data: firstBudget } = await db
         .from('budgets')
         .select('id')
         .limit(1)
@@ -180,7 +182,7 @@ router.post('/', authenticateUser, requireAdmin, async (req, res) => {
       insertData.budget_id = budgetId;
     }
 
-    const { data: newCat, error: insertError } = await supabaseAdmin
+    const { data: newCat, error: insertError } = await db
       .from('budget_categories')
       .insert(insertData)
       .select()
@@ -221,6 +223,7 @@ router.patch('/:id', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, budget, allocatedAmount } = req.body;
+    const db = req.supabase || supabaseAdmin;
 
     const updates = {};
     if (name !== undefined) {
@@ -234,7 +237,7 @@ router.patch('/:id', authenticateUser, requireAdmin, async (req, res) => {
       updates.allocated_amount = Number(budget !== undefined ? budget : allocatedAmount);
     }
 
-    const { data: updated, error } = await supabaseAdmin
+    const { data: updated, error } = await db
       .from('budget_categories')
       .update(updates)
       .eq('id', id)
@@ -273,9 +276,10 @@ router.patch('/:id', authenticateUser, requireAdmin, async (req, res) => {
 router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    const db = req.supabase || supabaseAdmin;
 
     // Check if category is used in proposals (Supabase)
-    const { data: proposalRef } = await supabaseAdmin
+    const { data: proposalRef } = await db
       .from('proposals')
       .select('id')
       .eq('category_id', id)
@@ -289,7 +293,7 @@ router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
     }
 
     // Check if referenced by transactions
-    const { data: txnRef } = await supabaseAdmin
+    const { data: txnRef } = await db
       .from('transactions')
       .select('id')
       .eq('category_id', id)
@@ -303,13 +307,13 @@ router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
     }
 
     // Remove subcategories first
-    await supabaseAdmin
+    await db
       .from('subcategories')
       .delete()
       .eq('category_id', id);
 
     // Hard delete category
-    const { error: delError } = await supabaseAdmin
+    const { error: delError } = await db
       .from('budget_categories')
       .delete()
       .eq('id', id);
@@ -336,11 +340,12 @@ router.delete('/:id', authenticateUser, requireAdmin, async (req, res) => {
 router.get('/sub-categories', authenticateUser, async (req, res) => {
   try {
     const { categoryId, categoryName, academicYearId } = req.query;
+    const db = req.supabase || supabaseAdmin;
 
     let activeCatId = categoryId;
     if (!activeCatId && categoryName && academicYearId) {
       // Find category ID by name and academic_year_id in DB
-      const { data: catFound } = await supabaseAdmin
+      const { data: catFound } = await db
         .from('budget_categories')
         .select('id')
         .eq('academic_year_id', academicYearId)
@@ -356,8 +361,8 @@ router.get('/sub-categories', authenticateUser, async (req, res) => {
       return res.json({ success: true, subCategories: [], subcategories: [] });
     }
 
-    // Try Supabase first
-    let query = supabaseAdmin
+    // Query Subcategories from Supabase using authenticated client
+    let query = db
       .from('subcategories')
       .select('id, category_id, name, created_at, updated_at')
       .order('name', { ascending: true });
@@ -366,7 +371,7 @@ router.get('/sub-categories', authenticateUser, async (req, res) => {
       query = query.eq('category_id', activeCatId);
     } else if (academicYearId) {
       // Find all category IDs for this academic year
-      const { data: catRows } = await supabaseAdmin
+      const { data: catRows } = await db
         .from('budget_categories')
         .select('id')
         .eq('academic_year_id', academicYearId);
@@ -409,6 +414,7 @@ router.get('/sub-categories', authenticateUser, async (req, res) => {
 router.post('/sub-categories', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { categoryId, name } = req.body;
+    const db = req.supabase || supabaseAdmin;
 
     if (!categoryId) {
       return res.status(400).json({ success: false, error: 'Category ID is required.' });
@@ -420,7 +426,7 @@ router.post('/sub-categories', authenticateUser, requireAdmin, async (req, res) 
     const trimmedName = name.trim();
 
     // Check duplicate in category (Supabase)
-    const { data: existingSupabase } = await supabaseAdmin
+    const { data: existingSupabase } = await db
       .from('subcategories')
       .select('id')
       .eq('category_id', categoryId)
@@ -435,7 +441,7 @@ router.post('/sub-categories', authenticateUser, requireAdmin, async (req, res) 
     }
 
     // Try Supabase insert
-    const { data: newSub, error: insertError } = await supabaseAdmin
+    const { data: newSub, error: insertError } = await db
       .from('subcategories')
       .insert({
         category_id: categoryId,
@@ -474,6 +480,7 @@ router.patch('/sub-categories/:id', authenticateUser, requireAdmin, async (req, 
   try {
     const { id } = req.params;
     const { name } = req.body;
+    const db = req.supabase || supabaseAdmin;
 
     const updates = {};
     if (name !== undefined) {
@@ -485,7 +492,7 @@ router.patch('/sub-categories/:id', authenticateUser, requireAdmin, async (req, 
     }
     updates.updated_at = new Date().toISOString();
 
-    const { data: updated, error } = await supabaseAdmin
+    const { data: updated, error } = await db
       .from('subcategories')
       .update(updates)
       .eq('id', id)
@@ -515,9 +522,10 @@ router.patch('/sub-categories/:id', authenticateUser, requireAdmin, async (req, 
 router.delete('/sub-categories/:id', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    const db = req.supabase || supabaseAdmin;
 
     // Check if referenced in proposals
-    const { data: propRef } = await supabaseAdmin
+    const { data: propRef } = await db
       .from('proposals')
       .select('id')
       .eq('subcategory_id', id)
@@ -530,7 +538,7 @@ router.delete('/sub-categories/:id', authenticateUser, requireAdmin, async (req,
       });
     }
 
-    await supabaseAdmin.from('subcategories').delete().eq('id', id);
+    await db.from('subcategories').delete().eq('id', id);
 
     return res.json({
       success: true,
