@@ -6,10 +6,15 @@ import {
   IndianRupee,
   AlertCircle,
   CheckCircle2,
-  PieChart
+  PieChart,
+  UploadCloud,
+  FileText,
+  FileCheck,
+  Eye,
+  Trash2,
+  Lock
 } from 'lucide-react';
 import { Button } from '../common/Button';
-import { FUNDING_SOURCE_OPTIONS } from '../../config/proposalFormSchemas';
 
 export const Step3BudgetDetails = ({
   academicYearLabel,
@@ -18,15 +23,57 @@ export const Step3BudgetDetails = ({
   availableBalance = 0,
   proposedAmount = '',
   onProposedAmountChange,
-  fundingSource,
-  onFundingSourceChange,
+  // Automatically matched funding category from Step 1
+  fundingCategory = '',
+  categoryBudget = 0,
+  fundingSource = '',
+  onFundingSourceChange: _onFundingSourceChange,
   budgetRemarks,
   onBudgetRemarksChange,
+  // Letter ID and PDF Upload fields
+  letterId = '',
+  onLetterIdChange,
+  letterFile = null,
+  onLetterFileChange,
   onBack,
   onContinue
 }) => {
   const parsedAmount = Number(proposedAmount);
   const isAmountValid = !isNaN(parsedAmount) && parsedAmount > 0;
+  const effectiveFundingSource = fundingCategory || fundingSource || '';
+
+  // File size formatter
+  const formatFileSize = (bytes) => {
+    if (!bytes || isNaN(bytes)) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  };
+
+  // PDF file upload handler
+  const handleFileSelection = (file) => {
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      alert('Please upload a valid PDF document (.pdf).');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size exceeds the 10 MB limit.');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    if (onLetterFileChange) {
+      onLetterFileChange({
+        file,
+        name: file.name,
+        size: file.size,
+        type: file.type || 'application/pdf',
+        lastModified: file.lastModified,
+        previewUrl
+      });
+    }
+  };
 
   // Check if reliable quota/balance tracking is configured for this faculty or category
   const hasQuotaTracking = Number(allocatedQuota) > 0 || Number(availableBalance) > 0;
@@ -34,7 +81,7 @@ export const Step3BudgetDetails = ({
   const remainingBalanceAfterProposal = availableBalance - (isAmountValid ? parsedAmount : 0);
 
   // Can proceed only with valid positive amount and non-empty funding source
-  const canProceed = isAmountValid && Boolean(fundingSource);
+  const canProceed = isAmountValid && Boolean(effectiveFundingSource);
 
   // Currency formatter helper
   const formatInRupees = (val) => {
@@ -101,25 +148,79 @@ export const Step3BudgetDetails = ({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 20 }}>
-            {/* Funding Source Head */}
+            {/* Funding Source Head (Read-Only, Automatically Matched from Selected Category) */}
             <div className="cbm-input-group">
-              <label htmlFor="funding-source-select" className="cbm-label">
-                Funding Source Head <span style={{ color: 'var(--danger)' }}>*</span>
-              </label>
-              <select
-                id="funding-source-select"
-                value={fundingSource}
-                onChange={(e) => onFundingSourceChange(e.target.value)}
-                className="cbm-select"
-                style={{ height: 44, fontSize: 13.5, fontWeight: 600 }}
-                required
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="cbm-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Lock size={12} color="var(--primary)" />
+                  Funding Source Head <span style={{ color: 'var(--danger)' }}>*</span>
+                </label>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    padding: '2px 7px',
+                    borderRadius: 4,
+                    backgroundColor: effectiveFundingSource ? '#F0FDF4' : '#FEF3C7',
+                    color: effectiveFundingSource ? '#166534' : '#92400E',
+                    border: effectiveFundingSource ? '1px solid #BBF7D0' : '1px solid #FDE68A'
+                  }}
+                >
+                  {effectiveFundingSource ? 'Auto-Matched from Category' : 'Awaiting Category'}
+                </span>
+              </div>
+
+              <div
+                id="funding-source-display"
+                style={{
+                  height: 44,
+                  padding: '0 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--bg-page)',
+                  border: '1.5px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10
+                }}
+                title="Funding source is automatically determined by the Category selected in Step 1"
               >
-                {FUNDING_SOURCE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-              <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-                Designated institutional budget head against which financial sanctions are audited.
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: effectiveFundingSource ? 'var(--text-heading)' : 'var(--text-muted)',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {effectiveFundingSource || 'Select a category in Step 1'}
+                  </span>
+                </div>
+
+                {effectiveFundingSource && categoryBudget > 0 && (
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      color: 'var(--primary)',
+                      flexShrink: 0,
+                      padding: '2px 8px',
+                      backgroundColor: 'var(--gold-subtle)',
+                      borderRadius: 4,
+                      border: '1px solid var(--gold-border)'
+                    }}
+                  >
+                    Allocated: {formatInRupees(categoryBudget)}
+                  </span>
+                )}
+              </div>
+
+              <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <CheckCircle2 size={12} color="var(--success-text)" />
+                Automatically determined by the Category selected in Step 1.
               </span>
             </div>
 
@@ -204,6 +305,185 @@ export const Step3BudgetDetails = ({
               <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
                 Optional remarks to assist the Head of Department (HOD) and Budget Administrator during financial evaluation.
               </span>
+            </div>
+          </div>
+        </div>
+
+        {/* SANCTION / REFERENCE LETTER & DOCUMENT ATTACHMENT */}
+        <div
+          style={{
+            padding: '24px 26px',
+            borderRadius: 'var(--radius-md)',
+            backgroundColor: '#FFFFFF',
+            border: '1.5px solid var(--gold-border)',
+            boxShadow: 'var(--shadow-xs)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <FileText size={17} color="var(--primary)" />
+                Sanction / Reference Letter & Document Attachment
+              </h3>
+              <p style={{ margin: '3px 0 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                Provide the official sanction or permission letter identifier and optionally attach the approval letter (PDF).
+              </p>
+            </div>
+            <span className="cbm-form-ribbon">Sanction Document</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 20 }}>
+            {/* Letter ID Field */}
+            <div className="cbm-input-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label htmlFor="letter-id-input" className="cbm-label">
+                  Sanction / Permission Letter ID
+                </label>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  (Optional / Reference)
+                </span>
+              </div>
+              <input
+                id="letter-id-input"
+                type="text"
+                value={letterId}
+                onChange={(e) => onLetterIdChange && onLetterIdChange(e.target.value)}
+                placeholder="e.g. KEC/CSE/2026-27/OD-104 or REF-LTR-458"
+                className="cbm-input"
+                style={{ height: 44, fontSize: 13.5 }}
+              />
+              <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
+                Reference code or outward number of the principal / HOD approval letter.
+              </span>
+            </div>
+
+            {/* PDF Upload Field */}
+            <div className="cbm-input-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="cbm-label" htmlFor="letter-pdf-input">
+                  Approval / Sanction Letter (PDF Document)
+                </label>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  (PDF only, max 10MB)
+                </span>
+              </div>
+
+              {!letterFile ? (
+                <div>
+                  <label
+                    htmlFor="letter-pdf-input"
+                    style={{
+                      border: '2px dashed var(--border)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      cursor: 'pointer',
+                      backgroundColor: 'var(--bg-page)',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        handleFileSelection(e.dataTransfer.files[0]);
+                      }
+                    }}
+                  >
+                    <UploadCloud size={24} color="var(--primary)" />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--primary)' }}>
+                      Click to choose PDF or drag & drop here
+                    </span>
+                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                      Supports standard PDF documents up to 10 MB
+                    </span>
+                    <input
+                      id="letter-pdf-input"
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleFileSelection(e.target.files[0]);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border)',
+                    backgroundColor: '#F8FAFC',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 6,
+                        backgroundColor: '#FEE2E2',
+                        color: '#DC2626',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      <FileCheck size={20} />
+                    </div>
+                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text-heading)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        {letterFile.name}
+                      </p>
+                      <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                        {formatFileSize(letterFile.size)} • PDF Document
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {letterFile.previewUrl && (
+                      <a
+                        href={letterFile.previewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="cbm-btn cbm-btn-outline cbm-btn-sm"
+                        style={{ height: 30, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <Eye size={12} /> View
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onLetterFileChange && onLetterFileChange(null)}
+                      className="cbm-btn cbm-btn-outline cbm-btn-sm"
+                      style={{ height: 30, fontSize: 11.5, color: 'var(--danger)', borderColor: 'var(--danger-border)' }}
+                      title="Remove file"
+                    >
+                      <Trash2 size={12} /> Remove
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Informative storage notice respecting constraint 6 and 7 */}
+              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.3 }}>
+                  ℹ️ Document metadata (name, size, type, Letter ID) is recorded with proposal details. Cloud binary file storage requires a provisioned Supabase Storage bucket.
+                </span>
+              </div>
             </div>
           </div>
         </div>

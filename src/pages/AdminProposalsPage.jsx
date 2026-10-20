@@ -216,6 +216,34 @@ export const AdminProposalsPage = () => {
                   <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 1 }}>{selectedProposal.guestDetails || 'None specified'}</p>
                 </div>
 
+                {/* Event Duration (e.g. Hackathon Duration) */}
+                {(selectedProposal.eventDetails?.programmeDetails?.duration || selectedProposal.eventDetails?.programmeDetails?.durationHours) && (
+                  <div style={{ paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Event Duration</span>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: '#0369A1', marginTop: 1 }}>
+                      {selectedProposal.eventDetails?.programmeDetails?.duration || `${selectedProposal.eventDetails?.programmeDetails?.durationHours} Hours`}
+                    </p>
+                  </div>
+                )}
+
+                {/* Letter ID and Document Attachment */}
+                {(selectedProposal.eventDetails?.letterId || selectedProposal.eventDetails?.documentDetails?.letterId || selectedProposal.eventDetails?.documentDetails?.fileName) && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
+                    <div>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Sanction Letter ID</span>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)', marginTop: 1 }}>
+                        {selectedProposal.eventDetails?.letterId || selectedProposal.eventDetails?.documentDetails?.letterId || '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Document</span>
+                      <p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--primary)', marginTop: 1 }}>
+                        {selectedProposal.eventDetails?.documentDetails?.fileName ? `📄 ${selectedProposal.eventDetails.documentDetails.fileName}` : 'No document attached'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposed Amount</span>
                   <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-heading)', marginTop: 1 }}>

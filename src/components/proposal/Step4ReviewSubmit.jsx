@@ -13,7 +13,9 @@ import {
   Send,
   AlertCircle,
   CheckCircle2,
-  Timer
+  Timer,
+  FileText,
+  Eye
 } from 'lucide-react';
 import { Button } from '../common/Button';
 import { calculateHackathonDuration } from '../../config/proposalFormSchemas';
@@ -36,6 +38,11 @@ export const Step4ReviewSubmit = ({
   coordinatorName,
   coordinatorDesignation,
   coordinatorContact,
+  // Hackathon duration manual entry prop
+  hackathonDurationHours = '',
+  // Letter ID & PDF File props
+  letterId = '',
+  letterFile = null,
   eventData = {},
   fundingSource,
   budgetRemarks,
@@ -56,6 +63,23 @@ export const Step4ReviewSubmit = ({
   const hackathonDuration = useMemo(() => {
     return isHackathon ? calculateHackathonDuration(programDate, endDate, startTime, endTime) : null;
   }, [isHackathon, programDate, endDate, startTime, endTime]);
+
+  const effectiveHackathonDurationText = useMemo(() => {
+    if (!isHackathon) return null;
+    if (hackathonDurationHours) {
+      return `${hackathonDurationHours} Hour${Number(hackathonDurationHours) === 1 ? '' : 's'}`;
+    }
+    return hackathonDuration?.isValid ? hackathonDuration.displayText : null;
+  }, [isHackathon, hackathonDurationHours, hackathonDuration]);
+
+  // File size formatter helper
+  const formatFileSize = (bytes) => {
+    if (!bytes || isNaN(bytes)) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  };
 
   const formatDisplayDate = (dateIso) => {
     if (!dateIso) return '—';
@@ -243,13 +267,22 @@ export const Step4ReviewSubmit = ({
                 </div>
 
                 {/* If Hackathon: Display duration */}
-                {isHackathon && hackathonDuration?.isValid && (
+                {isHackathon && (effectiveHackathonDurationText || hackathonDuration?.isValid) && (
                   <div>
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Timer size={12} /> Total Hackathon Duration
                     </span>
-                    <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 800, color: '#0369A1' }}>
-                      {hackathonDuration.displayText}
+                    <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 800, color: '#0369A1', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span>{effectiveHackathonDurationText || hackathonDuration?.displayText}</span>
+                      {hackathonDurationHours ? (
+                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, backgroundColor: '#E0F2FE', color: '#0369A1' }}>
+                          Manually Specified
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 6px', borderRadius: 4, backgroundColor: '#F1F5F9', color: 'var(--text-muted)' }}>
+                          Auto-Computed
+                        </span>
+                      )}
                     </p>
                   </div>
                 )}
@@ -387,6 +420,75 @@ export const Step4ReviewSubmit = ({
                   </span>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* SECTION 4: SANCTION / REFERENCE LETTER & DOCUMENT ATTACHMENT */}
+          <div style={{ padding: '18px 20px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <FileText size={16} color="var(--primary)" />
+                4. Sanction / Permission Letter & Document Reference
+              </h3>
+              <button
+                type="button"
+                onClick={() => onEditStep(3)}
+                className="cbm-btn cbm-btn-outline cbm-btn-sm"
+                style={{ height: 28, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                <Edit2 size={12} /> Edit Section 3
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: 14 }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Sanction / Reference Letter ID
+                </span>
+                <p style={{ margin: '3px 0 0 0', fontSize: 13.5, fontWeight: 700, color: letterId ? 'var(--text-heading)' : 'var(--text-muted)' }}>
+                  {letterId || 'None specified (Optional)'}
+                </p>
+              </div>
+
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Attached Sanction Document (PDF)
+                </span>
+                {letterFile ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <FileCheck size={16} color="#DC2626" />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)' }}>
+                        {letterFile.name}
+                      </span>
+                      <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                        ({formatFileSize(letterFile.size)})
+                      </span>
+                    </div>
+                    {letterFile.previewUrl && (
+                      <a
+                        href={letterFile.previewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="cbm-btn cbm-btn-outline cbm-btn-sm"
+                        style={{ height: 26, padding: '0 8px', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <Eye size={11} /> View PDF
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p style={{ margin: '3px 0 0 0', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                    No PDF document attached (Optional)
+                  </p>
+                )}
+              </div>
+
+              <div style={{ gridColumn: '1 / -1', padding: '8px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border-subtle)', fontSize: 11.5, color: 'var(--text-muted)' }}>
+                <span>
+                  <strong>Persistence Status:</strong> Letter ID and document metadata will be recorded in the proposal record. Supabase Storage bucket is currently not configured, so binary file storage requires provisioning a cloud storage bucket.
+                </span>
+              </div>
             </div>
           </div>
         </div>

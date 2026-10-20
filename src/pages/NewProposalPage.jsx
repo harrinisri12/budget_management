@@ -365,6 +365,8 @@ export const NewProposalPage = () => {
     user?.designation || (user?.role === 'hod' ? 'HOD' : 'Assistant Professor')
   );
   const [coordinatorContact, setCoordinatorContact] = useState(user?.phone || '');
+  // Manual Hackathon Duration Entry (Hours)
+  const [hackathonDurationHours, setHackathonDurationHours] = useState('');
 
   // Category-specific dynamic answers dictionary
   const [eventData, setEventData] = useState({});
@@ -387,16 +389,17 @@ export const NewProposalPage = () => {
   // ---------------------------------------------------------------------------
   // Step 3: Budget Details State (Single Amount Per Proposal)
   // ---------------------------------------------------------------------------
-  const [fundingSource, setFundingSource] = useState('Department Budget Allocation');
+  // Funding source head is strictly and automatically derived from the Category selected in Step 1
+  const fundingSource = useMemo(() => {
+    return selectedCategoryName || '';
+  }, [selectedCategoryName]);
+
   const [proposedAmount, setProposedAmount] = useState('');
   const [budgetRemarks, setBudgetRemarks] = useState('');
 
-  // Update default funding source when schema changes
-  useEffect(() => {
-    if (activeSchema?.defaultFundingSource) {
-      setFundingSource(activeSchema.defaultFundingSource);
-    }
-  }, [activeSchema]);
+  // Step 3: Sanction / Reference Letter ID and Uploaded PDF File
+  const [letterId, setLetterId] = useState('');
+  const [letterFile, setLetterFile] = useState(null);
 
   // Authoritative Budget Metrics
   const metrics = (typeof getFacultyMetrics === 'function' ? getFacultyMetrics(user?.email) : null) || {};
@@ -469,23 +472,46 @@ export const NewProposalPage = () => {
       const parts = [gName, gDesig, gOrg].filter(Boolean);
       formattedGuestDetails = parts.join(', ');
 
-      // Live Hackathon duration calculation if applicable
-      const hackathonDuration = activeSchema.type === 'hackathon'
+      // Hackathon duration calculation and manual entry resolution
+      const computedHackathonDuration = activeSchema.type === 'hackathon'
         ? calculateHackathonDuration(programDate, endDate, startTime, endTime)
         : null;
+
+      const effectiveDurationHours = (activeSchema.type === 'hackathon' && hackathonDurationHours)
+        ? Number(hackathonDurationHours)
+        : (computedHackathonDuration?.isValid ? computedHackathonDuration.hours : null);
+
+      const effectiveDurationText = effectiveDurationHours
+        ? `${effectiveDurationHours} Hour${effectiveDurationHours === 1 ? '' : 's'}`
+        : (computedHackathonDuration?.isValid ? computedHackathonDuration.displayText : null);
+
+      // Document details metadata (Letter ID & PDF)
+      const trimmedLetterId = (letterId || '').trim();
+      const documentDetails = {
+        letterId: trimmedLetterId || null,
+        fileName: letterFile?.name || null,
+        fileSize: letterFile?.size || null,
+        fileType: letterFile?.type || null,
+        uploadedAt: letterFile ? new Date().toISOString() : null,
+        hasDocument: Boolean(letterFile),
+        storageStatus: letterFile ? 'metadata_only_no_cloud_bucket' : 'none'
+      };
 
       // Build rich, structured event details payload
       const richEventDetails = {
         schemaType: activeSchema.type,
         categoryName: selectedCategoryName,
         subCategoryName: selectedSubCategoryName,
+        letterId: trimmedLetterId || null,
+        documentDetails,
         programmeDetails: {
           title: title.trim(),
           programDate,
           endDate: endDate || null,
           startTime,
           endTime,
-          durationHours: hackathonDuration?.isValid ? hackathonDuration.hours : null,
+          durationHours: effectiveDurationHours,
+          duration: effectiveDurationText,
           venue,
           programmeLevel,
           audiences: selectedAudiences,
@@ -495,7 +521,14 @@ export const NewProposalPage = () => {
             contact: coordinatorContact
           }
         },
-        categoryDetails: { ...eventData },
+        categoryDetails: {
+          ...eventData,
+          ...(activeSchema.type === 'hackathon' ? {
+            hackathonDurationHours: effectiveDurationHours,
+            durationHours: effectiveDurationHours,
+            duration: effectiveDurationText
+          } : {})
+        },
         fundingSource,
         budgetRemarks: budgetRemarks.trim() || null,
         totalProposedAmount,
@@ -547,8 +580,14 @@ export const NewProposalPage = () => {
     setVenue('CC3 Seminar Hall');
     setSelectedAudiences(['Students (UG)']);
     setEventData({});
+    setHackathonDurationHours('');
     setProposedAmount('');
     setBudgetRemarks('');
+    setLetterId('');
+    if (letterFile?.previewUrl) {
+      try { URL.revokeObjectURL(letterFile.previewUrl); } catch { /* ignore */ }
+    }
+    setLetterFile(null);
     setSubmittedProposal(null);
     setSubmissionError('');
     setCurrentStep(1);
@@ -653,6 +692,8 @@ export const NewProposalPage = () => {
               onCoordinatorDesignationChange={setCoordinatorDesignation}
               coordinatorContact={coordinatorContact}
               onCoordinatorContactChange={setCoordinatorContact}
+              hackathonDurationHours={hackathonDurationHours}
+              onHackathonDurationHoursChange={setHackathonDurationHours}
               eventData={eventData}
               onEventDataChange={handleEventDataChange}
               onBack={() => setCurrentStep(1)}
@@ -660,7 +701,7 @@ export const NewProposalPage = () => {
             />
           )}
 
-          {/* STEP 3: Single Budget Amount Details */}
+          {/* STEP 3: Single Budget Amount Details & Sanction Document */}
           {currentStep === 3 && (
             <Step3BudgetDetails
               academicYearLabel={selectedAcademicYearLabel}
@@ -669,10 +710,15 @@ export const NewProposalPage = () => {
               availableBalance={currentAvailableBalance}
               proposedAmount={proposedAmount}
               onProposedAmountChange={setProposedAmount}
+              fundingCategory={selectedCategoryName}
+              categoryBudget={selectedCategoryObj?.budget || selectedCategoryObj?.allocatedAmount || 0}
               fundingSource={fundingSource}
-              onFundingSourceChange={setFundingSource}
               budgetRemarks={budgetRemarks}
               onBudgetRemarksChange={setBudgetRemarks}
+              letterId={letterId}
+              onLetterIdChange={setLetterId}
+              letterFile={letterFile}
+              onLetterFileChange={setLetterFile}
               onBack={() => setCurrentStep(2)}
               onContinue={handleContinueStep3}
             />
@@ -698,6 +744,9 @@ export const NewProposalPage = () => {
               coordinatorName={coordinatorName}
               coordinatorDesignation={coordinatorDesignation}
               coordinatorContact={coordinatorContact}
+              hackathonDurationHours={hackathonDurationHours}
+              letterId={letterId}
+              letterFile={letterFile}
               eventData={eventData}
               fundingSource={fundingSource}
               budgetRemarks={budgetRemarks}

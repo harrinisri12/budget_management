@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 export const STEPS = [
   { id: 1, title: 'Academic Year & Category', shortTitle: 'Configuration', sub: 'Academic Year & Categories' },
   { id: 2, title: 'Proposal Details', shortTitle: 'Details', sub: 'Programme Specifications' },
-  { id: 3, title: 'Budget & Additional Details', shortTitle: 'Budget', sub: 'Itemised Expenditure & Quota' },
+  { id: 3, title: 'Budget & Sanction Letter', shortTitle: 'Budget', sub: 'Budget & Reference Letter' },
   { id: 4, title: 'Review & Submit', shortTitle: 'Review', sub: 'Pre-Submission Audit' },
   { id: 5, title: 'Submission Complete', shortTitle: 'Complete', sub: 'Acknowledgement' }
 ];

@@ -26,6 +26,10 @@ export const Step5SubmissionComplete = ({
   const amount = Number(submittedProposal?.amount || 0);
   const submissionDate = submittedProposal?.proposalDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const status = submittedProposal?.status || 'Pending';
+  const letterId = submittedProposal?.eventDetails?.letterId || submittedProposal?.eventDetails?.documentDetails?.letterId;
+  const docName = submittedProposal?.eventDetails?.documentDetails?.fileName;
+  const durationText = submittedProposal?.eventDetails?.programmeDetails?.duration ||
+    (submittedProposal?.eventDetails?.programmeDetails?.durationHours ? `${submittedProposal.eventDetails.programmeDetails.durationHours} Hours` : null);
 
   const handleCopyId = () => {
     if (navigator?.clipboard) {
@@ -166,6 +170,33 @@ export const Step5SubmissionComplete = ({
                 <Badge status={status} />
               </div>
             </div>
+
+            {letterId && (
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Sanction Letter ID</span>
+                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>
+                  {letterId}
+                </p>
+              </div>
+            )}
+
+            {durationText && (
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Event Duration</span>
+                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
+                  {durationText}
+                </p>
+              </div>
+            )}
+
+            {docName && (
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Attached Document</span>
+                <p style={{ margin: '3px 0 0 0', fontSize: 12.5, fontWeight: 600, color: 'var(--primary)' }}>
+                  📄 {docName}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -246,6 +277,27 @@ export const Step5SubmissionComplete = ({
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Submission Date</span>
                 <p style={{ margin: '2px 0 0 0', fontSize: 13 }}>{submissionDate}</p>
               </div>
+
+              {letterId && (
+                <div>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Sanction Letter ID</span>
+                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 700 }}>{letterId}</p>
+                </div>
+              )}
+
+              {durationText && (
+                <div>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Event Duration</span>
+                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 700, color: '#0369A1' }}>{durationText}</p>
+                </div>
+              )}
+
+              {docName && (
+                <div>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Attached Document</span>
+                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--primary)' }}>📄 {docName}</p>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>

@@ -49,6 +49,9 @@ export const Step2ProposalDetails = ({
   onCoordinatorDesignationChange,
   coordinatorContact,
   onCoordinatorContactChange,
+  // Hackathon duration manual entry
+  hackathonDurationHours = '',
+  onHackathonDurationHoursChange,
   // Dynamic category details
   eventData = {},
   onEventDataChange,
@@ -108,6 +111,15 @@ export const Step2ProposalDetails = ({
       errors.push('Coordinator Contact Phone / Extension is required.');
     }
 
+    // Hackathon Duration Validation
+    if (isHackathon) {
+      if (!hackathonDurationHours && !hackathonDuration?.isValid) {
+        errors.push('Hackathon Duration is required (please enter total duration in hours).');
+      } else if (hackathonDurationHours && (isNaN(Number(hackathonDurationHours)) || Number(hackathonDurationHours) <= 0)) {
+        errors.push('Hackathon Duration must be a positive number of hours.');
+      }
+    }
+
     // Dynamic schema fields validation (only fields marked required: true)
     if (schema?.fields) {
       for (const field of schema.fields) {
@@ -136,7 +148,10 @@ export const Step2ProposalDetails = ({
     coordinatorDesignation,
     coordinatorContact,
     schema,
-    eventData
+    eventData,
+    isHackathon,
+    hackathonDurationHours,
+    hackathonDuration
   ]);
 
   const isValid = validationErrors.length === 0;
@@ -387,50 +402,50 @@ export const Step2ProposalDetails = ({
             </div>
           )}
 
-          {/* Live Hackathon Duration Card */}
+          {/* Interactive Hackathon Duration Specification */}
           {isHackathon && (
             <div
               style={{
-                marginTop: 16,
-                padding: '14px 18px',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: hackathonDuration?.isValid ? '#F0F9FF' : 'var(--bg-page)',
-                border: hackathonDuration?.isValid ? '1px solid #BAE6FD' : '1px solid var(--border)',
+                marginTop: 18,
+                padding: '16px 20px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: '#F0F9FF',
+                border: '1.5px solid #BAE6FD',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
+                flexDirection: 'column',
                 gap: 12
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: '50%',
-                    backgroundColor: hackathonDuration?.isValid ? '#0284C7' : 'var(--slate-300)',
-                    color: '#FFFFFF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Timer size={20} />
-                </div>
-                <div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    Calculated Hackathon Duration (Auto-Computed)
-                  </span>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: hackathonDuration?.isValid ? '#0369A1' : 'var(--text-heading)' }}>
-                    {hackathonDuration?.isValid ? hackathonDuration.displayText : 'Awaiting start and end dates/times...'}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      backgroundColor: '#0284C7',
+                      color: '#FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}
+                  >
+                    <Timer size={19} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: '#0369A1' }}>
+                      Hackathon Duration Specification
+                    </h4>
+                    <span style={{ fontSize: 11.5, color: '#0284C7' }}>
+                      Enter total duration in hours, select a standard duration preset, or sync from scheduled dates/times.
+                    </span>
                   </div>
                 </div>
-              </div>
 
-              {hackathonDuration?.isValid && (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {hackathonDuration.isOvernight && (
+                {/* Status Badges */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {hackathonDurationHours && (
                     <span
                       style={{
                         padding: '3px 8px',
@@ -441,10 +456,24 @@ export const Step2ProposalDetails = ({
                         fontWeight: 700
                       }}
                     >
+                      Manually Specified: {hackathonDurationHours} Hours
+                    </span>
+                  )}
+                  {((hackathonDurationHours && Number(hackathonDurationHours) >= 24) || hackathonDuration?.isOvernight) && (
+                    <span
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 4,
+                        backgroundColor: '#FEF3C7',
+                        color: '#92400E',
+                        fontSize: 11,
+                        fontWeight: 700
+                      }}
+                    >
                       Overnight Hackathon
                     </span>
                   )}
-                  {hackathonDuration.isMultiDay && (
+                  {((hackathonDurationHours && Number(hackathonDurationHours) >= 24) || hackathonDuration?.isMultiDay) && (
                     <span
                       style={{
                         padding: '3px 8px',
@@ -459,7 +488,105 @@ export const Step2ProposalDetails = ({
                     </span>
                   )}
                 </div>
-              )}
+              </div>
+
+              {/* Input & Action Controls Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14, alignItems: 'center' }}>
+                {/* Manual Input */}
+                <div className="cbm-input-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="hackathon-duration-input" className="cbm-label" style={{ fontSize: 12 }}>
+                    Hackathon Duration (Total Hours) <span style={{ color: 'var(--danger)' }}>*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="hackathon-duration-input"
+                      type="number"
+                      min="1"
+                      step="any"
+                      placeholder="e.g. 24 or 36"
+                      value={hackathonDurationHours}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val.startsWith('-')) return;
+                        onHackathonDurationHoursChange(val);
+                      }}
+                      className="cbm-input"
+                      style={{
+                        height: 40,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: '#0369A1',
+                        backgroundColor: '#FFFFFF',
+                        borderColor: '#BAE6FD'
+                      }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div>
+                  <span className="cbm-label" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>
+                    Quick Presets:
+                  </span>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {[
+                      { label: '12h', hours: '12' },
+                      { label: '24h (1 Day)', hours: '24' },
+                      { label: '36h', hours: '36' },
+                      { label: '48h (2 Days)', hours: '48' }
+                    ].map((preset) => (
+                      <button
+                        key={preset.hours}
+                        type="button"
+                        onClick={() => onHackathonDurationHoursChange(preset.hours)}
+                        style={{
+                          padding: '4px 9px',
+                          borderRadius: 4,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          border: hackathonDurationHours === preset.hours ? '1px solid #0284C7' : '1px solid #BAE6FD',
+                          backgroundColor: hackathonDurationHours === preset.hours ? '#0284C7' : '#FFFFFF',
+                          color: hackathonDurationHours === preset.hours ? '#FFFFFF' : '#0369A1',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Auto-Calculate / Sync from Schedule Option */}
+                {hackathonDuration?.isValid && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span className="cbm-label" style={{ fontSize: 12 }}>
+                      Calculated from Schedule:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onHackathonDurationHoursChange(String(hackathonDuration.hours))}
+                      className="cbm-btn cbm-btn-outline cbm-btn-sm"
+                      style={{
+                        height: 38,
+                        fontSize: 11.5,
+                        backgroundColor: '#FFFFFF',
+                        borderColor: '#BAE6FD',
+                        color: '#0369A1',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6
+                      }}
+                      title="Apply calculated duration based on start and end dates/times"
+                    >
+                      <Timer size={13} />
+                      <span>Sync: {hackathonDuration.displayText}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
