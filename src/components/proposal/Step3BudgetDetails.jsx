@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ArrowRight,
   ArrowLeft,
@@ -12,7 +12,8 @@ import {
   FileCheck,
   Eye,
   Trash2,
-  Lock
+  Lock,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '../common/Button';
 
@@ -38,9 +39,19 @@ export const Step3BudgetDetails = ({
   onBack,
   onContinue
 }) => {
+  const [fileError, setFileError] = useState('');
+  const [letterIdTouched, setLetterIdTouched] = useState(false);
+
   const parsedAmount = Number(proposedAmount);
   const isAmountValid = !isNaN(parsedAmount) && parsedAmount > 0;
   const effectiveFundingSource = fundingCategory || fundingSource || '';
+
+  // Letter ID validation: Reject empty or whitespace-only values
+  const trimmedLetterId = (letterId || '').trim();
+  const isLetterIdValid = trimmedLetterId.length > 0;
+
+  // PDF file validation: Require a valid selected PDF file
+  const isLetterFileValid = Boolean(letterFile && letterFile.name);
 
   // File size formatter
   const formatFileSize = (bytes) => {
@@ -54,14 +65,29 @@ export const Step3BudgetDetails = ({
   // PDF file upload handler
   const handleFileSelection = (file) => {
     if (!file) return;
+    setFileError('');
+
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      alert('Please upload a valid PDF document (.pdf).');
+      const errMsg = 'Invalid file type: Please upload a valid PDF document (.pdf).';
+      setFileError(errMsg);
+      alert(errMsg);
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size exceeds the 10 MB limit.');
+      const errMsg = `File size (${formatFileSize(file.size)}) exceeds the 10 MB maximum limit.`;
+      setFileError(errMsg);
+      alert(errMsg);
       return;
     }
+
+    if (letterFile?.previewUrl) {
+      try {
+        URL.revokeObjectURL(letterFile.previewUrl);
+      } catch {
+        // ignore
+      }
+    }
+
     const previewUrl = URL.createObjectURL(file);
     if (onLetterFileChange) {
       onLetterFileChange({
@@ -70,7 +96,8 @@ export const Step3BudgetDetails = ({
         size: file.size,
         type: file.type || 'application/pdf',
         lastModified: file.lastModified,
-        previewUrl
+        previewUrl,
+        uploadedAt: new Date().toISOString()
       });
     }
   };
@@ -80,8 +107,8 @@ export const Step3BudgetDetails = ({
   const isOverBudget = hasQuotaTracking && isAmountValid && parsedAmount > availableBalance;
   const remainingBalanceAfterProposal = availableBalance - (isAmountValid ? parsedAmount : 0);
 
-  // Can proceed only with valid positive amount and non-empty funding source
-  const canProceed = isAmountValid && Boolean(effectiveFundingSource);
+  // Can proceed only with valid positive amount, non-empty funding source, valid Letter ID, and valid PDF
+  const canProceed = isAmountValid && Boolean(effectiveFundingSource) && isLetterIdValid && isLetterFileValid;
 
   // Currency formatter helper
   const formatInRupees = (val) => {
@@ -323,13 +350,22 @@ export const Step3BudgetDetails = ({
             <div>
               <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <FileText size={17} color="var(--primary)" />
-                Sanction / Reference Letter & Document Attachment
+                Sanction / Reference Letter & Document Attachment <span style={{ color: 'var(--danger)' }}>*</span>
               </h3>
               <p style={{ margin: '3px 0 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
-                Provide the official sanction or permission letter identifier and optionally attach the approval letter (PDF).
+                Provide the official sanction or permission letter identifier and attach the mandatory approval letter (PDF).
               </p>
             </div>
-            <span className="cbm-form-ribbon">Sanction Document</span>
+            <span
+              className="cbm-form-ribbon"
+              style={{
+                backgroundColor: isLetterIdValid && isLetterFileValid ? '#F0FDF4' : '#FEF2F2',
+                color: isLetterIdValid && isLetterFileValid ? '#166534' : '#DC2626',
+                border: isLetterIdValid && isLetterFileValid ? '1px solid #BBF7D0' : '1px solid #FECACA'
+              }}
+            >
+              {isLetterIdValid && isLetterFileValid ? 'Mandatory Requirements Satisfied' : 'Mandatory Document & ID *'}
+            </span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 20 }}>
@@ -337,34 +373,82 @@ export const Step3BudgetDetails = ({
             <div className="cbm-input-group">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label htmlFor="letter-id-input" className="cbm-label">
-                  Sanction / Permission Letter ID
+                  Sanction / Permission Letter ID <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  (Optional / Reference)
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    padding: '2px 7px',
+                    borderRadius: 4,
+                    backgroundColor: isLetterIdValid ? '#F0FDF4' : '#FEF2F2',
+                    color: isLetterIdValid ? '#166534' : '#DC2626',
+                    border: isLetterIdValid ? '1px solid #BBF7D0' : '1px solid #FECACA'
+                  }}
+                >
+                  {isLetterIdValid ? 'Valid ID' : 'Required *'}
                 </span>
               </div>
               <input
                 id="letter-id-input"
                 type="text"
                 value={letterId}
-                onChange={(e) => onLetterIdChange && onLetterIdChange(e.target.value)}
+                onChange={(e) => {
+                  setLetterIdTouched(true);
+                  if (onLetterIdChange) {
+                    onLetterIdChange(e.target.value);
+                  }
+                }}
+                onBlur={() => setLetterIdTouched(true)}
                 placeholder="e.g. KEC/CSE/2026-27/OD-104 or REF-LTR-458"
                 className="cbm-input"
-                style={{ height: 44, fontSize: 13.5 }}
+                required
+                aria-required="true"
+                style={{
+                  height: 44,
+                  fontSize: 13.5,
+                  borderColor: letterIdTouched && !isLetterIdValid ? 'var(--danger)' : undefined
+                }}
               />
-              <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-                Reference code or outward number of the principal / HOD approval letter.
-              </span>
+              <div style={{ marginTop: 4 }}>
+                {letterIdTouched && !isLetterIdValid ? (
+                  <span style={{ fontSize: 11.5, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <AlertCircle size={12} />
+                    Sanction / Permission Letter ID is required and cannot be empty or whitespace only.
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 11.5, color: isLetterIdValid ? 'var(--success-text)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {isLetterIdValid ? (
+                      <>
+                        <CheckCircle2 size={12} color="var(--success-text)" />
+                        Sanction Letter ID verified: <strong>{trimmedLetterId}</strong>
+                      </>
+                    ) : (
+                      'Official reference code or outward number of the principal / HOD approval letter (Mandatory).'
+                    )}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* PDF Upload Field */}
             <div className="cbm-input-group">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label className="cbm-label" htmlFor="letter-pdf-input">
-                  Approval / Sanction Letter (PDF Document)
+                  Approval / Sanction Letter (PDF Document) <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  (PDF only, max 10MB)
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    padding: '2px 7px',
+                    borderRadius: 4,
+                    backgroundColor: isLetterFileValid ? '#F0FDF4' : '#FEF2F2',
+                    color: isLetterFileValid ? '#166534' : '#DC2626',
+                    border: isLetterFileValid ? '1px solid #BBF7D0' : '1px solid #FECACA'
+                  }}
+                >
+                  {isLetterFileValid ? 'PDF Attached' : 'Required (PDF) *'}
                 </span>
               </div>
 
@@ -399,7 +483,7 @@ export const Step3BudgetDetails = ({
                       Click to choose PDF or drag & drop here
                     </span>
                     <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                      Supports standard PDF documents up to 10 MB
+                      Supports standard PDF documents up to 10 MB (Mandatory)
                     </span>
                     <input
                       id="letter-pdf-input"
@@ -419,8 +503,8 @@ export const Step3BudgetDetails = ({
                   style={{
                     padding: '12px 14px',
                     borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border)',
-                    backgroundColor: '#F8FAFC',
+                    border: '1px solid #BBF7D0',
+                    backgroundColor: '#F0FDF4',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -433,8 +517,8 @@ export const Step3BudgetDetails = ({
                         width: 36,
                         height: 36,
                         borderRadius: 6,
-                        backgroundColor: '#FEE2E2',
-                        color: '#DC2626',
+                        backgroundColor: '#DC2626',
+                        color: '#FFFFFF',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -447,8 +531,10 @@ export const Step3BudgetDetails = ({
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text-heading)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                         {letterFile.name}
                       </p>
-                      <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                        {formatFileSize(letterFile.size)} • PDF Document
+                      <span style={{ fontSize: 11.5, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>{formatFileSize(letterFile.size)} • PDF</span>
+                        <span>•</span>
+                        <span style={{ fontWeight: 600 }}>Ready for submission</span>
                       </span>
                     </div>
                   </div>
@@ -465,9 +551,36 @@ export const Step3BudgetDetails = ({
                         <Eye size={12} /> View
                       </a>
                     )}
+                    {/* Replace PDF Button */}
+                    <label
+                      htmlFor="letter-pdf-replace-input"
+                      className="cbm-btn cbm-btn-outline cbm-btn-sm"
+                      style={{ height: 30, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}
+                      title="Replace with another PDF"
+                    >
+                      <RefreshCw size={12} /> Replace
+                      <input
+                        id="letter-pdf-replace-input"
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleFileSelection(e.target.files[0]);
+                          }
+                        }}
+                      />
+                    </label>
                     <button
                       type="button"
-                      onClick={() => onLetterFileChange && onLetterFileChange(null)}
+                      onClick={() => {
+                        if (letterFile?.previewUrl) {
+                          try { URL.revokeObjectURL(letterFile.previewUrl); } catch { /* ignore */ }
+                        }
+                        if (onLetterFileChange) {
+                          onLetterFileChange(null);
+                        }
+                      }}
                       className="cbm-btn cbm-btn-outline cbm-btn-sm"
                       style={{ height: 30, fontSize: 11.5, color: 'var(--danger)', borderColor: 'var(--danger-border)' }}
                       title="Remove file"
@@ -478,10 +591,39 @@ export const Step3BudgetDetails = ({
                 </div>
               )}
 
+              {/* Inline File Selection Error */}
+              {fileError && (
+                <div
+                  style={{
+                    marginTop: 6,
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'var(--danger-bg)',
+                    border: '1px solid var(--danger-border)',
+                    color: 'var(--danger-text)',
+                    fontSize: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                  role="alert"
+                >
+                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                  <span>{fileError}</span>
+                </div>
+              )}
+
+              {/* Required PDF prompt when file is not selected */}
+              {!letterFile && !fileError && (
+                <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  Official approval or sanction document in PDF format must be selected before proceeding.
+                </span>
+              )}
+
               {/* Informative storage notice respecting constraint 6 and 7 */}
               <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.3 }}>
-                  ℹ️ Document metadata (name, size, type, Letter ID) is recorded with proposal details. Cloud binary file storage requires a provisioned Supabase Storage bucket.
+                  ℹ️ Document metadata (Letter ID, filename, size, type, upload timestamp) is recorded with proposal details. Cloud binary file storage requires a provisioned Supabase Storage bucket.
                 </span>
               </div>
             </div>
@@ -575,10 +717,40 @@ export const Step3BudgetDetails = ({
         )}
       </div>
 
+      {/* Missing Requirements Guidance Alert */}
+      {!canProceed && (
+        <div
+          style={{
+            marginTop: 24,
+            padding: '10px 14px',
+            borderRadius: 'var(--radius-sm)',
+            backgroundColor: '#FEF3C7',
+            border: '1px solid #FDE68A',
+            color: '#92400E',
+            fontSize: 12.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}
+          role="alert"
+        >
+          <AlertCircle size={15} style={{ flexShrink: 0 }} />
+          <span>
+            <strong>Mandatory requirements to proceed to Review & Submit:</strong>{' '}
+            {[
+              !isAmountValid ? 'Valid proposed budget amount (₹)' : null,
+              !effectiveFundingSource ? 'Category selection from Step 1' : null,
+              !isLetterIdValid ? 'Sanction / Permission Letter ID' : null,
+              !isLetterFileValid ? 'Approval / Sanction Letter (PDF)' : null
+            ].filter(Boolean).join(' • ')}
+          </span>
+        </div>
+      )}
+
       {/* Step Navigation Actions */}
       <div
         style={{
-          marginTop: 32,
+          marginTop: 20,
           paddingTop: 20,
           borderTop: '1px solid var(--border)',
           display: 'flex',

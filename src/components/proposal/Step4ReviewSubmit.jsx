@@ -72,6 +72,13 @@ export const Step4ReviewSubmit = ({
     return hackathonDuration?.isValid ? hackathonDuration.displayText : null;
   }, [isHackathon, hackathonDurationHours, hackathonDuration]);
 
+  // Validation checks for mandatory Sanction Letter ID and PDF file
+  const trimmedLetterId = (letterId || '').trim();
+  const isLetterIdValid = trimmedLetterId.length > 0;
+  const isLetterFileValid = Boolean(letterFile && letterFile.name);
+  const isDocumentStepValid = isLetterIdValid && isLetterFileValid;
+  const canSubmit = numericAmount > 0 && isDocumentStepValid && !isSubmitting;
+
   // File size formatter helper
   const formatFileSize = (bytes) => {
     if (!bytes || isNaN(bytes)) return '0 B';
@@ -90,6 +97,9 @@ export const Step4ReviewSubmit = ({
   };
 
   const handleConfirmSubmit = () => {
+    if (!isDocumentStepValid) {
+      return;
+    }
     setShowConfirmModal(false);
     onSubmit();
   };
@@ -426,10 +436,25 @@ export const Step4ReviewSubmit = ({
           {/* SECTION 4: SANCTION / REFERENCE LETTER & DOCUMENT ATTACHMENT */}
           <div style={{ padding: '18px 20px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <FileText size={16} color="var(--primary)" />
-                4. Sanction / Permission Letter & Document Reference
-              </h3>
+                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-heading)' }}>
+                  4. Sanction / Permission Letter & Document Attachment <span style={{ color: 'var(--danger)' }}>*</span>
+                </h3>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    backgroundColor: isDocumentStepValid ? '#F0FDF4' : '#FEF2F2',
+                    color: isDocumentStepValid ? '#166534' : '#DC2626',
+                    border: isDocumentStepValid ? '1px solid #BBF7D0' : '1px solid #FECACA'
+                  }}
+                >
+                  {isDocumentStepValid ? 'Mandatory Requirements Verified' : 'Mandatory Action Required *'}
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => onEditStep(3)}
@@ -443,52 +468,91 @@ export const Step4ReviewSubmit = ({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: 14 }}>
               <div>
                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Sanction / Reference Letter ID
+                  Sanction / Permission Letter ID <span style={{ color: 'var(--danger)' }}>*</span>
                 </span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13.5, fontWeight: 700, color: letterId ? 'var(--text-heading)' : 'var(--text-muted)' }}>
-                  {letterId || 'None specified (Optional)'}
-                </p>
-              </div>
-
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Attached Sanction Document (PDF)
-                </span>
-                {letterFile ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <FileCheck size={16} color="#DC2626" />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)' }}>
-                        {letterFile.name}
-                      </span>
-                      <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                        ({formatFileSize(letterFile.size)})
-                      </span>
-                    </div>
-                    {letterFile.previewUrl && (
-                      <a
-                        href={letterFile.previewUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="cbm-btn cbm-btn-outline cbm-btn-sm"
-                        style={{ height: 26, padding: '0 8px', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                      >
-                        <Eye size={11} /> View PDF
-                      </a>
-                    )}
+                {isLetterIdValid ? (
+                  <div>
+                    <p style={{ margin: '3px 0 0 0', fontSize: 13.5, fontWeight: 700, color: 'var(--text-heading)' }}>
+                      {trimmedLetterId}
+                    </p>
+                    <span style={{ fontSize: 11, color: 'var(--success-text)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                      <CheckCircle2 size={12} /> Valid Letter ID
+                    </span>
                   </div>
                 ) : (
-                  <p style={{ margin: '3px 0 0 0', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    No PDF document attached (Optional)
+                  <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--danger)' }}>
+                    ⚠️ Missing mandatory Sanction Letter ID
                   </p>
                 )}
               </div>
 
-              <div style={{ gridColumn: '1 / -1', padding: '8px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border-subtle)', fontSize: 11.5, color: 'var(--text-muted)' }}>
-                <span>
-                  <strong>Persistence Status:</strong> Letter ID and document metadata will be recorded in the proposal record. Supabase Storage bucket is currently not configured, so binary file storage requires provisioning a cloud storage bucket.
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Attached Sanction Document (PDF) <span style={{ color: 'var(--danger)' }}>*</span>
                 </span>
+                {isLetterFileValid ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 3 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <FileCheck size={16} color="#DC2626" />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)' }}>
+                          {letterFile.name}
+                        </span>
+                        <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                          ({formatFileSize(letterFile.size)})
+                        </span>
+                      </div>
+                      {letterFile.previewUrl && (
+                        <a
+                          href={letterFile.previewUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="cbm-btn cbm-btn-outline cbm-btn-sm"
+                          style={{ height: 26, padding: '0 8px', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <Eye size={11} /> View PDF
+                        </a>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 11, color: 'var(--success-text)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                      <CheckCircle2 size={12} /> Ready for submission (PDF verified)
+                    </span>
+                  </div>
+                ) : (
+                  <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--danger)' }}>
+                    ⚠️ Missing mandatory Approval Letter (PDF Document)
+                  </p>
+                )}
               </div>
+
+              <div style={{ gridColumn: '1 / -1', padding: '10px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border-subtle)', fontSize: 11.5, color: 'var(--text-muted)' }}>
+                <p style={{ margin: 0, lineHeight: 1.4 }}>
+                  <strong>Document Persistence Status:</strong> Sanction Letter ID and document metadata (filename, file size, MIME type, upload timestamp) will be recorded in the proposal record. Cloud binary file storage requires provisioning a Supabase Storage bucket.
+                </p>
+              </div>
+
+              {!isDocumentStepValid && (
+                <div
+                  style={{
+                    gridColumn: '1 / -1',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: '#FEF2F2',
+                    border: '1px solid #FECACA',
+                    color: '#DC2626',
+                    fontSize: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                  role="alert"
+                >
+                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                  <span>
+                    Final submission is disabled because required sanction documents are missing. Please click <strong>Edit Section 3</strong> to provide both the Letter ID and approval PDF.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -519,11 +583,15 @@ export const Step4ReviewSubmit = ({
           <Button
             type="button"
             variant="primary"
-            onClick={() => setShowConfirmModal(true)}
-            disabled={numericAmount <= 0 || isSubmitting}
+            onClick={() => {
+              if (!isDocumentStepValid) return;
+              setShowConfirmModal(true);
+            }}
+            disabled={!canSubmit}
             isLoading={isSubmitting}
             icon={Send}
             style={{ height: 42, padding: '0 28px', fontSize: 14 }}
+            title={!isDocumentStepValid ? 'Both Sanction Letter ID and Approval Letter (PDF) are mandatory.' : (!numericAmount ? 'Valid budget amount required' : '')}
           >
             Submit Proposal
           </Button>
@@ -588,7 +656,15 @@ export const Step4ReviewSubmit = ({
                   <span style={{ color: 'var(--text-muted)' }}>Funding Source:</span>
                   <span style={{ fontWeight: 600 }}>{fundingSource}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Sanction Letter ID:</span>
+                  <span style={{ fontWeight: 600 }}>{trimmedLetterId}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Approval Document (PDF):</span>
+                  <span style={{ fontWeight: 600 }}>{letterFile?.name || 'None'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, paddingTop: 4, borderTop: '1px dashed var(--border)' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Total Proposed Amount:</span>
                   <span style={{ fontWeight: 800, color: 'var(--primary)' }}>₹{numericAmount.toLocaleString('en-IN')}</span>
                 </div>

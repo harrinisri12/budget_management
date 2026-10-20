@@ -461,6 +461,17 @@ export const NewProposalPage = () => {
       return;
     }
 
+    const trimmedLetterId = (letterId || '').trim();
+    if (!trimmedLetterId) {
+      setSubmissionError('Sanction / Permission Letter ID is mandatory and cannot be empty or whitespace only.');
+      return;
+    }
+
+    if (!letterFile || !letterFile.name) {
+      setSubmissionError('Approval / Sanction Letter (PDF Document) is mandatory. Please upload a valid PDF document.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -486,15 +497,14 @@ export const NewProposalPage = () => {
         : (computedHackathonDuration?.isValid ? computedHackathonDuration.displayText : null);
 
       // Document details metadata (Letter ID & PDF)
-      const trimmedLetterId = (letterId || '').trim();
       const documentDetails = {
-        letterId: trimmedLetterId || null,
-        fileName: letterFile?.name || null,
-        fileSize: letterFile?.size || null,
-        fileType: letterFile?.type || null,
-        uploadedAt: letterFile ? new Date().toISOString() : null,
-        hasDocument: Boolean(letterFile),
-        storageStatus: letterFile ? 'metadata_only_no_cloud_bucket' : 'none'
+        letterId: trimmedLetterId,
+        fileName: letterFile.name,
+        fileSize: letterFile.size,
+        fileType: letterFile.type || 'application/pdf',
+        uploadedAt: letterFile.uploadedAt || new Date().toISOString(),
+        hasDocument: true,
+        storageStatus: 'metadata_only_no_cloud_bucket'
       };
 
       // Build rich, structured event details payload
@@ -502,7 +512,7 @@ export const NewProposalPage = () => {
         schemaType: activeSchema.type,
         categoryName: selectedCategoryName,
         subCategoryName: selectedSubCategoryName,
-        letterId: trimmedLetterId || null,
+        letterId: trimmedLetterId,
         documentDetails,
         programmeDetails: {
           title: title.trim(),
@@ -612,6 +622,16 @@ export const NewProposalPage = () => {
   };
 
   const handleContinueStep3 = () => {
+    const trimmedId = (letterId || '').trim();
+    if (!trimmedId) {
+      setSubmissionError('Sanction / Permission Letter ID is required and cannot be empty or whitespace only.');
+      return;
+    }
+    if (!letterFile || !letterFile.name) {
+      setSubmissionError('Approval / Sanction Letter (PDF Document) is mandatory. Please upload a valid PDF document.');
+      return;
+    }
+    setSubmissionError('');
     setCurrentStep(4);
     setMaxStepReached((prev) => Math.max(prev, 4));
   };
