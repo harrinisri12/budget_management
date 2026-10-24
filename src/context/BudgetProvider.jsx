@@ -324,7 +324,18 @@ export const BudgetProvider = ({ children }) => {
         return [];
       }
 
-      const formatted = (data || []).map(p => ({
+      // Filter out rejected proposals that have exceeded the 24-hour retention period
+      const cutoffTime = Date.now() - 24 * 60 * 60 * 1000;
+      const activeData = (data || []).filter(p => {
+        const isRejected = (p.status || '').toLowerCase() === 'rejected';
+        if (isRejected && p.rejected_at) {
+          const t = new Date(p.rejected_at).getTime();
+          if (!isNaN(t) && t <= cutoffTime) return false;
+        }
+        return true;
+      });
+
+      const formatted = activeData.map(p => ({
         id: p.id,
         dbId: p.id,
         proposalNumber: p.proposal_number || p.id,
@@ -345,7 +356,16 @@ export const BudgetProvider = ({ children }) => {
         eventDetails: (p.event_details && typeof p.event_details === 'object') ? p.event_details : {},
         amount: Number(p.amount || 0),
         status: p.status,
-        adminRemarks: p.admin_remarks || ''
+        adminRemarks: p.admin_remarks || '',
+        acceptedAt: p.accepted_at || null,
+        rejectedAt: p.rejected_at || null,
+        approvedAmount: p.approved_amount !== null && p.approved_amount !== undefined ? Number(p.approved_amount) : (['Accepted', 'accepted', 'Approved', 'approved'].includes(p.status) ? Number(p.amount || 0) : null),
+        settlementAmount: p.settlement_amount !== null && p.settlement_amount !== undefined ? Number(p.settlement_amount) : null,
+        settlementStatus: p.settlement_status || (p.settlement_amount !== null && p.settlement_amount !== undefined ? 'settled' : 'unsettled'),
+        settledAt: p.settled_at || null,
+        settledBy: p.settled_by || null,
+        settlementRemarks: p.settlement_remarks || '',
+        reviewedBy: p.reviewed_by || null
       }));
 
       setProposals(formatted);
@@ -838,17 +858,284 @@ export const BudgetProvider = ({ children }) => {
     }
   };
 
-  // Admin/HOD: Update Proposal Status
+  // Admin: Accept Proposal (immediately deducts proposed amount from budget)
+  const acceptProposal = async (id, remarks = '') => {
+    try {
+      let targetUuid = id;
+      if (typeof id === 'object' && id !== null) {
+        targetUuid = id.dbId || id.id || id.proposalId || id.proposalNumber;
+      } else if (typeof id === 'string') {
+        const found = proposals.find(p => p.dbId === id || p.id === id || p.proposalId === id || p.proposalNumber === id);
+        if (found) targetUuid = found.dbId || found.id || found.proposalNumber;
+      }
+
+      if (!targetUuid) {
+        return { success: false, error: 'Valid proposal ID is required.' };
+      }
+
+      let res = null;
+      try {
+        res = await api.post(`/api/proposals/${encodeURIComponent(targetUuid)}/accept`, { remarks, proposalId: targetUuid });
+      } catch (apiErr) {
+        const isNotFound = apiErr?.status === 404 ||
+          (apiErr?.message && (
+            apiErr.message.includes('404') ||
+            apiErr.message.toLowerCase().includes('not found')
+          ));
+
+        if (isNotFound) {
+          // Fallback 1: Try PATCH /api/proposals/:id/status with canonical 'Approved' status
+          try {
+            res = await api.patch(`/api/proposals/${encodeURIComponent(targetUuid)}/status`, {
+              status: 'Approved',
+              remarks
+            });
+          } catch {
+            // Fallback 2: Try direct PostgreSQL RPC function accept_proposal
+            try {
+              const { data: rpcRes, error: rpcErr } = await supabase.rpc('accept_proposal', {
+                p_admin_id: userId,
+                p_proposal_id: targetUuid,
+                p_remarks: remarks || null
+              });
+
+              if (!rpcErr && rpcRes?.success) {
+                res = { success: true, message: 'Proposal approved successfully and budget deducted.' };
+              } else {
+                throw rpcErr || new Error('RPC not available');
+              }
+            } catch {
+              // Fallback 3: Direct Supabase client update using standard existing columns
+              const targetProposal = proposals.find(p => p.dbId === targetUuid || p.id === targetUuid || p.proposalId === targetUuid || p.proposalNumber === targetUuid);
+              const proposedAmt = Number(targetProposal?.amount || 0);
+              const catId = targetProposal?.categoryId;
+
+              if (catId && proposedAmt > 0) {
+                const { data: catData } = await supabase.from('budget_categories').select('*').eq('id', catId).maybeSingle();
+                if (catData) {
+                  const newSpent = Number(catData.spent_amount || 0) + proposedAmt;
+                  await supabase.from('budget_categories').update({ spent_amount: newSpent }).eq('id', catId);
+                }
+              }
+
+              const { data: updatedProposal, error: updateErr } = await supabase
+                .from('proposals')
+                .update({
+                  status: 'Approved',
+                  admin_remarks: remarks || null,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', targetUuid)
+                .select('*')
+                .single();
+
+              if (updateErr) throw updateErr;
+              res = { success: true, proposal: updatedProposal, message: 'Proposal approved successfully and budget deducted.' };
+            }
+          }
+        } else {
+          throw apiErr;
+        }
+      }
+
+      if (res?.success) {
+        showToast(res.message || 'Proposal approved successfully and budget deducted.', 'success');
+        await refreshProposals();
+        await refreshBudget();
+        await refreshTransactions();
+        return { success: true, proposal: res.proposal };
+      }
+      const errMsg = res?.error || 'Failed to accept proposal.';
+      showToast(errMsg, 'error');
+      return { success: false, error: errMsg };
+    } catch (err) {
+      console.error('Error accepting proposal:', err);
+      showToast(err.message || 'Error accepting proposal.', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Admin: Reject Proposal (records rejection timestamp, scheduled for 24h automatic deletion)
+  const rejectProposal = async (id, remarks = '') => {
+    try {
+      let targetUuid = id;
+      if (typeof id === 'object' && id !== null) {
+        targetUuid = id.dbId || id.id || id.proposalId || id.proposalNumber;
+      } else if (typeof id === 'string') {
+        const found = proposals.find(p => p.dbId === id || p.id === id || p.proposalId === id || p.proposalNumber === id);
+        if (found) targetUuid = found.dbId || found.id || found.proposalNumber;
+      }
+
+      if (!targetUuid) {
+        return { success: false, error: 'Valid proposal ID is required.' };
+      }
+
+      let res = null;
+      try {
+        res = await api.post(`/api/proposals/${encodeURIComponent(targetUuid)}/reject`, { remarks, proposalId: targetUuid });
+      } catch (apiErr) {
+        const isNotFound = apiErr?.status === 404 ||
+          (apiErr?.message && (
+            apiErr.message.includes('404') ||
+            apiErr.message.toLowerCase().includes('not found')
+          ));
+
+        if (isNotFound) {
+          // Fallback 1: Try PATCH /api/proposals/:id/status
+          try {
+            res = await api.patch(`/api/proposals/${encodeURIComponent(targetUuid)}/status`, {
+              status: 'Rejected',
+              remarks
+            });
+          } catch {
+            // Fallback 2: Try PostgreSQL RPC function
+            try {
+              const { data: rpcRes, error: rpcErr } = await supabase.rpc('reject_proposal', {
+                p_admin_id: userId,
+                p_proposal_id: targetUuid,
+                p_remarks: remarks || null
+              });
+              if (!rpcErr && rpcRes?.success) {
+                res = { success: true, message: 'Proposal rejected. Scheduled for automatic deletion after 24 hours.' };
+              } else {
+                throw rpcErr || new Error('RPC not available');
+              }
+            } catch {
+              // Fallback 3: Direct Supabase client update using core schema columns
+              const { data: updatedProposal, error: updateErr } = await supabase
+                .from('proposals')
+                .update({
+                  status: 'Rejected',
+                  admin_remarks: remarks || null,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', targetUuid)
+                .select('*')
+                .single();
+
+              if (updateErr) throw updateErr;
+              res = { success: true, proposal: updatedProposal, message: 'Proposal rejected. Scheduled for automatic deletion after 24 hours.' };
+            }
+          }
+        } else {
+          throw apiErr;
+        }
+      }
+
+      if (res?.success) {
+        showToast(res.message || 'Proposal rejected. Scheduled for automatic deletion after 24 hours.', 'info');
+        await refreshProposals();
+        await refreshBudget();
+        return { success: true, proposal: res.proposal };
+      }
+      const errMsg = res?.error || 'Failed to reject proposal.';
+      showToast(errMsg, 'error');
+      return { success: false, error: errMsg };
+    } catch (err) {
+      console.error('Error rejecting proposal:', err);
+      showToast(err.message || 'Error rejecting proposal.', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Admin / HOD: Settle Proposal (replaces proposed amount with actual settlement amount)
+  const settleProposal = async (id, { settlementAmount, remarks = '' }) => {
+    try {
+      let targetUuid = id;
+      if (typeof id === 'object' && id !== null) {
+        targetUuid = id.dbId || id.id || id.proposalId || id.proposalNumber;
+      } else if (typeof id === 'string') {
+        const found = proposals.find(p => p.dbId === id || p.id === id || p.proposalId === id || p.proposalNumber === id);
+        if (found) targetUuid = found.dbId || found.id || found.proposalNumber;
+      }
+
+      if (!targetUuid) {
+        return { success: false, error: 'Valid proposal ID is required.' };
+      }
+
+      const parsedAmount = Number(settlementAmount);
+      if (isNaN(parsedAmount) || parsedAmount < 0) {
+        return { success: false, error: 'Valid non-negative settlement amount is required.' };
+      }
+
+      let res = null;
+      try {
+        res = await api.post(`/api/proposals/${encodeURIComponent(targetUuid)}/settle`, {
+          settlementAmount: parsedAmount,
+          remarks,
+          proposalId: targetUuid
+        });
+      } catch (apiErr) {
+        const isNotFound = apiErr?.status === 404 ||
+          (apiErr?.message && (
+            apiErr.message.includes('404') ||
+            apiErr.message.toLowerCase().includes('not found')
+          ));
+
+        if (isNotFound) {
+          try {
+            res = await api.post('/api/settlements', {
+              proposalId: targetUuid,
+              settlementAmount: parsedAmount,
+              remarks
+            });
+          } catch {
+            try {
+              const { data: rpcRes, error: rpcErr } = await supabase.rpc('settle_proposal', {
+                p_proposal_id: targetUuid,
+                p_settler_id: userId,
+                p_actual_amount: parsedAmount,
+                p_remarks: remarks || null
+              });
+              if (!rpcErr && rpcRes?.success) {
+                res = { success: true, message: `Settlement of ₹${parsedAmount.toLocaleString('en-IN')} finalized successfully.` };
+              } else {
+                throw rpcErr || new Error('RPC not available');
+              }
+            } catch (err) {
+              throw err;
+            }
+          }
+        } else {
+          throw apiErr;
+        }
+      }
+
+      if (res?.success) {
+        showToast(res.message || `Settlement of ₹${parsedAmount.toLocaleString('en-IN')} finalized successfully.`, 'success');
+        await refreshProposals();
+        await refreshBudget();
+        await refreshTransactions();
+        return { success: true, settlement: res };
+      }
+
+      const errMsg = res?.error || 'Failed to settle proposal.';
+      showToast(errMsg, 'error');
+      return { success: false, error: errMsg };
+    } catch (err) {
+      console.error('Error settling proposal:', err);
+      showToast(err.message || 'Error processing settlement.', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Admin/HOD: Update Proposal Status (backward compatible wrapper)
   const updateProposalStatus = async (id, newStatus, remarks = '') => {
     try {
+      const norm = (newStatus || '').toLowerCase();
+      if (norm === 'accepted' || norm === 'approved') {
+        return await acceptProposal(id, remarks);
+      }
+      if (norm === 'rejected') {
+        return await rejectProposal(id, remarks);
+      }
+
       let targetUuid = id;
       if (typeof id === 'object' && id !== null) {
         targetUuid = id.dbId || id.id;
       } else if (typeof id === 'string') {
         const found = proposals.find(p => p.dbId === id || p.id === id || p.proposalId === id || p.proposalNumber === id);
-        if (found) {
-          targetUuid = found.dbId || found.id;
-        }
+        if (found) targetUuid = found.dbId || found.id;
       }
 
       if (!targetUuid) {
@@ -863,6 +1150,7 @@ export const BudgetProvider = ({ children }) => {
       if (res?.success) {
         showToast(res.message || `Proposal status updated to ${newStatus}.`, 'success');
         await refreshProposals();
+        await refreshBudget();
         return { success: true, proposal: res.proposal };
       }
       return { success: false, error: res?.error || 'Failed to update proposal status.' };
@@ -873,30 +1161,33 @@ export const BudgetProvider = ({ children }) => {
     }
   };
 
-  // Faculty metrics calculation helper from authentic records
+  // Faculty metrics calculation helper adhering to budget calculation rules
   const getFacultyMetrics = (facultyEmail) => {
     const cleanEmail = facultyEmail ? facultyEmail.trim().toLowerCase() : '';
     const facultyProposals = cleanEmail
       ? proposals.filter((p) => (p.facultyEmail && p.facultyEmail.trim().toLowerCase() === cleanEmail) || (user && p.facultyId === user.id))
       : proposals;
 
-    // Sum all non-rejected proposals as "total proposed" (Pending + Under Review + Approved)
-    const activeProposals = facultyProposals.filter(p => p.status !== 'Rejected');
+    // Filter proposals: pending and rejected do NOT reduce available budget
+    const activeProposals = facultyProposals.filter(p => !['Rejected', 'rejected'].includes(p.status));
     const totalProposed = activeProposals.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const approvedAmount = facultyProposals.filter(p => p.status === 'Approved').reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-    // The annual quota is the total active academic year budget.
-    // budget_categories hold departmental activity allocations, not per-faculty splits.
-    // Each faculty member's quota equals the full configured academic year budget.
+    // Committed: accepted but unsettled count proposed amount; settled count actual settlement amount
+    const acceptedProps = facultyProposals.filter(p => ['Accepted', 'accepted', 'Approved', 'approved'].includes(p.status));
+    const committedAmount = acceptedProps.reduce((sum, p) => {
+      if (p.settlementStatus === 'settled' || p.settlement_status === 'settled') {
+        return sum + Number(p.settlementAmount ?? p.settlement_amount ?? 0);
+      }
+      return sum + Number(p.approvedAmount ?? p.approved_amount ?? p.amount ?? 0);
+    }, 0);
+
     const annualQuota = Number(activeAcademicYear?.budget || activeAcademicYear?.annualBudget || 0);
-
-    // Remaining = quota minus all committed/active proposal amounts (approved)
-    const remainingBalance = Math.max(0, annualQuota - approvedAmount);
+    const remainingBalance = Math.max(0, annualQuota - committedAmount);
 
     return {
       availableBalance: annualQuota,
       totalProposed,
-      approvedAmount,
+      approvedAmount: committedAmount,
       remainingBalance,
       proposals: facultyProposals
     };
@@ -949,6 +1240,9 @@ export const BudgetProvider = ({ children }) => {
         generateProposalId,
         addProposal,
         updateProposalStatus,
+        acceptProposal,
+        rejectProposal,
+        settleProposal,
         getFacultyMetrics,
         refreshFaculty,
         refreshProposals,

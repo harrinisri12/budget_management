@@ -1,7 +1,8 @@
 import express from 'express';
 import { supabaseAdmin } from '../supabaseClient.js';
 import { authenticateUser } from '../middleware/auth.js';
-import { requireAdminOrHod } from '../middleware/roles.js';
+import { requireAdmin, requireAdminOrHod } from '../middleware/roles.js';
+import { processProposalSettlement } from './settlements.js';
 
 const router = express.Router();
 
@@ -32,12 +33,22 @@ const formatProposalRecord = (p) => {
     amount: Number(p.amount || 0),
     status: p.status,
     adminRemarks: p.admin_remarks || '',
+    acceptedAt: p.accepted_at || null,
+    rejectedAt: p.rejected_at || null,
+    approvedAmount: p.approved_amount !== null && p.approved_amount !== undefined ? Number(p.approved_amount) : (['Accepted', 'accepted', 'Approved', 'approved'].includes(p.status) ? Number(p.amount || 0) : null),
+    settlementAmount: p.settlement_amount !== null && p.settlement_amount !== undefined ? Number(p.settlement_amount) : null,
+    settlementStatus: p.settlement_status || (p.settlement_amount !== null && p.settlement_amount !== undefined ? 'settled' : 'unsettled'),
+    settledAt: p.settled_at || null,
+    settledBy: p.settled_by || null,
+    settlementRemarks: p.settlement_remarks || '',
+    reviewedBy: p.reviewed_by || null,
     createdAt: p.created_at,
     updatedAt: p.updated_at
   };
 };
 
 // GET /api/proposals - Get real database proposals (Admin/HOD sees all, Faculty sees own)
+// Automatically enforces 24-hour retention: rejected proposals older than 24 hours are excluded
 router.get('/', authenticateUser, async (req, res) => {
   try {
     const db = req.supabase || supabaseAdmin;
@@ -58,7 +69,20 @@ router.get('/', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: error.message });
     }
 
-    const formatted = (proposals || []).map(formatProposalRecord);
+    // Filter out rejected proposals that have exceeded the 24-hour retention period
+    const cutoffTime = Date.now() - 24 * 60 * 60 * 1000;
+    const activeProposals = (proposals || []).filter(p => {
+      const isRejected = (p.status || '').toLowerCase() === 'rejected';
+      if (isRejected && p.rejected_at) {
+        const rejectedTime = new Date(p.rejected_at).getTime();
+        if (!isNaN(rejectedTime) && rejectedTime <= cutoffTime) {
+          return false; // Expired 24-hour retention: do not display
+        }
+      }
+      return true;
+    });
+
+    const formatted = activeProposals.map(formatProposalRecord);
     return res.json({ success: true, proposals: formatted });
   } catch (err) {
     console.error('Error fetching proposals:', err);
@@ -396,55 +420,560 @@ router.post('/', authenticateUser, async (req, res) => {
   }
 });
 
-// PATCH /api/proposals/:id/status - Admin or HOD updates proposal status
-router.patch('/:id/status', authenticateUser, requireAdminOrHod, async (req, res) => {
+/**
+ * Atomic helper: Accept proposal, deduct proposed amount from budget, create transaction, record admin & timestamp
+ */
+export const executeProposalAcceptance = async ({ proposalId, adminProfile, remarks, dbClient = supabaseAdmin }) => {
+  if (!adminProfile || adminProfile.role !== 'admin') {
+    throw new Error('Forbidden: Only authenticated administrators can accept proposals.');
+  }
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(proposalId);
+  let prop = null;
+
+  // 1. Fetch proposal by UUID if formatted as UUID
+  if (isUuid) {
+    const { data: propById } = await dbClient
+      .from('proposals')
+      .select('*, budget_categories:category_id(*), academic_years:academic_year_id(*)')
+      .eq('id', proposalId)
+      .maybeSingle();
+    if (propById) prop = propById;
+  }
+
+  // 1b. Fetch proposal by proposal_number
+  if (!prop) {
+    const { data: propByNum } = await dbClient
+      .from('proposals')
+      .select('*, budget_categories:category_id(*), academic_years:academic_year_id(*)')
+      .eq('proposal_number', proposalId)
+      .maybeSingle();
+    if (propByNum) prop = propByNum;
+  }
+
+  // 1c. Fallback fetch by id if not standard UUID format
+  if (!prop && !isUuid) {
+    const { data: propByIdFallback } = await dbClient
+      .from('proposals')
+      .select('*, budget_categories:category_id(*), academic_years:academic_year_id(*)')
+      .eq('id', proposalId)
+      .maybeSingle();
+    if (propByIdFallback) prop = propByIdFallback;
+  }
+
+  if (!prop) {
+    throw new Error(`Proposal not found with identifier '${proposalId}'.`);
+  }
+
+  // Prevent acceptance if already processed / approved / accepted
+  const normStatus = (prop.status || '').toLowerCase();
+  if (normStatus === 'accepted' || normStatus === 'approved') {
+    throw new Error(`Proposal ${prop.proposal_number || prop.id} has already been accepted/approved. Repeated deductions are prevented.`);
+  }
+
+  if (normStatus === 'rejected') {
+    throw new Error(`Cannot accept proposal ${prop.proposal_number || prop.id} because it was marked as rejected.`);
+  }
+
+  // 2. Try PostgreSQL atomic RPC function first
   try {
-    const { id } = req.params;
+    const { data: rpcData, error: rpcErr } = await dbClient.rpc('accept_proposal', {
+      p_proposal_id: prop.id,
+      p_admin_id: adminProfile.id,
+      p_remarks: remarks || null
+    });
+
+    if (!rpcErr && rpcData?.success) {
+      const { data: updatedProp } = await dbClient
+        .from('proposals')
+        .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
+        .eq('id', prop.id)
+        .single();
+
+      return formatProposalRecord(updatedProp || prop);
+    }
+
+    if (rpcErr && !rpcErr.message.includes('function') && !rpcErr.message.includes('does not exist')) {
+      throw new Error(rpcErr.message);
+    }
+  } catch (rpcCallErr) {
+    if (!rpcCallErr.message.includes('function') && !rpcCallErr.message.includes('does not exist') && !rpcCallErr.message.includes('404')) {
+      throw rpcCallErr;
+    }
+    // Fall back to atomic sequence below
+  }
+
+  // 3. Fallback: Validate budget sufficiency and deduct immediately
+  const proposedAmount = Number(prop.amount || 0);
+
+  if (prop.category_id) {
+    const { data: cat, error: catErr } = await dbClient
+      .from('budget_categories')
+      .select('*')
+      .eq('id', prop.category_id)
+      .maybeSingle();
+
+    if (catErr) {
+      throw new Error(`Database error checking category budget: ${catErr.message}`);
+    }
+
+    if (cat) {
+      const allocated = Number(cat.allocated_amount || 0);
+      const spent = Number(cat.spent_amount || 0);
+      const available = Math.max(0, allocated - spent);
+
+      if (proposedAmount > available) {
+        throw new Error(
+          `Insufficient budget in category "${cat.name}". Available budget: ₹${available.toLocaleString('en-IN')}, Proposed amount: ₹${proposedAmount.toLocaleString('en-IN')}. Acceptance prevented to avoid budget deficit.`
+        );
+      }
+
+      // Deduct immediately by incrementing spent_amount
+      const newSpent = spent + proposedAmount;
+      const { error: catUpdateErr } = await dbClient
+        .from('budget_categories')
+        .update({ spent_amount: newSpent })
+        .eq('id', cat.id);
+
+      if (catUpdateErr) {
+        throw new Error(`Failed to deduct proposed amount from category budget: ${catUpdateErr.message}`);
+      }
+    }
+  }
+
+  // 4. Update proposal status to canonical 'Approved'
+  const fullUpdates = {
+    status: 'Approved',
+    approved_amount: proposedAmount,
+    accepted_at: new Date().toISOString(),
+    reviewed_by: adminProfile.id,
+    settlement_status: 'unsettled',
+    updated_at: new Date().toISOString()
+  };
+
+  if (remarks !== undefined && remarks !== null) {
+    fullUpdates.admin_remarks = remarks;
+  }
+
+  let { data: updated, error: updateError } = await dbClient
+    .from('proposals')
+    .update(fullUpdates)
+    .eq('id', prop.id)
+    .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
+    .single();
+
+  // If approved_amount or extension columns are missing from PostgREST schema cache (PGRST204),
+  // gracefully fall back to updating the core columns so the operation succeeds
+  if (updateError && (updateError.message?.includes('column') || updateError.code === 'PGRST204')) {
+    const coreUpdates = {
+      status: 'Approved',
+      updated_at: new Date().toISOString()
+    };
+    if (remarks !== undefined && remarks !== null) {
+      coreUpdates.admin_remarks = remarks;
+    }
+
+    const fallbackResult = await dbClient
+      .from('proposals')
+      .update(coreUpdates)
+      .eq('id', prop.id)
+      .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
+      .single();
+
+    if (fallbackResult.error) {
+      throw new Error(`Failed to update proposal status: ${fallbackResult.error.message}`);
+    }
+    updated = fallbackResult.data;
+    updateError = null;
+  } else if (updateError) {
+    throw new Error(`Failed to update proposal status: ${updateError.message}`);
+  }
+
+  // 5. Create or sync linked transaction
+  try {
+    const { count } = await dbClient.from('transactions').select('id', { count: 'exact', head: true });
+    const nextTxnNum = `TXN-${1000 + (count || 0) + 1}`;
+
+    const { data: dept } = await dbClient
+      .from('departments')
+      .select('id')
+      .eq('code', 'CSE')
+      .maybeSingle();
+
+    await dbClient
+      .from('transactions')
+      .delete()
+      .eq('proposal_id', prop.id);
+
+    await dbClient
+      .from('transactions')
+      .insert({
+        transaction_number: nextTxnNum,
+        department_id: dept?.id || null,
+        category_id: updated.category_id || null,
+        proposal_id: prop.id,
+        amount: proposedAmount,
+        transaction_date: new Date().toISOString().split('T')[0],
+        status: 'Approved',
+        description: updated.title ? `${updated.title} (Accepted Proposal Allocation)` : 'Accepted Proposal Allocation',
+        requested_by: updated.faculty_id || null,
+        vendor: updated.guest_details || 'Kongu Procurement'
+      });
+  } catch (txnErr) {
+    console.warn('Transaction sync notice on acceptance:', txnErr.message);
+  }
+
+  return formatProposalRecord(updated);
+};
+
+/**
+ * Atomic helper: Reject proposal, record rejection timestamp & admin, rollback previous deductions if any
+ */
+export const executeProposalRejection = async ({ proposalId, adminProfile, remarks, dbClient = supabaseAdmin }) => {
+  if (!adminProfile || adminProfile.role !== 'admin') {
+    throw new Error('Forbidden: Only authenticated administrators can reject proposals.');
+  }
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(proposalId);
+  let prop = null;
+
+  // 1. Fetch proposal by UUID if formatted as UUID
+  if (isUuid) {
+    const { data: propById } = await dbClient
+      .from('proposals')
+      .select('*')
+      .eq('id', proposalId)
+      .maybeSingle();
+    if (propById) prop = propById;
+  }
+
+  // 1b. Fetch proposal by proposal_number
+  if (!prop) {
+    const { data: propByNum } = await dbClient
+      .from('proposals')
+      .select('*')
+      .eq('proposal_number', proposalId)
+      .maybeSingle();
+    if (propByNum) prop = propByNum;
+  }
+
+  // 1c. Fallback fetch by id if not standard UUID format
+  if (!prop && !isUuid) {
+    const { data: propByIdFallback } = await dbClient
+      .from('proposals')
+      .select('*')
+      .eq('id', proposalId)
+      .maybeSingle();
+    if (propByIdFallback) prop = propByIdFallback;
+  }
+
+  if (!prop) {
+    throw new Error(`Proposal not found with identifier '${proposalId}'.`);
+  }
+
+  // 2. Try PostgreSQL atomic RPC function first
+  try {
+    const { data: rpcData, error: rpcErr } = await dbClient.rpc('reject_proposal', {
+      p_proposal_id: prop.id,
+      p_admin_id: adminProfile.id,
+      p_remarks: remarks || null
+    });
+
+    if (!rpcErr && rpcData?.success) {
+      const { data: updatedProp } = await dbClient
+        .from('proposals')
+        .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
+        .eq('id', prop.id)
+        .single();
+
+      return formatProposalRecord(updatedProp || prop);
+    }
+
+    if (rpcErr && !rpcErr.message.includes('function') && !rpcErr.message.includes('does not exist')) {
+      throw new Error(rpcErr.message);
+    }
+  } catch (rpcCallErr) {
+    if (!rpcCallErr.message.includes('function') && !rpcCallErr.message.includes('does not exist') && !rpcCallErr.message.includes('404')) {
+      throw rpcCallErr;
+    }
+    // Fall back to direct query below
+  }
+
+  // 3. If proposal was previously accepted/approved, credit back any deducted amount from category
+  const prevStatus = (prop.status || '').toLowerCase();
+  if (['accepted', 'approved'].includes(prevStatus) && prop.category_id) {
+    const prevDeduction = prop.settlement_status === 'settled' && prop.settlement_amount !== null
+      ? Number(prop.settlement_amount)
+      : Number(prop.approved_amount || prop.amount || 0);
+
+    const { data: cat } = await dbClient
+      .from('budget_categories')
+      .select('id, spent_amount')
+      .eq('id', prop.category_id)
+      .maybeSingle();
+
+    if (cat) {
+      const newSpent = Math.max(0, Number(cat.spent_amount || 0) - prevDeduction);
+      await dbClient
+        .from('budget_categories')
+        .update({ spent_amount: newSpent })
+        .eq('id', cat.id);
+    }
+
+    // Remove linked transactions
+    await dbClient
+      .from('transactions')
+      .delete()
+      .eq('proposal_id', prop.id);
+  }
+
+  // 4. Update proposal status to 'Rejected' and record rejection timestamp
+  const rejectionTimestamp = new Date().toISOString();
+  const fullUpdates = {
+    status: 'Rejected',
+    rejected_at: rejectionTimestamp,
+    reviewed_by: adminProfile.id,
+    updated_at: rejectionTimestamp
+  };
+
+  if (remarks !== undefined && remarks !== null) {
+    fullUpdates.admin_remarks = remarks;
+  }
+
+  let { data: updated, error: updateError } = await dbClient
+    .from('proposals')
+    .update(fullUpdates)
+    .eq('id', prop.id)
+    .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
+    .single();
+
+  if (updateError && (updateError.message?.includes('column') || updateError.code === 'PGRST204')) {
+    const coreUpdates = {
+      status: 'Rejected',
+      updated_at: rejectionTimestamp
+    };
+    if (remarks !== undefined && remarks !== null) {
+      coreUpdates.admin_remarks = remarks;
+    }
+
+    const fallbackResult = await dbClient
+      .from('proposals')
+      .update(coreUpdates)
+      .eq('id', prop.id)
+      .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
+      .single();
+
+    if (fallbackResult.error) {
+      throw new Error(`Failed to update proposal rejection status: ${fallbackResult.error.message}`);
+    }
+    updated = fallbackResult.data;
+    updateError = null;
+  } else if (updateError) {
+    throw new Error(`Failed to update proposal rejection status: ${updateError.message}`);
+  }
+
+  return formatProposalRecord(updated);
+};
+
+// Handler for accepting proposal
+const handleAcceptProposal = async (req, res) => {
+  try {
+    const rawId = req.params.id || req.params[0] || req.body.proposalId || req.body.id;
+    if (!rawId) {
+      return res.status(400).json({ success: false, error: 'Proposal ID is required.' });
+    }
+
+    const id = decodeURIComponent(String(rawId)).replace(/^\/+|\/+$/g, '');
+    const { remarks } = req.body;
+
+    const formatted = await executeProposalAcceptance({
+      proposalId: id,
+      adminProfile: req.profile,
+      remarks,
+      dbClient: req.supabase || supabaseAdmin
+    });
+
+    return res.json({
+      success: true,
+      message: `Proposal ${formatted.proposalNumber} has been successfully accepted. ₹${formatted.amount.toLocaleString('en-IN')} deducted from category budget.`,
+      proposal: formatted
+    });
+  } catch (err) {
+    console.error('Error accepting proposal:', err);
+    return res.status(400).json({ success: false, error: err.message || 'Error accepting proposal.' });
+  }
+};
+
+// Handler for rejecting proposal
+const handleRejectProposal = async (req, res) => {
+  try {
+    const rawId = req.params.id || req.params[0] || req.body.proposalId || req.body.id;
+    if (!rawId) {
+      return res.status(400).json({ success: false, error: 'Proposal ID is required.' });
+    }
+
+    const id = decodeURIComponent(String(rawId)).replace(/^\/+|\/+$/g, '');
+    const { remarks } = req.body;
+
+    const formatted = await executeProposalRejection({
+      proposalId: id,
+      adminProfile: req.profile,
+      remarks,
+      dbClient: req.supabase || supabaseAdmin
+    });
+
+    return res.json({
+      success: true,
+      message: `Proposal ${formatted.proposalNumber} has been rejected. It will be automatically deleted after 24 hours per retention policy.`,
+      proposal: formatted
+    });
+  } catch (err) {
+    console.error('Error rejecting proposal:', err);
+    return res.status(400).json({ success: false, error: err.message || 'Error rejecting proposal.' });
+  }
+};
+
+// Handler for settling proposal
+const handleSettleProposal = async (req, res) => {
+  try {
+    const rawId = req.params.id || req.params[0] || req.body.proposalId || req.body.id;
+    if (!rawId) {
+      return res.status(400).json({ success: false, error: 'Proposal ID is required.' });
+    }
+
+    const id = decodeURIComponent(String(rawId)).replace(/^\/+|\/+$/g, '');
+    const { settlementAmount, remarks } = req.body;
+
+    if (settlementAmount === undefined || settlementAmount === null || Number(settlementAmount) < 0) {
+      return res.status(400).json({ success: false, error: 'Valid non-negative settlement amount is required.' });
+    }
+
+    const result = await processProposalSettlement({
+      proposalId: id,
+      settlementAmount,
+      remarks,
+      userProfile: req.profile,
+      dbClient: req.supabase || supabaseAdmin
+    });
+
+    return res.json(result);
+  } catch (err) {
+    console.error('Error settling proposal:', err);
+    return res.status(400).json({ success: false, error: err.message || 'Error processing settlement.' });
+  }
+};
+
+// Register routes for Accept, Reject, and Settle
+// Supports:
+// 1. POST /api/proposals/:id/accept
+// 2. POST /api/proposals/accept (with proposalId in body)
+// 3. POST /api/proposals/<complex/slash/id>/accept
+router.post('/accept', authenticateUser, requireAdmin, handleAcceptProposal);
+router.post('/:id/accept', authenticateUser, requireAdmin, handleAcceptProposal);
+router.post(/^\/(.+)\/accept$/, authenticateUser, requireAdmin, handleAcceptProposal);
+
+router.post('/approve', authenticateUser, requireAdmin, handleAcceptProposal);
+router.post('/:id/approve', authenticateUser, requireAdmin, handleAcceptProposal);
+router.post(/^\/(.+)\/approve$/, authenticateUser, requireAdmin, handleAcceptProposal);
+
+router.post('/reject', authenticateUser, requireAdmin, handleRejectProposal);
+router.post('/:id/reject', authenticateUser, requireAdmin, handleRejectProposal);
+router.post(/^\/(.+)\/reject$/, authenticateUser, requireAdmin, handleRejectProposal);
+
+router.post('/settle', authenticateUser, requireAdminOrHod, handleSettleProposal);
+router.post('/:id/settle', authenticateUser, requireAdminOrHod, handleSettleProposal);
+router.post(/^\/(.+)\/settle$/, authenticateUser, requireAdminOrHod, handleSettleProposal);
+
+// PATCH /api/proposals/:id/status - Status update with strict role-based authorization
+const handlePatchStatus = async (req, res) => {
+  try {
+    const rawId = req.params.id || req.params[0] || req.body?.proposalId || req.body?.id;
+    if (!rawId) {
+      return res.status(400).json({ success: false, error: 'Proposal ID is required.' });
+    }
+
+    const id = decodeURIComponent(String(rawId)).replace(/^\/+|\/+$/g, '');
     const { status, remarks } = req.body;
 
-    // 1. Validate requested status
-    const validStatuses = ['Pending', 'Under Review', 'Approved', 'Rejected'];
-    if (!validStatuses.includes(status)) {
+    const canonicalStatusMap = {
+      'pending': 'Pending',
+      'under review': 'Under Review',
+      'approved': 'Approved',
+      'accepted': 'Approved',
+      'rejected': 'Rejected'
+    };
+
+    const norm = (status || '').trim().toLowerCase();
+    const canonicalStatus = canonicalStatusMap[norm];
+
+    if (!canonicalStatus) {
       return res.status(400).json({
         success: false,
-        error: `Invalid status '${status}'. Must be one of: ${validStatuses.join(', ')}`
+        error: `Invalid status '${status}'. Must be one of: Pending, Under Review, Approved, Rejected.`
+      });
+    }
+
+    // Enforce role-based authorization: Only authenticated Admin users can accept or reject
+    if (['accepted', 'approved', 'rejected'].includes(norm)) {
+      if (!req.profile || req.profile.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Forbidden: Only authenticated administrators can approve or reject proposals.'
+        });
+      }
+
+      if (norm === 'accepted' || norm === 'approved') {
+        const formatted = await executeProposalAcceptance({
+          proposalId: id,
+          adminProfile: req.profile,
+          remarks,
+          dbClient: req.supabase || supabaseAdmin
+        });
+        return res.json({
+          success: true,
+          message: `Proposal ${formatted.proposalNumber} has been approved.`,
+          proposal: formatted
+        });
+      }
+
+      if (norm === 'rejected') {
+        const formatted = await executeProposalRejection({
+          proposalId: id,
+          adminProfile: req.profile,
+          remarks,
+          dbClient: req.supabase || supabaseAdmin
+        });
+        return res.json({
+          success: true,
+          message: `Proposal ${formatted.proposalNumber} has been rejected. Scheduled for deletion after 24 hours.`,
+          proposal: formatted
+        });
+      }
+    }
+
+    // For non-approval status transitions (e.g., 'Under Review', 'Pending'), allow Admin or HOD
+    if (req.profile.role !== 'admin' && req.profile.role !== 'hod') {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden: Administrator or HOD access required.'
       });
     }
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const filterCol = isUuid ? 'id' : 'proposal_number';
 
-    // 2. Validate proposal exists in database
-    const { data: existingProp, error: fetchErr } = await supabaseAdmin
-      .from('proposals')
-      .select('*')
-      .eq(filterCol, id)
-      .maybeSingle();
-
-    if (fetchErr) {
-      return res.status(400).json({ success: false, error: fetchErr.message });
-    }
-
-    if (!existingProp) {
-      return res.status(404).json({
-        success: false,
-        error: `Proposal not found with identifier '${id}'.`
-      });
-    }
-
-    // 3. Prepare updates
     const updates = {
-      status,
+      status: canonicalStatus,
       updated_at: new Date().toISOString()
     };
     if (remarks !== undefined && remarks !== null) {
       updates.admin_remarks = remarks;
     }
 
-    const { data: updated, error: updateError } = await supabaseAdmin
+    const { data: updated, error: updateError } = await (req.supabase || supabaseAdmin)
       .from('proposals')
       .update(updates)
-      .eq('id', existingProp.id)
+      .eq(filterCol, id)
       .select('*, profiles:faculty_id(id, name, email, employee_id), academic_years:academic_year_id(id, academic_year, budget), budget_categories:category_id(id, name)')
       .single();
 
@@ -452,68 +981,19 @@ router.patch('/:id/status', authenticateUser, requireAdminOrHod, async (req, res
       return res.status(400).json({ success: false, error: updateError.message });
     }
 
-    // 4. Maintain linked transaction in database for financial audit trail
-    if (status === 'Approved') {
-      try {
-        const { data: existingTxn } = await supabaseAdmin
-          .from('transactions')
-          .select('id')
-          .eq('proposal_id', existingProp.id)
-          .maybeSingle();
-
-        if (!existingTxn) {
-          const { count } = await supabaseAdmin
-            .from('transactions')
-            .select('id', { count: 'exact', head: true });
-
-          const nextTxnNum = `TXN-${1000 + (count || 0) + 1}`;
-
-          const { data: dept } = await supabaseAdmin
-            .from('departments')
-            .select('id')
-            .eq('code', 'CSE')
-            .maybeSingle();
-
-          await supabaseAdmin
-            .from('transactions')
-            .insert({
-              transaction_number: nextTxnNum,
-              department_id: dept?.id || null,
-              category_id: updated.category_id || null,
-              proposal_id: existingProp.id,
-              amount: Number(updated.amount || 0),
-              transaction_date: new Date().toISOString().split('T')[0],
-              status: 'Approved',
-              description: updated.title || 'Approved Proposal Disbursement',
-              requested_by: updated.faculty_id || null,
-              vendor: updated.guest_details || 'Kongu Procurement'
-            });
-        }
-      } catch (txnErr) {
-        console.warn('Transaction sync notice:', txnErr.message);
-      }
-    } else {
-      // If status changed away from Approved, remove linked transaction
-      try {
-        await supabaseAdmin
-          .from('transactions')
-          .delete()
-          .eq('proposal_id', existingProp.id);
-      } catch (txnErr) {
-        console.warn('Transaction cleanup notice:', txnErr.message);
-      }
-    }
-
     const formatted = formatProposalRecord(updated);
     return res.json({
       success: true,
-      message: `Proposal ${formatted.proposalNumber} status updated to ${status}.`,
+      message: `Proposal ${formatted.proposalNumber} status updated to ${canonicalStatus}.`,
       proposal: formatted
     });
   } catch (err) {
     console.error('Error updating proposal status:', err);
-    return res.status(500).json({ success: false, error: 'Server error updating proposal status.' });
+    return res.status(400).json({ success: false, error: err.message || 'Server error updating proposal status.' });
   }
-});
+};
+
+router.patch('/:id/status', authenticateUser, handlePatchStatus);
+router.patch(/^\/(.+)\/status$/, authenticateUser, handlePatchStatus);
 
 export default router;

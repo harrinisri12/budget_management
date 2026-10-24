@@ -24,19 +24,34 @@ export const DashboardPage = () => {
     0
   ) || kpis.allocated || 0;
 
-  // 3. REMAINING BALANCE: totalBudget - totalSpent from actual database category spent amounts
-  const categorySpent = (activeAyCategories.length > 0 ? activeAyCategories : (categories || [])).reduce(
-    (sum, c) => sum + Number(c.spent_amount || c.spentAmount || c.spent || 0),
-    0
-  );
-  const remainingBalance = Math.max(0, totalBudget - categorySpent);
-
-  // 4. PENDING PROPOSALS: Count and sum of proposals for active academic year with status 'Pending'
+  // 3. REMAINING BALANCE: Available budget = annual budget minus accepted proposals that have not yet been settled,
+  // minus finalized settlement expenses. Pending and rejected proposals must not reduce available budget.
   const activeYearProposals = (proposals || []).filter(
     (p) => !activeAcademicYear || p.academicYearId === activeAcademicYear.id || p.academicYear === activeAcademicYear.academicYear || p.academicYear === activeAcademicYear.name
   );
+
+  const acceptedProposals = activeYearProposals.filter(
+    (p) => ['Accepted', 'accepted', 'Approved', 'approved'].includes(p.status)
+  );
+
+  const proposalDeductions = acceptedProposals.reduce((sum, p) => {
+    if (p.settlementStatus === 'settled' || p.settlement_status === 'settled') {
+      return sum + Number(p.settlementAmount ?? p.settlement_amount ?? 0);
+    }
+    return sum + Number(p.approvedAmount ?? p.approved_amount ?? p.amount ?? 0);
+  }, 0);
+
+  const recordedCategorySpent = (activeAyCategories.length > 0 ? activeAyCategories : (categories || [])).reduce(
+    (sum, c) => sum + Number(c.spent_amount || c.spentAmount || c.spent || 0),
+    0
+  );
+
+  const totalEffectiveSpent = Math.max(recordedCategorySpent, proposalDeductions);
+  const remainingBalance = Math.max(0, totalBudget - totalEffectiveSpent);
+
+  // 4. PENDING PROPOSALS: Count and sum of proposals awaiting evaluation
   const pendingProposals = activeYearProposals.filter(
-    (p) => p.status === 'Pending'
+    (p) => ['Pending', 'pending', 'Under Review', 'under review'].includes(p.status)
   );
   const pendingCount = pendingProposals.length;
   const pendingTotal = pendingProposals.reduce(

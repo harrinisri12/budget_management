@@ -43,15 +43,22 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
     let text = `${p.category || 'General'} • Requested: ₹${Number(p.amount || 0).toLocaleString('en-IN')}`;
     let time = p.proposalDate || p.date ? new Date(p.proposalDate || p.date).toLocaleDateString() : 'Recent';
 
-    if (p.status === 'Approved') {
-      title = `Approved: ${p.title}`;
-      text = `₹${Number(p.amount || 0).toLocaleString('en-IN')} approved for ${p.category || 'department'}.`;
-    } else if (p.status === 'Pending') {
+    const sLower = (p.status || '').toLowerCase();
+    const ssLower = (p.settlementStatus || '').toLowerCase();
+    const isSettled = sLower === 'settled' || ssLower === 'settled';
+
+    if (isSettled) {
+      title = `Settled: ${p.title}`;
+      text = `Finalized settlement ₹${Number(p.settlementAmount ?? p.amount ?? 0).toLocaleString('en-IN')} for ${p.category || 'department'}.`;
+    } else if (sLower === 'accepted' || sLower === 'approved') {
+      title = `Accepted: ${p.title}`;
+      text = `₹${Number(p.approvedAmount || p.amount || 0).toLocaleString('en-IN')} accepted for ${p.category || 'department'}.`;
+    } else if (sLower === 'pending') {
       title = `Pending: ${p.title}`;
-      text = `Awaiting evaluation by HOD / Budget Coordinator.`;
-    } else if (p.status === 'Rejected') {
+      text = `Awaiting evaluation by Admin.`;
+    } else if (sLower === 'rejected') {
       title = `Rejected: ${p.title}`;
-      text = p.adminRemarks ? `Remarks: ${p.adminRemarks}` : `Proposal was rejected.`;
+      text = p.adminRemarks ? `Remarks: ${p.adminRemarks}` : `Proposal was rejected (scheduled for deletion in 24h).`;
     }
 
     return {

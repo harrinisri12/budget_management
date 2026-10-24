@@ -82,14 +82,12 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
     const { data: categories } = await catQuery;
     const cats = categories || [];
 
-    const totalAllocated = cats.reduce((sum, c) => sum + Number(c.allocated_amount || 0), 0);
-    const totalSpent = cats.reduce((sum, c) => sum + Number(c.spent_amount || 0), 0);
-    const remaining = Math.max(0, totalBudget - totalSpent);
-
-    // 3. Fetch proposals for active academic year to calculate pending metrics
+    // 3. Fetch proposals for active academic year to apply budget calculation rules:
+    // Available budget = annual budget minus accepted proposals that have not yet been settled,
+    // minus finalized settlement expenses. Pending and rejected proposals must not reduce available budget.
     let propQuery = db
       .from('proposals')
-      .select('id, amount, status, academic_year_id');
+      .select('*');
 
     if (activeAyId) {
       propQuery = propQuery.eq('academic_year_id', activeAyId);
@@ -97,14 +95,37 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
 
     const { data: proposals } = await propQuery;
     const activeProps = proposals || [];
-    const pendingProps = activeProps.filter(p => p.status === 'Pending');
+
+    // Filter proposals by evaluation status
+    const acceptedProps = activeProps.filter(p => ['Accepted', 'accepted', 'Approved', 'approved'].includes(p.status));
+    const pendingProps = activeProps.filter(p => ['Pending', 'pending', 'Under Review', 'under review'].includes(p.status));
     const pendingCount = pendingProps.length;
     const pendingTotal = pendingProps.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-    // 4. Calculate category breakdown
+    // Compute spent per category based on budget calculation rules
+    const catProposalsMap = {};
+    acceptedProps.forEach(p => {
+      const catId = p.category_id;
+      if (!catId) return;
+      if (!catProposalsMap[catId]) {
+        catProposalsMap[catId] = 0;
+      }
+      // If settled, count actual settlement amount; if unsettled, count provisional proposed amount
+      if (p.settlement_status === 'settled' && p.settlement_amount !== null && p.settlement_amount !== undefined) {
+        catProposalsMap[catId] += Number(p.settlement_amount || 0);
+      } else {
+        catProposalsMap[catId] += Number(p.approved_amount ?? p.amount ?? 0);
+      }
+    });
+
+    // 4. Calculate category breakdown with exact dynamic spent amounts
+    const totalAllocated = cats.reduce((sum, c) => sum + Number(c.allocated_amount || 0), 0);
+    
     const categoryAllocations = cats.map(c => {
       const allocated = Number(c.allocated_amount || 0);
-      const spent = Number(c.spent_amount || 0);
+      // Use dynamic sum of accepted + settled proposals, fallback to recorded spent_amount
+      const propSpent = catProposalsMap[c.id];
+      const spent = propSpent !== undefined ? propSpent : Number(c.spent_amount || 0);
       const pct = totalBudget > 0 ? Number(((allocated / totalBudget) * 100).toFixed(1)) : 0;
       return {
         id: c.id,
@@ -116,7 +137,10 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
       };
     });
 
-    // 5. Calculate monthly spending from real database transactions or approved proposals
+    const totalSpent = categoryAllocations.reduce((sum, c) => sum + c.spent, 0);
+    const remaining = Math.max(0, totalBudget - totalSpent);
+
+    // 5. Calculate monthly spending from real database transactions or accepted/settled proposals
     const { data: txns } = await db
       .from('transactions')
       .select('amount, transaction_date, status')
@@ -133,25 +157,20 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
         }
         monthlyMap[monthName].spending += Number(t.amount || 0);
       });
-    } else {
-      // Calculate from real approved proposals if transactions table has no entries yet
-      const { data: approvedProps } = await db
-        .from('proposals')
-        .select('amount, proposal_date, program_date, status')
-        .eq('status', 'Approved');
-
-      if (approvedProps && approvedProps.length > 0) {
-        approvedProps.forEach(p => {
-          const dt = p.proposal_date || p.program_date;
-          if (!dt) return;
-          const d = new Date(dt);
-          const monthName = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
-          if (!monthlyMap[monthName]) {
-            monthlyMap[monthName] = { month: monthName, budget: 0, spending: 0 };
-          }
-          monthlyMap[monthName].spending += Number(p.amount || 0);
-        });
-      }
+    } else if (acceptedProps.length > 0) {
+      acceptedProps.forEach(p => {
+        const dt = p.proposal_date || p.program_date;
+        if (!dt) return;
+        const d = new Date(dt);
+        const monthName = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+        if (!monthlyMap[monthName]) {
+          monthlyMap[monthName] = { month: monthName, budget: 0, spending: 0 };
+        }
+        const effectiveAmount = (p.settlement_status === 'settled' && p.settlement_amount !== null)
+          ? Number(p.settlement_amount)
+          : Number(p.approved_amount ?? p.amount ?? 0);
+        monthlyMap[monthName].spending += effectiveAmount;
+      });
     }
 
     const monthlySpending = Object.values(monthlyMap);

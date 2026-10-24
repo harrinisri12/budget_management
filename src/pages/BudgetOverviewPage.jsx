@@ -16,15 +16,22 @@ export const BudgetOverviewPage = () => {
   const unitsData = ayCategories.map(cat => {
     const allocated = Number(cat.budget || cat.allocated_amount || 0);
 
-    // Calculate approved expenditure from proposals under this category
-    const catProposals = proposals.filter(p =>
-      (p.categoryId === cat.id) ||
-      (p.category && p.category.toLowerCase() === cat.name.toLowerCase())
-    );
+    // Calculate committed & finalized expenditure from proposals under this category
+    // Rule 6: Accepted unsettled proposals count provisional proposed amount; settled count actual settlement amount
+    const spent = catProposals.reduce((sum, p) => {
+      const statusLower = (p.status || '').toLowerCase();
+      const settlementStatusLower = (p.settlementStatus || '').toLowerCase();
+      const isSettled = statusLower === 'settled' || settlementStatusLower === 'settled';
+      const isAccepted = ['accepted', 'approved'].includes(statusLower);
 
-    const spent = catProposals
-      .filter(p => p.status === 'Approved')
-      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      if (isSettled) {
+        return sum + (Number(p.settlementAmount ?? p.actualAmount ?? p.amount ?? 0) || 0);
+      }
+      if (isAccepted) {
+        return sum + (Number(p.approvedAmount ?? p.amount ?? 0) || 0);
+      }
+      return sum;
+    }, 0);
 
     const utilization = allocated > 0 ? Math.min(100, Math.round((spent / allocated) * 100)) : 0;
     const subCount = cat.subcategories?.length || 0;

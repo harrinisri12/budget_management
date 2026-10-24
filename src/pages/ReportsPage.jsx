@@ -58,7 +58,20 @@ export const ReportsPage = () => {
         (p.categoryId === cat.id) ||
         (p.category && p.category.toLowerCase() === (cat.name || '').toLowerCase())
       );
-      const spentFromProps = catProps.filter(p => p.status === 'Approved').reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      // Rule 6: unsettled accepted proposals count provisionally; settled count actual settlement amount
+      const spentFromProps = catProps.reduce((sum, p) => {
+        const sLower = (p.status || '').toLowerCase();
+        const ssLower = (p.settlementStatus || '').toLowerCase();
+        const isSettled = sLower === 'settled' || ssLower === 'settled';
+        const isAccepted = ['accepted', 'approved'].includes(sLower);
+        if (isSettled) {
+          return sum + (Number(p.settlementAmount ?? p.actualAmount ?? p.amount ?? 0) || 0);
+        }
+        if (isAccepted) {
+          return sum + (Number(p.approvedAmount ?? p.amount ?? 0) || 0);
+        }
+        return sum;
+      }, 0);
       const spent = spentFromProps > 0 ? spentFromProps : Number(cat.spent_amount || 0);
       const remaining = Math.max(0, allocated - spent);
       const util = allocated > 0 ? ((spent / allocated) * 100).toFixed(1) : '0';
@@ -78,7 +91,7 @@ export const ReportsPage = () => {
 
   // Report 2: Comprehensive Proposals Audit Dossier
   const downloadProposalsAuditReport = () => {
-    const headers = ['Proposal ID', 'Program Title', 'Category', 'Subcategory', 'Faculty Name', 'Faculty Email', 'Proposed Amount (INR)', 'Status', 'Proposal Date', 'Program Date', 'Academic Year', 'Admin Remarks'];
+    const headers = ['Proposal ID', 'Program Title', 'Category', 'Subcategory', 'Faculty Name', 'Faculty Email', 'Proposed Amount (INR)', 'Approved Amount (INR)', 'Settlement Amount (INR)', 'Settlement Status', 'Status', 'Proposal Date', 'Program Date', 'Academic Year', 'Admin Remarks'];
     const rows = activeProposals.map(p => {
       return [
         `"${(p.proposalNumber || p.proposalId || p.id || '').toString().replace(/"/g, '""')}"`,
@@ -88,6 +101,9 @@ export const ReportsPage = () => {
         `"${(p.facultyName || p.faculty_name || '').replace(/"/g, '""')}"`,
         `"${(p.facultyEmail || p.faculty_email || '').replace(/"/g, '""')}"`,
         Number(p.amount || 0),
+        Number(p.approvedAmount || p.amount || 0),
+        p.settlementAmount !== null && p.settlementAmount !== undefined && p.settlementAmount !== '' ? Number(p.settlementAmount) : '',
+        `"${p.settlementStatus || 'Unsettled'}"`,
         `"${p.status || 'Pending'}"`,
         `"${p.proposalDate || p.proposal_date || ''}"`,
         `"${p.programDate || p.program_date || ''}"`,
@@ -124,13 +140,25 @@ export const ReportsPage = () => {
 
   // Report 4: Faculty Roster & Activity Summary
   const downloadFacultyRosterReport = () => {
-    const headers = ['Employee ID', 'Name', 'Email', 'Role', 'Designation', 'Department', 'Status', 'Proposals Submitted', 'Total Approved (INR)'];
+    const headers = ['Employee ID', 'Name', 'Email', 'Role', 'Designation', 'Department', 'Status', 'Proposals Submitted', 'Total Disbursed / Settled (INR)'];
     const rows = facultyMembers.map(f => {
       const facProps = (proposals || []).filter(p =>
         (p.facultyEmail && f.email && p.facultyEmail.toLowerCase() === f.email.toLowerCase()) ||
         (p.facultyId && f.id && p.facultyId === f.id)
       );
-      const approvedSum = facProps.filter(p => p.status === 'Approved').reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const approvedSum = facProps.reduce((sum, p) => {
+        const sLower = (p.status || '').toLowerCase();
+        const ssLower = (p.settlementStatus || '').toLowerCase();
+        const isSettled = sLower === 'settled' || ssLower === 'settled';
+        const isAccepted = ['accepted', 'approved'].includes(sLower);
+        if (isSettled) {
+          return sum + (Number(p.settlementAmount ?? p.actualAmount ?? p.amount ?? 0) || 0);
+        }
+        if (isAccepted) {
+          return sum + (Number(p.approvedAmount ?? p.amount ?? 0) || 0);
+        }
+        return sum;
+      }, 0);
       return [
         `"${(f.employeeId || f.employee_id || '').toString().replace(/"/g, '""')}"`,
         `"${(f.name || '').replace(/"/g, '""')}"`,

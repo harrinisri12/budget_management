@@ -284,12 +284,31 @@ export const FacultyDashboardPage = () => {
                   <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 1 }}>{selectedProposal.guestDetails || 'None specified'}</p>
                 </div>
 
-                <div>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposed Amount</span>
-                  <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-heading)', marginTop: 1 }}>
-                    ₹{Number(selectedProposal.amount).toLocaleString('en-IN')}
-                  </p>
+                <div style={{ display: 'grid', gridTemplateColumns: selectedProposal.settlementStatus === 'Settled' || selectedProposal.settlement_status === 'Settled' ? '1fr 1fr' : '1fr', gap: 12 }}>
+                  <div>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Proposed Amount</span>
+                    <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-heading)', marginTop: 1 }}>
+                      ₹{Number(selectedProposal.amount || 0).toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                  {(selectedProposal.settlementStatus === 'Settled' || selectedProposal.settlement_status === 'Settled') && (
+                    <div>
+                      <span style={{ fontSize: 11, color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 600 }}>Settled Expense</span>
+                      <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)', marginTop: 1 }}>
+                        ₹{Number(selectedProposal.settlementAmount ?? selectedProposal.settlement_amount ?? 0).toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                  )}
                 </div>
+
+                {((selectedProposal.status || '').toLowerCase() === 'rejected' && selectedProposal.rejectedAt) && (
+                  <div style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--error-subtle)', border: '1px solid var(--error-border)', marginTop: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--error)', textTransform: 'uppercase', fontWeight: 700 }}>24-Hour Retention Notice</span>
+                    <p style={{ fontSize: 12, color: 'var(--text-body)', marginTop: 2 }}>
+                      This rejected proposal is scheduled to be automatically purged from the system 24 hours after rejection.
+                    </p>
+                  </div>
+                )}
 
                 {selectedProposal.adminRemarks && (
                   <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--gold-subtle)', border: '1px solid var(--gold-border)', marginTop: 4 }}>

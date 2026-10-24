@@ -18,9 +18,19 @@ export const CSEAPage = () => {
     (p.category || '').toLowerCase().includes('csea')
   );
 
-  const spent = cseaProposals
-    .filter(p => p.status === 'Approved')
-    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const spent = cseaProposals.reduce((sum, p) => {
+    const sLower = (p.status || '').toLowerCase();
+    const ssLower = (p.settlementStatus || '').toLowerCase();
+    const isSettled = sLower === 'settled' || ssLower === 'settled';
+    const isAccepted = ['accepted', 'approved'].includes(sLower);
+    if (isSettled) {
+      return sum + (Number(p.settlementAmount ?? p.actualAmount ?? p.amount ?? 0) || 0);
+    }
+    if (isAccepted) {
+      return sum + (Number(p.approvedAmount ?? p.amount ?? 0) || 0);
+    }
+    return sum;
+  }, 0);
 
   const remaining = Math.max(0, allocated - spent);
   const spentPercent = allocated > 0 ? ((spent / allocated) * 100).toFixed(1) : '0';
