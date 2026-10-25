@@ -39,23 +39,21 @@ export const CSEAPage = () => {
 
   return (
     <DashboardLayout pageTitle="CSEA Association">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Page Header */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
               CSE DEPARTMENT STUDENT ASSOCIATION
             </span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
             Computer Science and Engineering Association (CSEA)
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2, maxWidth: 850 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0, maxWidth: 850 }}>
             Primary departmental student association driving technical symposiums, workshops, guest lectures, and industry interaction for CSE students.
           </p>
         </div>
-
-        <hr className="cbm-divider" />
 
         {/* SECTION 1: Unit Quota & Department Overview */}
         <section className="cbm-section">
@@ -66,13 +64,13 @@ export const CSEAPage = () => {
                 Fiscal allocation and departmental coordination for Computer Science and Engineering Association ({ayLabel})
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12.5 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-heading)' }}>
-                <UserCheck size={14} style={{ color: 'var(--gold)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-heading)' }}>
+                <UserCheck size={13} style={{ color: 'var(--gold)' }} />
                 <span>Department: <strong>CSE</strong></span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-heading)' }}>
-                <Shield size={14} style={{ color: 'var(--gold)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-heading)' }}>
+                <Shield size={13} style={{ color: 'var(--gold)' }} />
                 <span>Session: <strong>{ayLabel}</strong></span>
               </div>
             </div>
@@ -100,8 +98,6 @@ export const CSEAPage = () => {
           </div>
         </section>
 
-        <hr className="cbm-divider" />
-
         {/* SECTION 2: Activities & Expenditure Table */}
         <section className="cbm-section">
           <div className="cbm-section-header">
@@ -111,7 +107,7 @@ export const CSEAPage = () => {
                 Departmental symposiums, workshops, and guest lectures hosted under CSEA
               </p>
             </div>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
               {cseaProposals.length} Proposals / Activities Logged
             </span>
           </div>
@@ -130,7 +126,7 @@ export const CSEAPage = () => {
               <tbody>
                 {cseaProposals.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '16px 14px', color: 'var(--text-muted)' }}>
                       No proposals or activities recorded under CSEA Association yet.
                     </td>
                   </tr>

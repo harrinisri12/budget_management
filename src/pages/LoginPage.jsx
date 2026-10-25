@@ -132,7 +132,7 @@ export const LoginPage = ({ initialMode }) => {
           style={{
             backgroundColor: '#121212',
             color: '#FFFFFF',
-            padding: '44px 36px',
+            padding: '24px 28px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
@@ -142,11 +142,11 @@ export const LoginPage = ({ initialMode }) => {
         >
           {/* Top Institutional Header */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
                 style={{
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   borderRadius: 'var(--radius-sm)',
                   backgroundColor: 'var(--gold)',
                   display: 'flex',
@@ -156,68 +156,68 @@ export const LoginPage = ({ initialMode }) => {
                   flexShrink: 0
                 }}
               >
-                <Building size={20} />
+                <Building size={18} />
               </div>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.2 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.2, margin: 0 }}>
                   Kongu Engineering College
                 </h3>
-                <p style={{ fontSize: 11, color: 'var(--gold)', fontWeight: 700, letterSpacing: '0.04em', marginTop: 2 }}>
+                <p style={{ fontSize: 10.5, color: 'var(--gold)', fontWeight: 700, letterSpacing: '0.04em', margin: '2px 0 0 0' }}>
                   DEPARTMENT OF COMPUTER SCIENCE & ENGINEERING
                 </p>
               </div>
             </div>
 
-            <div style={{ marginTop: 28 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.3 }}>
+            <div style={{ marginTop: 20 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.3, margin: 0 }}>
                 Department Budget Management System
               </h2>
-              <p style={{ fontSize: 13, color: '#A1A1AA', marginTop: 8, lineHeight: 1.6 }}>
+              <p style={{ fontSize: 12.5, color: '#A1A1AA', marginTop: 6, lineHeight: 1.5 }}>
                 Official internal administrative portal for managing departmental budget allocations, academic year quotas, faculty activity proposals, and audit disbursements.
               </p>
             </div>
           </div>
 
           {/* Institutional Highlights */}
-          <div style={{ marginTop: 36, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div
               style={{
-                padding: '14px 16px',
+                padding: '10px 14px',
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid rgba(197, 160, 89, 0.25)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12
+                gap: 10
               }}
             >
-              <PieChart size={20} style={{ color: 'var(--gold)', flexShrink: 0 }} />
+              <PieChart size={18} style={{ color: 'var(--gold)', flexShrink: 0 }} />
               <div>
-                <p style={{ fontSize: 13.5, fontWeight: 600, color: '#FFFFFF' }}>Academic Year Budget Quota</p>
-                <p style={{ fontSize: 12, color: '#A1A1AA' }}>CSE Departmental Allocation Management</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#FFFFFF', margin: 0 }}>Academic Year Budget Quota</p>
+                <p style={{ fontSize: 11.5, color: '#A1A1AA', margin: '1px 0 0 0' }}>CSE Departmental Allocation Management</p>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 12, color: '#A1A1AA', paddingTop: 6 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <CheckCircle2 size={14} style={{ color: 'var(--gold)' }} /> Audit Compliant
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 11.5, color: '#A1A1AA', paddingTop: 2 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <CheckCircle2 size={13} style={{ color: 'var(--gold)' }} /> Audit Compliant
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <ShieldCheck size={14} style={{ color: 'var(--gold)' }} /> Institutional Access
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ShieldCheck size={13} style={{ color: 'var(--gold)' }} /> Institutional Access
               </span>
             </div>
           </div>
         </div>
 
         {/* Right Side: Login Form Panel */}
-        <div style={{ padding: '36px 32px', backgroundColor: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ padding: '24px 24px', backgroundColor: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           
           {/* Mobile Institutional Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }} className="md:hidden">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }} className="md:hidden">
             <div
               style={{
-                width: 32,
-                height: 32,
+                width: 30,
+                height: 30,
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'var(--primary)',
                 display: 'flex',
@@ -226,11 +226,11 @@ export const LoginPage = ({ initialMode }) => {
                 color: '#FFFFFF'
               }}
             >
-              <Building size={16} />
+              <Building size={15} />
             </div>
             <div>
-              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-heading)' }}>Kongu Engineering College</span>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>CSE Budget Portal</div>
+              <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-heading)' }}>Kongu Engineering College</span>
+              <div style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>CSE Budget Portal</div>
             </div>
           </div>
 
@@ -244,7 +244,7 @@ export const LoginPage = ({ initialMode }) => {
               backgroundColor: 'var(--slate-100)',
               borderRadius: 'var(--radius-sm)',
               padding: 3,
-              marginBottom: 24,
+              marginBottom: 14,
               border: '1px solid var(--border)'
             }}
           >
@@ -312,11 +312,11 @@ export const LoginPage = ({ initialMode }) => {
           </div>
 
           {/* Heading */}
-          <div style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', marginBottom: 4 }}>
+          <div style={{ marginBottom: 12 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-heading)', marginBottom: 2, margin: 0 }}>
               {mode === 'admin' ? 'Administrator Sign In' : 'Faculty Member Sign In'}
             </h2>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
               {mode === 'admin'
                 ? 'Sign in to access department budget allocations and proposal approvals'
                 : 'Sign in with your @kongu.edu institutional email to manage proposals'}
@@ -327,27 +327,27 @@ export const LoginPage = ({ initialMode }) => {
           {error && (
             <div
               style={{
-                padding: '10px 14px',
+                padding: '8px 12px',
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'var(--danger-bg)',
                 border: '1px solid var(--danger-border)',
                 color: 'var(--danger-text)',
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: 500,
-                marginBottom: 18,
+                marginBottom: 10,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8
+                gap: 6
               }}
               role="alert"
             >
-              <AlertCircle size={15} style={{ flexShrink: 0 }} />
+              <AlertCircle size={14} style={{ flexShrink: 0 }} />
               <span>{error}</span>
             </div>
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {/* Email Address */}
             <Input
               id="login-email"

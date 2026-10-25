@@ -160,38 +160,38 @@ export const TransactionTable = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {/* Table Title & Filter Controls Header */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <div>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>Department Activity & Proposals</span>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Proposals submitted, evaluated, and disbursed for the academic year</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0 0' }}>Proposals submitted, evaluated, and disbursed for the academic year</p>
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
             <button
               onClick={exportCsv}
               className="cbm-btn cbm-btn-outline cbm-btn-sm"
             >
-              <FileDown size={14} />
+              <FileDown size={13} />
               <span>Export Audit</span>
             </button>
           </div>
         </div>
 
         {/* Filter Controls Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 8 }}>
           {/* Search Box */}
           <div className="cbm-input-wrapper">
-            <Search size={14} style={{ position: 'absolute', left: 10, color: 'var(--slate-400)' }} />
+            <Search size={13} style={{ position: 'absolute', left: 10, color: 'var(--slate-400)' }} />
             <input
               type="text"
               placeholder="Search ID, purpose, faculty..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="cbm-input"
-              style={{ height: 36, paddingLeft: 32, fontSize: 12.5 }}
+              style={{ height: 34, paddingLeft: 30, fontSize: 12 }}
             />
           </div>
 
@@ -200,7 +200,7 @@ export const TransactionTable = () => {
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="cbm-select"
-            style={{ height: 36, fontSize: 12.5 }}
+            style={{ height: 34, fontSize: 12 }}
           >
             {categoryFilterOptions.map(c => (
               <option key={c} value={c}>{c}</option>
@@ -212,7 +212,7 @@ export const TransactionTable = () => {
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="cbm-select"
-            style={{ height: 36, fontSize: 12.5 }}
+            style={{ height: 34, fontSize: 12 }}
           >
             {STATUS_OPTIONS.map(s => (
               <option key={s} value={s}>{s}</option>
@@ -223,10 +223,10 @@ export const TransactionTable = () => {
           <button
             onClick={() => toggleSort('amount')}
             className="cbm-btn cbm-btn-outline"
-            style={{ height: 36, fontSize: 12.5, justifyContent: 'space-between' }}
+            style={{ height: 34, fontSize: 12, justifyContent: 'space-between' }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ArrowUpDown size={14} /> Amount
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ArrowUpDown size={13} /> Amount
             </span>
             <span>{sortField === 'amount' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}</span>
           </button>
@@ -255,7 +255,7 @@ export const TransactionTable = () => {
               <TableSkeleton rows={4} columns={6} />
             ) : filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '16px 14px', color: 'var(--text-muted)' }}>
                     No recent departmental activity found.
                   </td>
                 </tr>

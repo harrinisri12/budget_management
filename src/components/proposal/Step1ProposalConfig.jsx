@@ -50,64 +50,55 @@ export const Step1ProposalConfig = ({
   );
 
   return (
-    <div className="cbm-card" style={{ padding: '28px 32px' }}>
-      {/* Section Header */}
-      <div style={{ marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="cbm-form-ribbon">Step 1 of 5</span>
-              <h2 className="cbm-section-title" style={{ margin: 0, fontSize: 18 }}>Proposal Configuration</h2>
-            </div>
-            <p className="cbm-section-subtitle" style={{ marginTop: 4 }}>
-              Select an active academic year, funding category, and classification subcategory configured for CSE department activities.
-            </p>
-          </div>
-
-          {currentAy && (
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'var(--success-bg)',
-                border: '1px solid var(--success-border)',
-                color: 'var(--success-text)',
-                fontSize: 12,
-                fontWeight: 700
-              }}
-            >
-              <CheckCircle2 size={14} />
-              <span>ACTIVE SESSION: {currentAy.name || currentAy.academicYear}</span>
-            </div>
-          )}
+    <div className="cbm-card" style={{ padding: '12px 18px' }}>
+      {/* Compact Section Header */}
+      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="cbm-form-ribbon" style={{ padding: '2px 7px', fontSize: 10.5 }}>Step 1 of 5</span>
+          <h2 className="cbm-section-title" style={{ margin: 0, fontSize: 14 }}>Proposal Configuration</h2>
+          <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>— Academic Session &amp; Funding Category</span>
         </div>
+
+        {currentAy && (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: 'var(--success-bg)',
+              border: '1px solid var(--success-border)',
+              color: 'var(--success-text)',
+              fontSize: 11,
+              fontWeight: 700
+            }}
+          >
+            <CheckCircle2 size={12} />
+            <span>ACTIVE: {currentAy.name || currentAy.academicYear}</span>
+          </div>
+        )}
       </div>
 
       {/* Warning if no permitted academic years */}
       {permittedAcademicYears.length === 0 && (
         <div
           style={{
-            padding: '14px 18px',
+            padding: '8px 12px',
             borderRadius: 'var(--radius-sm)',
             backgroundColor: 'var(--warning-bg)',
             border: '1px solid var(--warning-border)',
             color: 'var(--warning-text)',
-            fontSize: 13,
-            fontWeight: 500,
+            fontSize: 12,
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
-            marginBottom: 20
+            gap: 8,
+            marginBottom: 8
           }}
           role="alert"
         >
-          <AlertTriangle size={18} style={{ flexShrink: 0 }} />
-          <span>
-            No active academic year is currently open for proposal submissions. Please contact the CSE Budget Administrator to open the submission window.
-          </span>
+          <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+          <span>No active academic year is open for submissions. Please contact the administrator.</span>
         </div>
       )}
 
@@ -115,23 +106,22 @@ export const Step1ProposalConfig = ({
       {categoriesError && (
         <div
           style={{
-            padding: '12px 16px',
+            padding: '8px 12px',
             borderRadius: 'var(--radius-sm)',
             backgroundColor: 'var(--danger-bg)',
             border: '1px solid var(--danger-border)',
             color: 'var(--danger-text)',
-            fontSize: 13,
-            fontWeight: 500,
+            fontSize: 12,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 10,
-            marginBottom: 20
+            gap: 8,
+            marginBottom: 8
           }}
           role="alert"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <AlertTriangle size={16} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <AlertTriangle size={14} />
             <span>{categoriesError}</span>
           </div>
           {onReloadCategories && (
@@ -139,19 +129,19 @@ export const Step1ProposalConfig = ({
               type="button"
               onClick={onReloadCategories}
               className="cbm-btn cbm-btn-outline cbm-btn-sm"
-              style={{ height: 28, fontSize: 11.5 }}
+              style={{ height: 24, fontSize: 11, padding: '0 8px' }}
             >
-              <RefreshCw size={12} /> Retry
+              <RefreshCw size={11} /> Retry
             </button>
           )}
         </div>
       )}
 
-      {/* Configuration Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 20 }}>
+      {/* Compact 2x2 Configuration Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '8px 14px' }}>
         {/* Field 1: Academic Year Selection */}
-        <div className="cbm-input-group">
-          <label htmlFor="ay-select" className="cbm-label">
+        <div className="cbm-input-group" style={{ marginBottom: 0 }}>
+          <label htmlFor="ay-select" className="cbm-label" style={{ fontSize: 11.5, marginBottom: 2 }}>
             Academic Year <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           {permittedAcademicYears.length > 0 ? (
@@ -160,12 +150,12 @@ export const Step1ProposalConfig = ({
               value={selectedAyId || ''}
               onChange={(e) => onAyChange(e.target.value)}
               className="cbm-select"
-              style={{ height: 42, fontSize: 13.5, fontWeight: 600 }}
+              style={{ height: 34, fontSize: 12.5, fontWeight: 600 }}
             >
               <option value="" disabled>-- Select Academic Year --</option>
               {permittedAcademicYears.map((ay) => (
                 <option key={ay.id} value={ay.id}>
-                  {ay.name || ay.academicYear} (Annual Quota: ₹{Number(ay.budget || ay.annualBudget || 0).toLocaleString('en-IN')})
+                  {ay.name || ay.academicYear} (Quota: ₹{Number(ay.budget || ay.annualBudget || 0).toLocaleString('en-IN')})
                 </option>
               ))}
             </select>
@@ -173,82 +163,63 @@ export const Step1ProposalConfig = ({
             <div
               id="ay-select"
               style={{
-                height: 42,
-                padding: '0 14px',
+                height: 34,
+                padding: '0 10px',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'var(--bg-page)',
                 border: '1px solid var(--border)',
                 fontWeight: 600,
                 color: 'var(--text-heading)',
-                fontSize: 13.5,
+                fontSize: 12.5,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between'
               }}
             >
-              <span>{currentAy ? (currentAy.name || currentAy.academicYear) : 'Loading academic year...'}</span>
-              <span
-                style={{
-                  fontSize: 11,
-                  padding: '2px 8px',
-                  borderRadius: 3,
-                  backgroundColor: 'var(--success-bg)',
-                  color: 'var(--success-text)',
-                  fontWeight: 700
-                }}
-              >
-                OPEN FOR PROPOSALS
+              <span>{currentAy ? (currentAy.name || currentAy.academicYear) : 'Loading...'}</span>
+              <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, backgroundColor: 'var(--success-bg)', color: 'var(--success-text)', fontWeight: 700 }}>
+                OPEN
               </span>
             </div>
           )}
-          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-            Proposals can only be submitted against active cycles configured by the administrator.
-          </span>
         </div>
 
         {/* Field 2: Date of Submission (System Date - Read Only) */}
-        <div className="cbm-input-group">
-          <label className="cbm-label">
-            Date of Submission <span style={{ color: 'var(--text-muted)', fontSize: 11.5 }}>(System Timestamp)</span>
+        <div className="cbm-input-group" style={{ marginBottom: 0 }}>
+          <label className="cbm-label" style={{ fontSize: 11.5, marginBottom: 2 }}>
+            Submission Date <span style={{ color: 'var(--text-muted)', fontSize: 10.5 }}>(Server Date)</span>
           </label>
           <div
             style={{
-              height: 42,
-              padding: '0 14px',
+              height: 34,
+              padding: '0 10px',
               borderRadius: 'var(--radius-md)',
               backgroundColor: 'var(--bg-page)',
               border: '1px solid var(--border)',
               fontWeight: 500,
               color: 'var(--text-heading)',
-              fontSize: 13.5,
+              fontSize: 12.5,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Calendar size={16} color="var(--primary)" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Calendar size={14} color="var(--primary)" />
               <span>{submissionDateStr}</span>
             </div>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-              Read-only
-            </span>
+            <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>Auto</span>
           </div>
-          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-            Populated automatically from institutional server calendar.
-          </span>
         </div>
-      </div>
 
-      <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 20 }}>
-        {/* Field 3: Category (Dynamic from Admin Configuration) */}
-        <div className="cbm-input-group">
+        {/* Field 3: Category */}
+        <div className="cbm-input-group" style={{ marginBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <label htmlFor="category-select" className="cbm-label">
+            <label htmlFor="category-select" className="cbm-label" style={{ fontSize: 11.5, marginBottom: 2 }}>
               Category <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             {categoriesLoading && (
-              <span style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600 }}>Loading categories...</span>
+              <span style={{ fontSize: 10.5, color: 'var(--primary)', fontWeight: 600 }}>Loading...</span>
             )}
           </div>
 
@@ -257,66 +228,17 @@ export const Step1ProposalConfig = ({
               id="category-select"
               disabled
               className="cbm-select"
-              style={{ height: 42, fontSize: 13.5, color: 'var(--text-muted)', backgroundColor: 'var(--bg-page)' }}
+              style={{ height: 34, fontSize: 12.5, color: 'var(--text-muted)' }}
             >
-              <option value="">-- Select Academic Year First --</option>
+              <option value="">-- Select Year First --</option>
             </select>
           ) : categoriesLoading ? (
-            <div
-              style={{
-                height: 42,
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--bg-page)',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 14px',
-                color: 'var(--text-muted)',
-                fontSize: 13
-              }}
-            >
-              Loading configured categories...
+            <div style={{ height: 34, borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', padding: '0 10px', color: 'var(--text-muted)', fontSize: 12 }}>
+              Loading categories...
             </div>
           ) : categoriesError ? (
-            <div
-              style={{
-                padding: '12px 14px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--danger-bg, #FEF2F2)',
-                border: '1px solid var(--danger-border, #F87171)',
-                color: 'var(--danger-text, #991B1B)',
-                fontSize: 12.5,
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 10
-              }}
-              role="alert"
-            >
-              <span>{categoriesError}</span>
-              {onReloadCategories && (
-                <button
-                  type="button"
-                  onClick={onReloadCategories}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 4,
-                    border: '1px solid var(--danger-border, #F87171)',
-                    backgroundColor: 'white',
-                    color: 'var(--danger-text, #991B1B)',
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4
-                  }}
-                >
-                  <RefreshCw size={12} />
-                  Retry
-                </button>
-              )}
+            <div style={{ height: 34, borderRadius: 'var(--radius-md)', backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger-text)', fontSize: 11.5, display: 'flex', alignItems: 'center', padding: '0 10px' }}>
+              Error loading categories
             </div>
           ) : categories && categories.length > 0 ? (
             <select
@@ -324,7 +246,7 @@ export const Step1ProposalConfig = ({
               value={selectedCategoryId || ''}
               onChange={(e) => onCategoryChange(e.target.value)}
               className="cbm-select"
-              style={{ height: 42, fontSize: 13.5, fontWeight: 600 }}
+              style={{ height: 34, fontSize: 12.5, fontWeight: 600 }}
               required
             >
               <option value="" disabled>-- Select Administrative Category --</option>
@@ -335,33 +257,20 @@ export const Step1ProposalConfig = ({
               ))}
             </select>
           ) : (
-            <div
-              style={{
-                padding: '12px 14px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--warning-bg)',
-                border: '1px solid var(--warning-border)',
-                color: 'var(--warning-text)',
-                fontSize: 12.5,
-                fontWeight: 500
-              }}
-            >
-              No active categories found for this academic cycle. Please contact the administrator.
+            <div style={{ height: 34, borderRadius: 'var(--radius-md)', backgroundColor: 'var(--warning-bg)', border: '1px solid var(--warning-border)', color: 'var(--warning-text)', fontSize: 11.5, display: 'flex', alignItems: 'center', padding: '0 10px' }}>
+              No categories configured
             </div>
           )}
-          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-            Loads categories configured by the administrator for {currentAy?.name || 'this cycle'}.
-          </span>
         </div>
 
-        {/* Field 4: Subcategory (Dynamic based on selected Category) */}
-        <div className="cbm-input-group">
+        {/* Field 4: Subcategory */}
+        <div className="cbm-input-group" style={{ marginBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <label htmlFor="subcategory-select" className="cbm-label">
+            <label htmlFor="subcategory-select" className="cbm-label" style={{ fontSize: 11.5, marginBottom: 2 }}>
               Subcategory {availableSubcategories.length > 0 && <span style={{ color: 'var(--danger)' }}>*</span>}
             </label>
             {subcategoriesLoading && (
-              <span style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600 }}>Loading subcategories...</span>
+              <span style={{ fontSize: 10.5, color: 'var(--primary)', fontWeight: 600 }}>Loading...</span>
             )}
           </div>
 
@@ -370,65 +279,17 @@ export const Step1ProposalConfig = ({
               id="subcategory-select"
               disabled
               className="cbm-select"
-              style={{ height: 42, fontSize: 13.5, color: 'var(--text-muted)', backgroundColor: 'var(--bg-page)' }}
+              style={{ height: 34, fontSize: 12.5, color: 'var(--text-muted)' }}
             >
               <option value="">-- Select Category First --</option>
             </select>
           ) : subcategoriesLoading ? (
-            <div
-              style={{
-                height: 42,
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--bg-page)',
-                border: '1px solid var(--border)',
-                fontSize: 13,
-                color: 'var(--text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 14px'
-              }}
-            >
-              <span>Loading subcategories...</span>
+            <div style={{ height: 34, borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: '0 10px' }}>
+              Loading subcategories...
             </div>
           ) : subcategoriesError ? (
-            <div
-              style={{
-                padding: '12px 14px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--danger-bg, #FEF2F2)',
-                border: '1px solid var(--danger-border, #F87171)',
-                color: 'var(--danger-text, #991B1B)',
-                fontSize: 12.5,
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 10
-              }}
-              role="alert"
-            >
-              <span>{subcategoriesError}</span>
-              {onReloadSubcategories && (
-                <button
-                  type="button"
-                  onClick={onReloadSubcategories}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 4,
-                    border: '1px solid var(--danger-border, #F87171)',
-                    backgroundColor: 'white',
-                    color: 'var(--danger-text, #991B1B)',
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4
-                  }}
-                >
-                  <RefreshCw size={12} /> Retry
-                </button>
-              )}
+            <div style={{ height: 34, borderRadius: 'var(--radius-md)', backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger-text)', fontSize: 11.5, display: 'flex', alignItems: 'center', padding: '0 10px' }}>
+              Error loading subcategories
             </div>
           ) : availableSubcategories.length > 0 ? (
             <select
@@ -436,7 +297,7 @@ export const Step1ProposalConfig = ({
               value={selectedSubCategoryId || ''}
               onChange={(e) => onSubCategoryChange(e.target.value)}
               className="cbm-select"
-              style={{ height: 42, fontSize: 13.5, fontWeight: 600 }}
+              style={{ height: 34, fontSize: 12.5, fontWeight: 600 }}
               required
             >
               <option value="" disabled>-- Select Subcategory Event Type --</option>
@@ -448,77 +309,64 @@ export const Step1ProposalConfig = ({
             </select>
           ) : (
             <div
+              id="subcategory-select"
               style={{
-                height: 42,
-                padding: '0 14px',
+                height: 34,
+                padding: '0 10px',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'var(--bg-page)',
                 border: '1px solid var(--border)',
-                fontSize: 13,
+                fontSize: 12,
                 color: 'var(--text-muted)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between'
               }}
             >
-              <span>Direct Category (No subcategories required)</span>
-              <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 3, backgroundColor: 'var(--slate-100)', color: 'var(--slate-600)', fontWeight: 600 }}>
+              <span>Unified category (No subcategories)</span>
+              <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, backgroundColor: 'var(--slate-100)', color: 'var(--slate-600)', fontWeight: 600 }}>
                 Direct
               </span>
             </div>
           )}
-          <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>
-            {availableSubcategories.length > 0
-              ? 'Select the event classification to generate its specialized form.'
-              : 'This category uses a unified proposal form without subcategory divisions.'}
-          </span>
         </div>
       </div>
 
-      {/* Informative Category Meta Card */}
+      {/* Compact Informative Category Meta Strip */}
       {currentCat && (
         <div
           style={{
-            marginTop: 24,
-            padding: '16px 20px',
-            borderRadius: 'var(--radius-md)',
+            marginTop: 8,
+            padding: '6px 12px',
+            borderRadius: 'var(--radius-sm)',
             backgroundColor: '#FCFBF8',
             border: '1px solid var(--gold-border)',
             display: 'flex',
-            alignItems: 'flex-start',
-            gap: 12
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 6,
+            fontSize: 11.5
           }}
         >
-          <Layers size={20} color="var(--primary)" style={{ flexShrink: 0, marginTop: 2 }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-              <h4 style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: 'var(--text-heading)' }}>
-                {currentCat.name}
-              </h4>
-              {(currentCat.budget || currentCat.allocated_amount) && (
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>
-                  Allocated Quota: ₹{Number(currentCat.budget || currentCat.allocated_amount).toLocaleString('en-IN')}
-                </span>
-              )}
-            </div>
-            {currentCat.description ? (
-              <p style={{ margin: '4px 0 0 0', fontSize: 12.5, color: 'var(--text-muted)' }}>
-                {currentCat.description}
-              </p>
-            ) : (
-              <p style={{ margin: '4px 0 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
-                Official department budget line for academic proposals and events.
-              </p>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Layers size={13} color="var(--primary)" />
+            <strong style={{ color: 'var(--text-heading)' }}>{currentCat.name}</strong>
+            <span style={{ color: 'var(--text-muted)' }}>— {currentCat.description || 'Department budget line'}</span>
           </div>
+          {(currentCat.budget || currentCat.allocated_amount) && (
+            <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
+              Category Quota: ₹{Number(currentCat.budget || currentCat.allocated_amount).toLocaleString('en-IN')}
+            </span>
+          )}
         </div>
       )}
 
       {/* Step Navigation Actions */}
       <div
         style={{
-          marginTop: 28,
-          paddingTop: 18,
+          marginTop: 10,
+          paddingTop: 8,
           borderTop: '1px solid var(--border)',
           display: 'flex',
           justifyContent: 'flex-end',
@@ -531,7 +379,7 @@ export const Step1ProposalConfig = ({
           onClick={onContinue}
           disabled={!canProceed}
           icon={ArrowRight}
-          style={{ height: 42, padding: '0 24px', fontSize: 13.5 }}
+          style={{ height: 34, padding: '0 18px', fontSize: 12.5 }}
         >
           Continue to Proposal Details
         </Button>

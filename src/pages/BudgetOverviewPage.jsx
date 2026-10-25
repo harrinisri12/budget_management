@@ -16,23 +16,33 @@ export const BudgetOverviewPage = () => {
   const unitsData = ayCategories.map(cat => {
     const allocated = Number(cat.budget || cat.allocated_amount || 0);
 
-    // Calculate committed & finalized expenditure from proposals under this category
-    // Rule 6: Accepted unsettled proposals count provisional proposed amount; settled count actual settlement amount
-    const spent = catProposals.reduce((sum, p) => {
+    const catProposals = (proposals || []).filter(
+      p => p.categoryId === cat.id || (p.category && cat.name && p.category.trim().toLowerCase() === cat.name.trim().toLowerCase())
+    );
+
+    // Reserved amount: accepted proposals awaiting settlement
+    const reserved = catProposals.reduce((sum, p) => {
       const statusLower = (p.status || '').toLowerCase();
       const settlementStatusLower = (p.settlementStatus || '').toLowerCase();
-      const isSettled = statusLower === 'settled' || settlementStatusLower === 'settled';
       const isAccepted = ['accepted', 'approved'].includes(statusLower);
-
-      if (isSettled) {
-        return sum + (Number(p.settlementAmount ?? p.actualAmount ?? p.amount ?? 0) || 0);
-      }
-      if (isAccepted) {
-        return sum + (Number(p.approvedAmount ?? p.amount ?? 0) || 0);
+      const isSettled = settlementStatusLower === 'settled';
+      if (isAccepted && !isSettled) {
+        return sum + Number(p.amount || p.approvedAmount || 0);
       }
       return sum;
     }, 0);
 
+    // Actual expenditure: finalized settlements
+    const actual = catProposals.reduce((sum, p) => {
+      const settlementStatusLower = (p.settlementStatus || '').toLowerCase();
+      if (settlementStatusLower === 'settled') {
+        return sum + Number(p.settlementAmount ?? p.amount ?? 0);
+      }
+      return sum;
+    }, 0);
+
+    const remaining = Math.max(0, allocated - reserved - actual);
+    const spent = reserved + actual;
     const utilization = allocated > 0 ? Math.min(100, Math.round((spent / allocated) * 100)) : 0;
     const subCount = cat.subcategories?.length || 0;
 
@@ -40,6 +50,9 @@ export const BudgetOverviewPage = () => {
       id: cat.id,
       unit: cat.name,
       allocated,
+      reserved,
+      actual,
+      remaining,
       spent,
       utilization,
       subCount,
@@ -77,26 +90,24 @@ export const BudgetOverviewPage = () => {
 
   return (
     <DashboardLayout pageTitle="CSE Budget Overview">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Page Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
                 DEPARTMENTAL ALLOCATIONS • {ayLabel}
               </span>
             </div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>CSE Department Category Allocations</h1>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>CSE Department Category Allocations</h1>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
               Annual budget quotas and utilization ratios across active departmental categories, associations, and laboratories.
             </p>
           </div>
-          <Button variant="outline" icon={Download} onClick={handleExport}>
+          <Button variant="outline" size="sm" icon={Download} onClick={handleExport}>
             Export Quota Worksheet
           </Button>
         </div>
-
-        <hr className="cbm-divider" />
 
         {/* Allocations Table Section */}
         <section className="cbm-section">

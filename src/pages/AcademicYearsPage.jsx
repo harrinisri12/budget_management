@@ -744,6 +744,23 @@ export const AcademicYearsPage = () => {
       setActiveStep(2);
     } else if (activeStep === 2) {
       if (!validateStep2()) return;
+      // Automatically associate existing subcategories from DB for any category with empty subcategories
+      setCategories(prev => prev.map(cat => {
+        if (cat.subcategories && cat.subcategories.length > 0) return cat;
+        const matchingTemplate = categoryOptions.find(
+          opt => (opt.name || '').trim().toLowerCase() === (cat.name || '').trim().toLowerCase()
+        );
+        if (matchingTemplate && Array.isArray(matchingTemplate.subcategories) && matchingTemplate.subcategories.length > 0) {
+          return {
+            ...cat,
+            subcategories: matchingTemplate.subcategories.map((s, idx) => ({
+              id: `sub-auto-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+              name: typeof s === 'string' ? s : (s.name || s)
+            }))
+          };
+        }
+        return cat;
+      }));
       setActiveStep(3);
     } else if (activeStep === 3) {
       if (!validateStep3()) return;
@@ -781,12 +798,21 @@ export const AcademicYearsPage = () => {
       return;
     }
 
+    // Automatically look up associated existing subcategories from database templates
+    const matchingTemplate = categoryOptions.find(
+      opt => (opt.name || '').trim().toLowerCase() === cleanName.toLowerCase()
+    );
+    const autoSubs = (matchingTemplate?.subcategories || []).map((s, idx) => ({
+      id: `sub-init-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+      name: typeof s === 'string' ? s : (s.name || s)
+    }));
+
     const newCat = {
       id: `cat-${Date.now()}`,
       name: cleanName,
-      description: newCatDesc.trim(),
+      description: (matchingTemplate?.description || '').trim(),
       budget: budgetVal,
-      subcategories: []
+      subcategories: autoSubs
     };
 
     setCategories(prev => [...prev, newCat]);
@@ -816,20 +842,22 @@ export const AcademicYearsPage = () => {
       return;
     }
 
+    const targetCat = categories.find(c => c.id === catId);
+    if (!targetCat) return;
+
+    const existingSubs = targetCat.subcategories || [];
+    if (existingSubs.some(s => (typeof s === 'string' ? s : s.name).trim().toLowerCase() === subName.toLowerCase())) {
+      setStep3Error(`Subcategory "${subName}" already exists under "${targetCat.name}". Duplicates are not allowed.`);
+      return;
+    }
+
+    const newSub = {
+      id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      name: subName
+    };
+
     setCategories(prev => prev.map(cat => {
       if (cat.id !== catId) return cat;
-
-      const existingSubs = cat.subcategories || [];
-      if (existingSubs.some(s => (typeof s === 'string' ? s : s.name).trim().toLowerCase() === subName.toLowerCase())) {
-        setStep3Error(`Subcategory "${subName}" already exists under "${cat.name}".`);
-        return cat;
-      }
-
-      const newSub = {
-        id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        name: subName
-      };
-
       return {
         ...cat,
         subcategories: [...existingSubs, newSub]
@@ -837,16 +865,21 @@ export const AcademicYearsPage = () => {
     }));
 
     setNewSubcatInputs(prev => ({ ...prev, [catId]: '' }));
+    setStep3Error('');
   };
 
-  const handleRemoveSubcategory = (catId, subId) => {
+  const handleRemoveSubcategory = (catId, subIdentifier) => {
     setCategories(prev => prev.map(cat => {
       if (cat.id !== catId) return cat;
       return {
         ...cat,
-        subcategories: (cat.subcategories || []).filter(s => s.id !== subId)
+        subcategories: (cat.subcategories || []).filter(s => {
+          const sName = typeof s === 'string' ? s : s.name;
+          return s.id !== subIdentifier && sName !== subIdentifier;
+        })
       };
     }));
+    setStep3Error('');
   };
 
   // ---------------------------------------------------------------------------
@@ -926,22 +959,22 @@ export const AcademicYearsPage = () => {
 
   return (
     <DashboardLayout pageTitle="Academic Years">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* ===================================================================== */}
         {/* TOP HEADER AREA */}
         {/* ===================================================================== */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <CalendarRange size={16} style={{ color: 'var(--gold)' }} />
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--gold-text)', letterSpacing: '0.04em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <CalendarRange size={15} style={{ color: 'var(--gold)' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-text)', letterSpacing: '0.04em' }}>
                 ADMINISTRATIVE SETUP & LEDGER
               </span>
             </div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
               Academic Year Management
             </h1>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2, maxWidth: 850 }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0, maxWidth: 850 }}>
               Configure consecutive academic year cycles, assign departmental category budgets, and establish subcategory groupings for faculty proposals.
             </p>
           </div>
@@ -949,6 +982,7 @@ export const AcademicYearsPage = () => {
           {viewMode === 'list' && (
             <Button
               variant="primary"
+              size="sm"
               icon={Plus}
               onClick={handleOpenNewWizard}
             >
@@ -959,6 +993,7 @@ export const AcademicYearsPage = () => {
           {viewMode === 'wizard' && (
             <Button
               variant="outline"
+              size="sm"
               icon={X}
               onClick={() => setViewMode('list')}
             >
@@ -966,8 +1001,6 @@ export const AcademicYearsPage = () => {
             </Button>
           )}
         </div>
-
-        <hr className="cbm-divider" />
 
         {/* ===================================================================== */}
         {/* WIZARD MODE (Multi-Step Creation Flow) */}
@@ -1268,20 +1301,6 @@ export const AcademicYearsPage = () => {
                       />
                     </div>
                   </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <label className="cbm-form-label">Description / Purpose (Optional)</label>
-                    <Input
-                      placeholder="Brief note on activities covered under this category..."
-                      value={newCatDesc}
-                      onChange={(e) => setNewCatDesc(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddCategory();
-                        }
-                      }}
-                    />
-                  </div>
                   <Button variant="secondary" icon={Plus} onClick={handleAddCategory}>
                     Add Category
                   </Button>
@@ -1292,17 +1311,16 @@ export const AcademicYearsPage = () => {
                   <table className="cbm-table">
                     <thead>
                       <tr>
-                        <th>#</th>
+                        <th style={{ width: 40 }}>#</th>
                         <th>Category Name</th>
-                        <th>Description</th>
-                        <th style={{ textAlign: 'right' }}>Category Budget (₹)</th>
-                        <th style={{ textAlign: 'center' }}>Action</th>
+                        <th style={{ textAlign: 'right', width: 180 }}>Category Budget (₹)</th>
+                        <th style={{ textAlign: 'center', width: 90 }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {categories.length === 0 ? (
                         <tr>
-                          <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                          <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                             No categories added yet. Please add at least one category above.
                           </td>
                         </tr>
@@ -1312,9 +1330,11 @@ export const AcademicYearsPage = () => {
                             <td style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{idx + 1}</td>
                             <td>
                               <div style={{ fontWeight: 700, color: 'var(--text-heading)' }}>{cat.name}</div>
-                            </td>
-                            <td style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>
-                              {cat.description || '—'}
+                              {cat.description && (
+                                <div style={{ color: 'var(--text-muted)', fontSize: 11.5, marginTop: 2 }}>
+                                  {cat.description}
+                                </div>
+                              )}
                             </td>
                             <td style={{ textAlign: 'right' }}>
                               <input
@@ -1353,7 +1373,7 @@ export const AcademicYearsPage = () => {
                     </tbody>
                     <tfoot>
                       <tr style={{ backgroundColor: 'var(--bg-page)', fontWeight: 700 }}>
-                        <td colSpan={3} style={{ textAlign: 'right' }}>ANNUAL TOTAL (SUM OF ALL CATEGORIES):</td>
+                        <td colSpan={2} style={{ textAlign: 'right' }}>ANNUAL TOTAL (SUM OF ALL CATEGORIES):</td>
                         <td style={{ textAlign: 'right', fontSize: 15, color: 'var(--gold-text)' }}>
                           ₹{calculatedAnnualBudget.toLocaleString('en-IN')}
                         </td>
@@ -1411,44 +1431,51 @@ export const AcademicYearsPage = () => {
                       {/* Existing Subcategories List */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
                         {(!cat.subcategories || cat.subcategories.length === 0) ? (
-                          <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                            No subcategories added. (Proposals will directly use the category).
-                          </span>
+                          <div style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-page)', border: '1px dashed var(--border)', width: '100%' }}>
+                            <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                              No subcategories currently associated with {cat.name}. Select an existing subcategory or type a new one below to add.
+                            </span>
+                          </div>
                         ) : (
-                          cat.subcategories.map(sub => (
-                            <div
-                              key={sub.id}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                padding: '4px 10px',
-                                borderRadius: 'var(--radius-sm)',
-                                backgroundColor: 'var(--bg-page)',
-                                border: '1px solid var(--border)',
-                                fontSize: 12.5,
-                                fontWeight: 600,
-                                color: 'var(--text-heading)'
-                              }}
-                            >
-                              <span>{sub.name}</span>
-                              <button
-                                onClick={() => handleRemoveSubcategory(cat.id, sub.id)}
+                          cat.subcategories.map(sub => {
+                            const subName = typeof sub === 'string' ? sub : sub.name;
+                            const subKey = sub.id || subName;
+                            return (
+                              <div
+                                key={subKey}
                                 style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: 'var(--text-muted)',
-                                  cursor: 'pointer',
-                                  padding: 0,
-                                  display: 'flex',
-                                  alignItems: 'center'
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  padding: '4px 10px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  backgroundColor: 'var(--bg-page)',
+                                  border: '1px solid var(--border)',
+                                  fontSize: 12.5,
+                                  fontWeight: 600,
+                                  color: 'var(--text-heading)'
                                 }}
-                                title="Remove subcategory"
                               >
-                                <X size={13} />
-                              </button>
-                            </div>
-                          ))
+                                <span>{subName}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSubcategory(cat.id, subKey)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                  }}
+                                  title={`Remove ${subName} from ${cat.name}`}
+                                >
+                                  <X size={13} />
+                                </button>
+                              </div>
+                            );
+                          })
                         )}
                       </div>
 
@@ -1470,20 +1497,14 @@ export const AcademicYearsPage = () => {
                             }}
                             options={(() => {
                               const catTemplate = categoryOptions.find(
-                                opt => (opt.name || '').toLowerCase() === (cat.name || '').toLowerCase()
+                                opt => (opt.name || '').trim().toLowerCase() === (cat.name || '').trim().toLowerCase()
                               );
-                              const parentSubs = catTemplate?.subcategories || [];
-                              const otherSubs = Array.from(
-                                new Set(
-                                  categoryOptions.flatMap(opt => opt.subcategories || []).filter(s => !parentSubs.includes(s))
-                                )
-                              );
-                              return [...parentSubs, ...otherSubs];
+                              return catTemplate?.subcategories || [];
                             })()}
                             excludeValues={(cat.subcategories || []).map(s => typeof s === 'string' ? s : s.name)}
                             addNewPrefix="Add"
                             addNewSuffix={`to ${cat.name}`}
-                            emptyMessage={`No existing subcategories. Type a name to add to ${cat.name}.`}
+                            emptyMessage={`No more existing subcategories for ${cat.name}. Type a new name to add.`}
                             onEnter={() => handleAddSubcategory(cat.id)}
                           />
                         </div>
@@ -1686,19 +1707,19 @@ export const AcademicYearsPage = () => {
         {/* LIST VIEW: ACADEMIC YEARS REGISTER */}
         {/* ===================================================================== */}
         {viewMode === 'list' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {/* Filter & Search Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', width: 260 }}>
-                  <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', width: 240 }}>
+                  <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                   <input
                     type="text"
                     className="cbm-form-input"
                     placeholder="Search academic year..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ paddingLeft: 32 }}
+                    style={{ height: 34, paddingLeft: 30, fontSize: 12.5 }}
                   />
                 </div>
 
@@ -1712,7 +1733,10 @@ export const AcademicYearsPage = () => {
                         backgroundColor: statusFilter === tab ? 'var(--primary)' : 'var(--bg-surface)',
                         color: statusFilter === tab ? '#ffffff' : 'var(--text-body)',
                         border: '1px solid var(--border)',
-                        fontWeight: 600
+                        fontWeight: 600,
+                        height: 30,
+                        padding: '0 8px',
+                        fontSize: 11.5
                       }}
                     >
                       {tab}
@@ -1721,7 +1745,7 @@ export const AcademicYearsPage = () => {
                 </div>
               </div>
 
-              <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 600 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
                 {filteredYears.length} Academic Year(s) Recorded
               </span>
             </div>
@@ -1745,9 +1769,9 @@ export const AcademicYearsPage = () => {
                     <TableSkeleton rows={4} cols={7} />
                   ) : filteredYears.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '36px 20px', color: 'var(--text-muted)' }}>
-                        <p style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 6 }}>No Academic Years Found</p>
-                        <p style={{ fontSize: 12 }}>Click &quot;Configure Academic Year&quot; above to create a new session.</p>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '16px 14px', color: 'var(--text-muted)' }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>No Academic Years Found</p>
+                        <p style={{ fontSize: 11.5, margin: 0 }}>Click &quot;Configure Academic Year&quot; above to create a new session.</p>
                       </td>
                     </tr>
                   ) : (

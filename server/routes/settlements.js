@@ -289,6 +289,235 @@ router.get('/:proposalId', authenticateUser, async (req, res) => {
   }
 });
 
+// POST /api/settlements/submit - Faculty submits settlement form for their accepted proposal after event completion
+router.post('/submit', authenticateUser, async (req, res) => {
+  try {
+    const { proposalId, actualAmount, submissionDate, remarks } = req.body;
+    const dbClient = req.supabase || supabaseAdmin;
+
+    if (!proposalId) {
+      return res.status(400).json({ success: false, error: 'Proposal ID is required.' });
+    }
+
+    const parsedAmount = Number(actualAmount);
+    if (isNaN(parsedAmount) || parsedAmount < 0) {
+      return res.status(400).json({ success: false, error: 'Valid non-negative actual settlement amount is required.' });
+    }
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(proposalId);
+    const filterCol = isUuid ? 'id' : 'proposal_number';
+
+    const { data: prop, error: fetchErr } = await dbClient
+      .from('proposals')
+      .select('*, budget_categories:category_id(*), academic_years:academic_year_id(*)')
+      .eq(filterCol, proposalId)
+      .maybeSingle();
+
+    if (fetchErr) {
+      return res.status(400).json({ success: false, error: `Error fetching proposal: ${fetchErr.message}` });
+    }
+
+    if (!prop) {
+      return res.status(404).json({ success: false, error: `Proposal not found with ID '${proposalId}'.` });
+    }
+
+    // Role authorization: faculty can only settle their own proposals
+    if (req.profile.role !== 'admin' && req.profile.role !== 'hod' && prop.faculty_id !== req.profile.id) {
+      return res.status(403).json({ success: false, error: 'Unauthorized: You can only submit settlements for your own proposals.' });
+    }
+
+    // Must be accepted/approved
+    const normStatus = (prop.status || '').toLowerCase();
+    if (!['accepted', 'approved'].includes(normStatus)) {
+      return res.status(400).json({ success: false, error: `Cannot settle proposal with status '${prop.status}'. Only accepted proposals can be settled.` });
+    }
+
+    // Must be after event completion date
+    const effectiveEventDate = prop.program_date;
+    if (effectiveEventDate) {
+      const eventTime = new Date(effectiveEventDate).getTime();
+      const endOfToday = new Date().setHours(23, 59, 59, 999);
+      if (eventTime > endOfToday) {
+        return res.status(400).json({
+          success: false,
+          error: `Event completion date is scheduled for ${new Date(effectiveEventDate).toLocaleDateString('en-GB')}. Settlement form can only be submitted after the event has taken place.`
+        });
+      }
+    }
+
+    // Prevent duplicate submission if already settled or pending review
+    if (prop.settlement_status === 'settled') {
+      return res.status(400).json({
+        success: false,
+        error: 'This proposal settlement has already been finalized by the administrator. Contact administrator to reopen.'
+      });
+    }
+
+    if (prop.settlement_status === 'pending_settlement') {
+      return res.status(400).json({
+        success: false,
+        error: 'A settlement submission for this proposal is already pending administrator review. Duplicate submissions are prevented.'
+      });
+    }
+
+    // Update proposal with pending settlement details
+    const existingEventDetails = (prop.event_details && typeof prop.event_details === 'object') ? prop.event_details : {};
+    const updatedEventDetails = {
+      ...existingEventDetails,
+      settlementSubmission: {
+        submittedAt: new Date().toISOString(),
+        submissionDate: submissionDate || new Date().toISOString().split('T')[0],
+        actualAmount: parsedAmount,
+        remarks: remarks || ''
+      }
+    };
+
+    const proposalUpdates = {
+      settlement_status: 'pending_settlement',
+      settlement_amount: parsedAmount,
+      settlement_remarks: remarks || prop.settlement_remarks || null,
+      event_details: updatedEventDetails,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data: updatedProp, error: updateErr } = await dbClient
+      .from('proposals')
+      .update(proposalUpdates)
+      .eq('id', prop.id)
+      .select('*, profiles:faculty_id(id, name, email), budget_categories:category_id(id, name), academic_years:academic_year_id(id, academic_year, budget)')
+      .single();
+
+    if (updateErr) {
+      return res.status(400).json({ success: false, error: `Failed to record settlement submission: ${updateErr.message}` });
+    }
+
+    // Record draft entry in settlements ledger
+    try {
+      await dbClient
+        .from('settlements')
+        .insert({
+          proposal_id: prop.id,
+          academic_year_id: prop.academic_year_id || null,
+          category_id: prop.category_id || null,
+          proposed_amount: Number(prop.amount || 0),
+          settlement_amount: parsedAmount,
+          difference_amount: parsedAmount - Number(prop.amount || 0),
+          status: 'draft',
+          remarks: remarks || null,
+          settled_by: req.profile.id
+        });
+    } catch (auditErr) {
+      console.warn('Settlement audit log notice on submission:', auditErr.message);
+    }
+
+    return res.json({
+      success: true,
+      message: `Settlement of ₹${parsedAmount.toLocaleString('en-IN')} submitted successfully for administrator review.`,
+      proposalId: prop.id,
+      proposalNumber: prop.proposal_number,
+      proposedAmount: Number(prop.amount),
+      settlementAmount: parsedAmount,
+      settlementStatus: 'pending_settlement',
+      proposal: updatedProp
+    });
+  } catch (err) {
+    console.error('Error submitting settlement:', err);
+    return res.status(500).json({ success: false, error: err.message || 'Server error submitting settlement.' });
+  }
+});
+
+// POST /api/settlements/:proposalId/reopen or /api/settlements/reopen - Admin reopens a settlement
+const handleReopenSettlement = async (req, res) => {
+  try {
+    const rawId = req.params.proposalId || req.params.id || req.body.proposalId;
+    const { remarks } = req.body;
+    const dbClient = req.supabase || supabaseAdmin;
+
+    if (!rawId) {
+      return res.status(400).json({ success: false, error: 'Proposal ID is required.' });
+    }
+
+    const id = decodeURIComponent(String(rawId)).replace(/^\/+|\/+$/g, '');
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const filterCol = isUuid ? 'id' : 'proposal_number';
+
+    const { data: prop, error: fetchErr } = await dbClient
+      .from('proposals')
+      .select('*')
+      .eq(filterCol, id)
+      .maybeSingle();
+
+    if (fetchErr || !prop) {
+      return res.status(404).json({ success: false, error: 'Proposal not found.' });
+    }
+
+    // If proposal was previously finalized as settled, revert category budget difference
+    if (prop.settlement_status === 'settled' && prop.settlement_amount !== null && prop.category_id) {
+      const prevSettlement = Number(prop.settlement_amount);
+      const originalApproved = Number(prop.approved_amount ?? prop.amount ?? 0);
+      const diff = prevSettlement - originalApproved;
+
+      if (diff !== 0) {
+        const { data: cat } = await dbClient
+          .from('budget_categories')
+          .select('id, spent_amount')
+          .eq('id', prop.category_id)
+          .maybeSingle();
+
+        if (cat) {
+          const restoredSpent = Math.max(0, Number(cat.spent_amount || 0) - diff);
+          await dbClient
+            .from('budget_categories')
+            .update({ spent_amount: restoredSpent })
+            .eq('id', cat.id);
+        }
+      }
+
+      // Revert transaction status
+      await dbClient
+        .from('transactions')
+        .update({
+          amount: originalApproved,
+          status: 'Approved',
+          description: `${prop.title || 'Proposal'} (Reopened for Settlement)`
+        })
+        .eq('proposal_id', prop.id);
+    }
+
+    const reopenRemarks = remarks
+      ? `[Reopened by Admin]: ${remarks}`
+      : (prop.settlement_remarks || 'Settlement reopened for correction by faculty.');
+
+    const { data: updatedProp, error: updateErr } = await dbClient
+      .from('proposals')
+      .update({
+        settlement_status: 'unsettled',
+        settlement_remarks: reopenRemarks,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', prop.id)
+      .select('*, profiles:faculty_id(id, name, email), budget_categories:category_id(id, name), academic_years:academic_year_id(id, academic_year, budget)')
+      .single();
+
+    if (updateErr) {
+      return res.status(400).json({ success: false, error: updateErr.message });
+    }
+
+    return res.json({
+      success: true,
+      message: `Settlement for proposal ${prop.proposal_number || prop.id} has been reopened. Faculty can now edit and resubmit.`,
+      proposal: updatedProp,
+      settlementStatus: 'unsettled'
+    });
+  } catch (err) {
+    console.error('Error reopening settlement:', err);
+    return res.status(500).json({ success: false, error: err.message || 'Server error reopening settlement.' });
+  }
+};
+
+router.post('/reopen', authenticateUser, requireAdminOrHod, handleReopenSettlement);
+router.post('/:proposalId/reopen', authenticateUser, requireAdminOrHod, handleReopenSettlement);
+
 // POST /api/settlements - Finalize or edit a proposal settlement
 router.post('/', authenticateUser, requireAdminOrHod, async (req, res) => {
   try {

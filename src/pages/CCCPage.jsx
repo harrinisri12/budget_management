@@ -39,23 +39,21 @@ export const CCCPage = () => {
 
   return (
     <DashboardLayout pageTitle="CCC Coding Club">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Page Header */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
               CSE DEPARTMENT COMPETITIVE PROGRAMMING CLUB
             </span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
             Competitive Coding Club (CCC)
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2, maxWidth: 850 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0, maxWidth: 850 }}>
             Specialized CSE algorithmic coding hub fostering competitive programming, hackathons, LeetCode sprints, and open-source contributions.
           </p>
         </div>
-
-        <hr className="cbm-divider" />
 
         {/* SECTION 1: Club Quota & Department Overview */}
         <section className="cbm-section">
@@ -66,13 +64,13 @@ export const CCCPage = () => {
                 Fiscal allocation and departmental coordination for Kongu Collegiate Coding Club ({ayLabel})
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12.5 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-heading)' }}>
-                <UserCheck size={14} style={{ color: 'var(--gold)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-heading)' }}>
+                <UserCheck size={13} style={{ color: 'var(--gold)' }} />
                 <span>Department: <strong>CSE</strong></span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-heading)' }}>
-                <Shield size={14} style={{ color: 'var(--gold)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-heading)' }}>
+                <Shield size={13} style={{ color: 'var(--gold)' }} />
                 <span>Session: <strong>{ayLabel}</strong></span>
               </div>
             </div>
@@ -100,8 +98,6 @@ export const CCCPage = () => {
           </div>
         </section>
 
-        <hr className="cbm-divider" />
-
         {/* SECTION 2: Activities & Contests Table */}
         <section className="cbm-section">
           <div className="cbm-section-header">
@@ -111,7 +107,7 @@ export const CCCPage = () => {
                 Competitive programming bootcamps, hackathons, and server compute proposals
               </p>
             </div>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
               {cccProposals.length} Proposals / Contests Logged
             </span>
           </div>
@@ -130,7 +126,7 @@ export const CCCPage = () => {
               <tbody>
                 {cccProposals.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '16px 14px', color: 'var(--text-muted)' }}>
                       No proposals or activities recorded under CCC Coding Club yet.
                     </td>
                   </tr>

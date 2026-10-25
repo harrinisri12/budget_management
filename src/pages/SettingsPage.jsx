@@ -25,34 +25,32 @@ export const SettingsPage = () => {
 
   return (
     <DashboardLayout pageTitle="System Settings">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 840 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 840 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
               ADMINISTRATIVE PREFERENCES
             </span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>System Settings & Profile</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>System Settings & Profile</h1>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
             Manage administrative account parameters and institutional compliance guidelines.
           </p>
         </div>
 
-        <hr className="cbm-divider" />
-
-        <form onSubmit={handleSave} className="cbm-card" style={{ padding: '24px 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: 'var(--gold-subtle)', color: 'var(--gold-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid var(--gold-border)' }}>
-              <ShieldCheck size={20} />
+        <form onSubmit={handleSave} className="cbm-card" style={{ padding: '14px 18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+            <div style={{ width: 34, height: 34, borderRadius: 6, backgroundColor: 'var(--gold-subtle)', color: 'var(--gold-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid var(--gold-border)' }}>
+              <ShieldCheck size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-heading)' }}>Administrator Profile</h3>
-              <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Kongu Engineering College CSE Budget Officer credentials</p>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>Administrator Profile</h3>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '1px 0 0 0' }}>Kongu Engineering College CSE Budget Officer credentials</p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
               <Input
                 label="Administrator Full Name"
                 defaultValue={user?.name || 'Administrator'}
@@ -75,8 +73,8 @@ export const SettingsPage = () => {
               />
             </div>
 
-            <div style={{ paddingTop: 20, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-              <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
+            <div style={{ paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 12, fontSize: 12.5 }}>
                 <button
                   type="button"
                   onClick={() => openLegal('privacy')}
@@ -94,7 +92,7 @@ export const SettingsPage = () => {
                 </button>
               </div>
 
-              <Button type="submit" variant="primary" icon={Save}>
+              <Button type="submit" variant="primary" size="sm" icon={Save}>
                 Save Preferences
               </Button>
             </div>

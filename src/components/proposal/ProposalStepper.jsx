@@ -29,7 +29,7 @@ export const ProposalStepper = ({ currentStep, onStepClick, maxStepReached = 1 }
                 aria-label={`Step ${step.id}: ${step.title}`}
               >
                 <div className={`cbm-step-indicator ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}>
-                  {isCompleted ? <Check size={16} strokeWidth={2.6} /> : step.id}
+                  {isCompleted ? <Check size={12} strokeWidth={2.6} /> : step.id}
                 </div>
                 <div className="cbm-step-meta">
                   <span className="cbm-step-title">{step.title}</span>

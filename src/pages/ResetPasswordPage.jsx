@@ -71,33 +71,33 @@ export const ResetPasswordPage = () => {
         className="cbm-card"
         style={{
           width: '100%',
-          maxWidth: 440,
-          padding: '32px 36px',
+          maxWidth: 420,
+          padding: '20px 24px',
           boxShadow: 'var(--shadow-modal)',
           position: 'relative',
           zIndex: 10
         }}
       >
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{ textAlign: 'center', marginBottom: 14 }}>
           <div
             style={{
-              width: 44,
-              height: 44,
+              width: 36,
+              height: 36,
               borderRadius: 'var(--radius-sm)',
               backgroundColor: 'var(--gold)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#FFFFFF',
-              marginBottom: 12
+              marginBottom: 8
             }}
           >
-            <KeyRound size={22} />
+            <KeyRound size={18} />
           </div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)' }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
             Reset Account Password
           </h2>
-          <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
             Enter your new credentials for the Kongu Budget Portal.
           </p>
         </div>
@@ -105,7 +105,7 @@ export const ResetPasswordPage = () => {
         {success ? (
           <div
             style={{
-              padding: '16px',
+              padding: '12px 14px',
               borderRadius: 'var(--radius-sm)',
               backgroundColor: 'var(--success-bg)',
               border: '1px solid var(--success-border)',
@@ -114,17 +114,17 @@ export const ResetPasswordPage = () => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 8
+              gap: 6
             }}
           >
-            <CheckCircle2 size={26} color="var(--success)" />
-            <p style={{ fontSize: 13.5, fontWeight: 600 }}>Password Updated Successfully</p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            <CheckCircle2 size={22} color="var(--success)" />
+            <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>Password Updated Successfully</p>
+            <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
               Redirecting to authentication portal...
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {error && (
               <div
                 style={{

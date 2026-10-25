@@ -371,13 +371,10 @@ export const NewProposalPage = () => {
   // Category-specific dynamic answers dictionary
   const [eventData, setEventData] = useState({});
 
-  const handleToggleAudience = (audienceName) => {
-    setSelectedAudiences((prev) =>
-      prev.includes(audienceName)
-        ? prev.filter((a) => a !== audienceName)
-        : [...prev, audienceName]
-    );
+  const handleAudienceChange = (audienceName) => {
+    setSelectedAudiences(audienceName ? [audienceName] : []);
   };
+  const handleToggleAudience = handleAudienceChange;
 
   const handleEventDataChange = (key, value) => {
     setEventData((prev) => ({
@@ -638,18 +635,23 @@ export const NewProposalPage = () => {
 
   return (
     <FacultyLayout pageTitle="New Proposal">
-      <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Page Title & Institutional Heading */}
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-heading)' }}>
-            Submit Programme Budget Proposal
-          </h1>
-          <p style={{ fontSize: 13.5, color: 'var(--text-muted)', marginTop: 3 }}>
-            Multi-step dynamic proposal submission workflow for Computer Science and Engineering, Kongu Engineering College.
-          </p>
+      <div style={{ maxWidth: 1100, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Page Title & Session Indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-heading)', margin: 0, lineHeight: 1.2 }}>
+              Submit Programme Budget Proposal
+            </h1>
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+              CSE Department Budget Management
+            </span>
+          </div>
+          {selectedAcademicYearLabel && (
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--gold-subtle)', color: 'var(--gold-text)' }}>
+              Session: {selectedAcademicYearLabel}
+            </span>
+          )}
         </div>
-
-        <hr className="cbm-divider" />
 
         {/* Horizontal 5-Step Progress Stepper */}
         <ProposalStepper
@@ -704,6 +706,8 @@ export const NewProposalPage = () => {
               onVenueChange={setVenue}
               programmeLevel={programmeLevel}
               onProgrammeLevelChange={setProgrammeLevel}
+              selectedAudience={selectedAudiences[0] || ''}
+              onAudienceChange={handleAudienceChange}
               selectedAudiences={selectedAudiences}
               onToggleAudience={handleToggleAudience}
               coordinatorName={coordinatorName}

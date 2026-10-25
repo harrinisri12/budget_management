@@ -40,11 +40,11 @@ export const Step5SubmissionComplete = ({
   };
 
   return (
-    <div style={{ maxWidth: 780, margin: '0 auto', width: '100%' }}>
+    <div style={{ maxWidth: 680, margin: '0 auto', width: '100%' }}>
       <div
         className="cbm-card"
         style={{
-          padding: '40px 36px',
+          padding: '16px 20px',
           textAlign: 'center',
           border: '1px solid var(--border)',
           boxShadow: 'var(--shadow-card)'
@@ -53,8 +53,8 @@ export const Step5SubmissionComplete = ({
         {/* Animated Checkmark Circle */}
         <div
           style={{
-            width: 72,
-            height: 72,
+            width: 44,
+            height: 44,
             borderRadius: '50%',
             backgroundColor: 'var(--success-bg)',
             border: '2px solid var(--success-border)',
@@ -62,29 +62,29 @@ export const Step5SubmissionComplete = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 20px auto'
+            margin: '0 auto 8px auto'
           }}
         >
-          <CheckCircle2 size={40} />
+          <CheckCircle2 size={24} />
         </div>
 
-        <span className="cbm-form-ribbon" style={{ marginBottom: 12 }}>
+        <span className="cbm-form-ribbon" style={{ padding: '2px 8px', fontSize: 10.5, marginBottom: 4 }}>
           Submission Acknowledged
         </span>
 
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-heading)', margin: '8px 0 6px 0' }}>
+        <h1 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-heading)', margin: '4px 0 2px 0' }}>
           Proposal Submitted Successfully!
         </h1>
-        <p style={{ fontSize: 13.5, color: 'var(--text-muted)', maxWidth: 540, margin: '0 auto 24px auto', lineHeight: 1.55 }}>
-          Your budget proposal has been officially registered and forwarded to the Head of Department (HOD) and Budget Administrator for administrative review and financial audit.
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 500, margin: '0 auto 10px auto', lineHeight: 1.4 }}>
+          Your budget proposal has been registered and forwarded to the HOD and Budget Administrator for review.
         </p>
 
         {/* Highlighted Proposal ID Badge Card */}
         <div
           style={{
-            maxWidth: 520,
-            margin: '0 auto 28px auto',
-            padding: '16px 20px',
+            maxWidth: 480,
+            margin: '0 auto 10px auto',
+            padding: '8px 14px',
             borderRadius: 'var(--radius-md)',
             backgroundColor: '#FCFBF7',
             border: '1.5px solid var(--gold-border)',
@@ -92,14 +92,14 @@ export const Step5SubmissionComplete = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: 12
+            gap: 8
           }}
         >
           <div style={{ textAlign: 'left' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Assigned Official Proposal Identifier
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold-text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Official Proposal ID
             </span>
-            <p style={{ margin: '2px 0 0 0', fontSize: 16, fontWeight: 800, color: 'var(--primary)', fontFamily: 'monospace' }}>
+            <p style={{ margin: '1px 0 0 0', fontSize: 14, fontWeight: 800, color: 'var(--primary)', fontFamily: 'monospace' }}>
               {proposalId}
             </p>
           </div>
@@ -108,10 +108,10 @@ export const Step5SubmissionComplete = ({
             type="button"
             onClick={handleCopyId}
             className="cbm-btn cbm-btn-outline cbm-btn-sm"
-            style={{ height: 32, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            style={{ height: 26, fontSize: 11, padding: '0 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
             aria-label="Copy Proposal ID"
           >
-            <Copy size={13} />
+            <Copy size={11} />
             <span>{copied ? 'Copied!' : 'Copy ID'}</span>
           </button>
         </div>
@@ -119,62 +119,62 @@ export const Step5SubmissionComplete = ({
         {/* Proposal Summary Grid */}
         <div
           style={{
-            maxWidth: 600,
-            margin: '0 auto 32px auto',
+            maxWidth: 580,
+            margin: '0 auto 12px auto',
             borderRadius: 'var(--radius-md)',
             backgroundColor: 'var(--bg-page)',
             border: '1px solid var(--border)',
-            padding: '20px 24px',
+            padding: '10px 14px',
             textAlign: 'left'
           }}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: '8px 12px' }}>
             <div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Programme Title</span>
-              <p style={{ margin: '3px 0 0 0', fontSize: 13.5, fontWeight: 700, color: 'var(--text-heading)' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Programme Title</span>
+              <p style={{ margin: '1px 0 0 0', fontSize: 12.5, fontWeight: 700, color: 'var(--text-heading)' }}>
                 {title}
               </p>
             </div>
 
             <div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Academic Cycle</span>
-              <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Academic Session</span>
+              <p style={{ margin: '1px 0 0 0', fontSize: 12, fontWeight: 600, color: 'var(--text-body)' }}>
                 {academicYearLabel}
               </p>
             </div>
 
             <div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Category / Subcategory</span>
-              <p style={{ margin: '3px 0 0 0', fontSize: 13, color: 'var(--text-body)' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Category</span>
+              <p style={{ margin: '1px 0 0 0', fontSize: 12, color: 'var(--text-body)' }}>
                 {category} {subCategory ? `— ${subCategory}` : ''}
               </p>
             </div>
 
             <div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Submission Timestamp</span>
-              <p style={{ margin: '3px 0 0 0', fontSize: 13, color: 'var(--text-body)' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Submission Date</span>
+              <p style={{ margin: '1px 0 0 0', fontSize: 12, color: 'var(--text-body)' }}>
                 {submissionDate}
               </p>
             </div>
 
             <div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Proposed Amount</span>
-              <p style={{ margin: '3px 0 0 0', fontSize: 16, fontWeight: 800, color: 'var(--primary)' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Proposed Amount</span>
+              <p style={{ margin: '1px 0 0 0', fontSize: 15, fontWeight: 800, color: 'var(--primary)' }}>
                 ₹{amount.toLocaleString('en-IN')}
               </p>
             </div>
 
             <div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Initial Workflow Status</span>
-              <div style={{ marginTop: 4 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Workflow Status</span>
+              <div style={{ marginTop: 2 }}>
                 <Badge status={status} />
               </div>
             </div>
 
             {letterId && (
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Sanction Letter ID</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Sanction Letter ID</span>
+                <p style={{ margin: '1px 0 0 0', fontSize: 12, fontWeight: 700, color: 'var(--text-heading)' }}>
                   {letterId}
                 </p>
               </div>
@@ -182,8 +182,8 @@ export const Step5SubmissionComplete = ({
 
             {durationText && (
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Event Duration</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Event Duration</span>
+                <p style={{ margin: '1px 0 0 0', fontSize: 12, fontWeight: 700, color: '#0369A1' }}>
                   {durationText}
                 </p>
               </div>
@@ -191,8 +191,8 @@ export const Step5SubmissionComplete = ({
 
             {docName && (
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Attached Document</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 12.5, fontWeight: 600, color: 'var(--primary)' }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Sanction Document</span>
+                <p style={{ margin: '1px 0 0 0', fontSize: 11.5, fontWeight: 600, color: 'var(--primary)' }}>
                   📄 {docName}
                 </p>
               </div>
@@ -201,15 +201,15 @@ export const Step5SubmissionComplete = ({
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <Button
             type="button"
             variant="outline"
             onClick={() => setShowDetailModal(true)}
             icon={Eye}
-            style={{ height: 42, fontSize: 13.5 }}
+            style={{ height: 34, fontSize: 12, padding: '0 12px' }}
           >
-            View Submitted Proposal
+            View Details
           </Button>
 
           <Button
@@ -217,9 +217,9 @@ export const Step5SubmissionComplete = ({
             variant="primary"
             onClick={() => navigate('/faculty/proposals')}
             icon={List}
-            style={{ height: 42, fontSize: 13.5 }}
+            style={{ height: 34, fontSize: 12, padding: '0 14px' }}
           >
-            Return to My Proposals
+            My Proposals
           </Button>
 
           <Button
@@ -227,9 +227,9 @@ export const Step5SubmissionComplete = ({
             variant="outline"
             onClick={onResetForm}
             icon={PlusCircle}
-            style={{ height: 42, fontSize: 13.5 }}
+            style={{ height: 34, fontSize: 12, padding: '0 12px' }}
           >
-            Submit Another Proposal
+            New Proposal
           </Button>
         </div>
       </div>

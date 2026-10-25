@@ -1209,6 +1209,140 @@ export const BudgetProvider = ({ children }) => {
     }
   };
 
+  // Faculty: Submit Settlement for eligible accepted proposal after event completion
+  const submitFacultySettlement = async ({ proposalId, actualAmount, submissionDate, remarks = '' }) => {
+    try {
+      let targetUuid = proposalId;
+      if (typeof proposalId === 'object' && proposalId !== null) {
+        targetUuid = proposalId.dbId || proposalId.id || proposalId.proposalId || proposalId.proposalNumber;
+      } else if (typeof proposalId === 'string') {
+        const found = proposals.find(p => p.dbId === proposalId || p.id === proposalId || p.proposalId === proposalId || p.proposalNumber === proposalId);
+        if (found) targetUuid = found.dbId || found.id || found.proposalNumber;
+      }
+
+      if (!targetUuid) {
+        return { success: false, error: 'Valid proposal ID is required.' };
+      }
+
+      const parsedAmount = Number(actualAmount);
+      if (isNaN(parsedAmount) || parsedAmount < 0) {
+        return { success: false, error: 'Valid non-negative settlement amount is required.' };
+      }
+
+      const res = await api.post('/api/settlements/submit', {
+        proposalId: targetUuid,
+        actualAmount: parsedAmount,
+        submissionDate: submissionDate || new Date().toISOString().split('T')[0],
+        remarks
+      });
+
+      if (res?.success) {
+        showToast(res.message || 'Settlement submitted successfully. Awaiting administrator review.', 'success');
+        await refreshProposals();
+        await refreshBudget();
+        return { success: true, proposal: res.proposal };
+      }
+
+      const errMsg = res?.error || 'Failed to submit settlement.';
+      showToast(errMsg, 'error');
+      return { success: false, error: errMsg };
+    } catch (err) {
+      console.error('Error submitting faculty settlement:', err);
+      showToast(err.message || 'Error submitting settlement.', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Admin: Reopen a settlement for correction
+  const reopenSettlement = async (proposalId, remarks = '') => {
+    try {
+      let targetUuid = proposalId;
+      if (typeof proposalId === 'object' && proposalId !== null) {
+        targetUuid = proposalId.dbId || proposalId.id || proposalId.proposalId || proposalId.proposalNumber;
+      } else if (typeof proposalId === 'string') {
+        const found = proposals.find(p => p.dbId === proposalId || p.id === proposalId || p.proposalId === proposalId || p.proposalNumber === proposalId);
+        if (found) targetUuid = found.dbId || found.id || found.proposalNumber;
+      }
+
+      if (!targetUuid) {
+        return { success: false, error: 'Valid proposal ID is required.' };
+      }
+
+      const res = await api.post(`/api/settlements/${encodeURIComponent(targetUuid)}/reopen`, {
+        remarks,
+        proposalId: targetUuid
+      });
+
+      if (res?.success) {
+        showToast(res.message || 'Settlement reopened successfully.', 'info');
+        await refreshProposals();
+        await refreshBudget();
+        return { success: true, proposal: res.proposal };
+      }
+
+      const errMsg = res?.error || 'Failed to reopen settlement.';
+      showToast(errMsg, 'error');
+      return { success: false, error: errMsg };
+    } catch (err) {
+      console.error('Error reopening settlement:', err);
+      showToast(err.message || 'Error reopening settlement.', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Admin: Add Subcategory
+  const addSubcategory = async (categoryId, name) => {
+    try {
+      const trimmed = (name || '').trim();
+      if (!categoryId) return { success: false, error: 'Category ID is required.' };
+      if (!trimmed) return { success: false, error: 'Subcategory name cannot be empty.' };
+
+      const res = await api.post('/api/categories/sub-categories', {
+        categoryId,
+        name: trimmed
+      });
+
+      if (res?.success) {
+        showToast(res.message || `Subcategory "${trimmed}" added successfully.`, 'success');
+        await refreshAcademicYears();
+        await fetchActiveAcademicYearConfig();
+        return { success: true, subcategory: res.subCategory };
+      }
+
+      const errMsg = res?.error || 'Failed to add subcategory.';
+      showToast(errMsg, 'error');
+      return { success: false, error: errMsg };
+    } catch (err) {
+      console.error('Error adding subcategory:', err);
+      showToast(err.message || 'Error adding subcategory.', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Admin: Delete Subcategory
+  const deleteSubcategory = async (subcategoryId) => {
+    try {
+      if (!subcategoryId) return { success: false, error: 'Subcategory ID is required.' };
+
+      const res = await api.delete(`/api/categories/sub-categories/${encodeURIComponent(subcategoryId)}`);
+
+      if (res?.success) {
+        showToast(res.message || 'Subcategory deleted successfully.', 'success');
+        await refreshAcademicYears();
+        await fetchActiveAcademicYearConfig();
+        return { success: true };
+      }
+
+      const errMsg = res?.error || 'Failed to delete subcategory.';
+      showToast(errMsg, 'error');
+      return { success: false, error: errMsg };
+    } catch (err) {
+      console.error('Error deleting subcategory:', err);
+      showToast(err.message || 'Error deleting subcategory.', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
   return (
     <BudgetContext.Provider
       value={{
@@ -1243,6 +1377,10 @@ export const BudgetProvider = ({ children }) => {
         acceptProposal,
         rejectProposal,
         settleProposal,
+        submitFacultySettlement,
+        reopenSettlement,
+        addSubcategory,
+        deleteSubcategory,
         getFacultyMetrics,
         refreshFaculty,
         refreshProposals,

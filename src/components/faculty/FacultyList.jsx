@@ -186,25 +186,26 @@ export const FacultyList = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {/* Header & Centralized User Management CTAs */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
               DEPARTMENT USER MANAGEMENT
             </span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>Faculty & User Directory</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>Faculty & User Directory</h1>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
             Manage departmental faculty roster, Head of Department (HOD), and Budget Coordinators.
           </p>
         </div>
 
         {/* Action Buttons for User Creation */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <Button
             variant="outline"
+            size="sm"
             icon={Plus}
             onClick={openAddHodModal}
           >
@@ -212,6 +213,7 @@ export const FacultyList = () => {
           </Button>
           <Button
             variant="outline"
+            size="sm"
             icon={Plus}
             onClick={openAddAdminModal}
           >
@@ -219,6 +221,7 @@ export const FacultyList = () => {
           </Button>
           <Button
             variant="primary"
+            size="sm"
             icon={Plus}
             onClick={openAddFacultyModal}
           >
@@ -226,8 +229,6 @@ export const FacultyList = () => {
           </Button>
         </div>
       </div>
-
-      <hr className="cbm-divider" />
 
       {/* Unified Faculty Directory Section */}
       <section className="cbm-section">
@@ -244,23 +245,23 @@ export const FacultyList = () => {
         </div>
 
         {/* Filters and Search Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
           {/* Search Box */}
-          <div style={{ position: 'relative', flex: 1, minWidth: 260, maxWidth: 380 }}>
-            <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+          <div style={{ position: 'relative', flex: 1, minWidth: 240, maxWidth: 360 }}>
+            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
             <input
               type="text"
               placeholder="Search by name, email, ID, designation..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="cbm-input"
-              style={{ height: 38, paddingLeft: 34, fontSize: 12.5 }}
+              style={{ height: 34, paddingLeft: 30, fontSize: 12 }}
             />
           </div>
 
           {/* Role Filter Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-heading)' }}>Role:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-heading)' }}>Role:</span>
             {[
               { label: 'All', value: 'All' },
               { label: 'Faculty', value: 'faculty' },
@@ -271,9 +272,9 @@ export const FacultyList = () => {
                 key={r.value}
                 onClick={() => setRoleFilter(r.value)}
                 style={{
-                  padding: '5px 12px',
+                  padding: '4px 10px',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: 12,
+                  fontSize: 11.5,
                   fontWeight: roleFilter === r.value ? 600 : 500,
                   backgroundColor: roleFilter === r.value ? 'var(--primary)' : 'var(--bg-surface)',
                   color: roleFilter === r.value ? '#FFFFFF' : 'var(--text-body)',
@@ -288,16 +289,16 @@ export const FacultyList = () => {
           </div>
 
           {/* Status Filter Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-heading)' }}>Status:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-heading)' }}>Status:</span>
             {['All', 'Active', 'Inactive'].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
                 style={{
-                  padding: '5px 12px',
+                  padding: '4px 10px',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: 12,
+                  fontSize: 11.5,
                   fontWeight: statusFilter === status ? 600 : 500,
                   backgroundColor: statusFilter === status ? 'var(--primary)' : 'var(--bg-surface)',
                   color: statusFilter === status ? '#FFFFFF' : 'var(--text-body)',
@@ -331,7 +332,7 @@ export const FacultyList = () => {
                 <TableSkeleton rows={5} columns={8} />
               ) : filteredFaculty.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: 48, color: 'var(--dark-muted)' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '16px 14px', color: 'var(--dark-muted)' }}>
                     No members found matching your search criteria.
                   </td>
                 </tr>

@@ -105,36 +105,34 @@ export const Step4ReviewSubmit = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {/* Main Review Card */}
-      <div className="cbm-card" style={{ padding: '28px 32px' }}>
+      <div className="cbm-card" style={{ padding: '12px 18px' }}>
         {/* Header */}
-        <div style={{ marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="cbm-form-ribbon">Step 4 of 5</span>
-                <h2 className="cbm-section-title" style={{ margin: 0, fontSize: 18 }}>Review & Confirm Proposal</h2>
-              </div>
-              <p className="cbm-section-subtitle" style={{ marginTop: 4 }}>
-                Review all institutional specifications, scheduling parameters, and single budget amount before final submission.
-              </p>
+        <div style={{ marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span className="cbm-form-ribbon" style={{ padding: '2px 7px', fontSize: 10.5 }}>Step 4 of 5</span>
+              <h2 className="cbm-section-title" style={{ margin: 0, fontSize: 14 }}>Review &amp; Confirm Proposal</h2>
+              <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                — Verify specifications before final submission
+              </span>
             </div>
 
             <div
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '6px 12px',
+                gap: 5,
+                padding: '2px 8px',
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'var(--gold-subtle)',
                 color: 'var(--gold-text)',
                 fontWeight: 700,
-                fontSize: 12
+                fontSize: 11
               }}
             >
-              <FileCheck size={15} />
+              <FileCheck size={13} />
               <span>Pre-Submission Review</span>
             </div>
           </div>
@@ -144,228 +142,159 @@ export const Step4ReviewSubmit = ({
         {error && (
           <div
             style={{
-              padding: '12px 16px',
+              padding: '6px 12px',
               borderRadius: 'var(--radius-sm)',
               backgroundColor: 'var(--danger-bg)',
               border: '1px solid var(--danger-border)',
               color: 'var(--danger-text)',
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              marginBottom: 20
+              gap: 6,
+              marginBottom: 8
             }}
             role="alert"
           >
-            <AlertCircle size={16} />
+            <AlertCircle size={14} />
             <span>{error}</span>
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* 2-Column Responsive Grid for the 4 Sections */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))', gap: '8px 12px' }}>
           {/* SECTION 1: PROPOSAL CONFIGURATION SUMMARY */}
-          <div style={{ padding: '18px 20px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Layers size={16} color="var(--primary)" />
-                1. Proposal Configuration & Tracking
+          <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <h3 style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Layers size={14} color="var(--primary)" />
+                1. Configuration &amp; Tracking
               </h3>
               <button
                 type="button"
                 onClick={() => onEditStep(1)}
                 className="cbm-btn cbm-btn-outline cbm-btn-sm"
-                style={{ height: 28, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                style={{ height: 24, fontSize: 11, padding: '0 8px', display: 'inline-flex', alignItems: 'center', gap: 3 }}
               >
-                <Edit2 size={12} /> Edit Section 1
+                <Edit2 size={11} /> Edit
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px' }}>
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Academic Year</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Academic Session</span>
+                <p style={{ margin: '1px 0 0 0', fontSize: 12.5, fontWeight: 700, color: 'var(--text-heading)' }}>
                   {academicYearLabel}
                 </p>
               </div>
 
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date of Submission</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 500, color: 'var(--text-body)' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date of Submission</span>
+                <p style={{ margin: '1px 0 0 0', fontSize: 12.5, fontWeight: 500, color: 'var(--text-body)' }}>
                   {submissionDateStr}
                 </p>
               </div>
 
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Main Category</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Category</span>
+                <p style={{ margin: '1px 0 0 0', fontSize: 12.5, fontWeight: 700, color: 'var(--primary)' }}>
                   {categoryName}
                 </p>
               </div>
 
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Subcategory / Activity</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
-                  {subCategoryName || '(Direct Main Category)'}
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Subcategory</span>
+                <p style={{ margin: '1px 0 0 0', fontSize: 12.5, fontWeight: 600, color: 'var(--text-body)' }}>
+                  {subCategoryName || '(Direct Category)'}
                 </p>
               </div>
 
-              <div style={{ gridColumn: '1 / -1' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Proposal ID Preview</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 12.5, fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace' }}>
+              <div style={{ gridColumn: '1 / -1', borderTop: '1px dashed var(--border-subtle)', paddingTop: 4 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Proposal ID Preview: </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace' }}>
                   {proposalIdPreview}
-                </p>
+                </span>
               </div>
             </div>
           </div>
 
           {/* SECTION 2: PROGRAMME DETAILS & SPECIFICATIONS */}
-          <div style={{ padding: '18px 20px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Calendar size={16} color="var(--primary)" />
-                2. Programme Details & Activity Specifications
+          <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <h3 style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Calendar size={14} color="var(--primary)" />
+                2. Programme Details
               </h3>
               <button
                 type="button"
                 onClick={() => onEditStep(2)}
                 className="cbm-btn cbm-btn-outline cbm-btn-sm"
-                style={{ height: 28, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                style={{ height: 24, fontSize: 11, padding: '0 8px', display: 'inline-flex', alignItems: 'center', gap: 3 }}
               >
-                <Edit2 size={12} /> Edit Section 2
+                <Edit2 size={11} /> Edit
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {/* Title */}
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Programme / Proposal Title</span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 14, fontWeight: 700, color: 'var(--text-heading)' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Proposal Title</span>
+                <p style={{ margin: '1px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>
                   {title}
                 </p>
               </div>
 
-              {/* Schedule, Venue & Level Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border)' }}>
+              {/* Schedule and Audience Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 6, padding: '6px 10px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border)' }}>
                 <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Calendar size={12} /> Start Date
-                  </span>
-                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Start Date</span>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-body)' }}>
                     {formatDisplayDate(programDate)}
                   </p>
                 </div>
 
                 {endDate && (
                   <div>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Calendar size={12} /> End Date
-                    </span>
-                    <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>End Date</span>
+                    <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-body)' }}>
                       {formatDisplayDate(endDate)}
                     </p>
                   </div>
                 )}
 
                 <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Clock size={12} /> Session Timings
-                  </span>
-                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
-                    {startTime} to {endTime}
+                  <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Audience</span>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-body)' }}>
+                    {Array.isArray(selectedAudiences) && selectedAudiences.length > 0 ? selectedAudiences.join(', ') : 'Not Specified'}
                   </p>
                 </div>
 
                 {/* If Hackathon: Display duration */}
                 {isHackathon && (effectiveHackathonDurationText || hackathonDuration?.isValid) && (
                   <div>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Timer size={12} /> Total Hackathon Duration
-                    </span>
-                    <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 800, color: '#0369A1', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <span>{effectiveHackathonDurationText || hackathonDuration?.displayText}</span>
-                      {hackathonDurationHours ? (
-                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, backgroundColor: '#E0F2FE', color: '#0369A1' }}>
-                          Manually Specified
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 6px', borderRadius: 4, backgroundColor: '#F1F5F9', color: 'var(--text-muted)' }}>
-                          Auto-Computed
-                        </span>
-                      )}
+                    <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase' }}>Duration</span>
+                    <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#0369A1' }}>
+                      {effectiveHackathonDurationText || hackathonDuration?.displayText}
                     </p>
                   </div>
                 )}
-
-                <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <MapPin size={12} /> Venue / Location
-                  </span>
-                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
-                    {venue}
-                  </p>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Award size={12} /> Programme Level
-                  </span>
-                  <p style={{ margin: '2px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-body)' }}>
-                    {programmeLevel}
-                  </p>
-                </div>
               </div>
 
-              {/* Target Audience */}
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Target Audience</span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                  {selectedAudiences.map((aud) => (
-                    <span
-                      key={aud}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: 4,
-                        backgroundColor: '#EDE9FE',
-                        color: '#5B21B6',
-                        fontSize: 11.5,
-                        fontWeight: 600
-                      }}
-                    >
-                      {aud}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Coordinator Details */}
-              <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border)' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <UserCheck size={13} /> Faculty Coordinator
-                </span>
-                <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 600, color: 'var(--text-heading)' }}>
-                  {coordinatorName} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>— {coordinatorDesignation} ({coordinatorContact})</span>
-                </p>
-              </div>
-
-              {/* Dynamic Programme-Specific Fields */}
-              {schema?.fields && schema.fields.length > 0 && (
-                <div style={{ marginTop: 4, padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--gold-border)' }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
-                    {schema.name} Specific Parameters
-                  </span>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
-                    {schema.fields.map((field) => {
+              {/* Dynamic Programme-Specific Fields (Required only) */}
+              {schema?.fields && schema.fields.filter(f => f.required).length > 0 && (
+                <div style={{ padding: '6px 10px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 6 }}>
+                    {schema.fields.filter(f => f.required).map((field) => {
                       const val = eventData[field.key];
                       if (!val) return null;
                       return (
                         <div key={field.key} style={{ gridColumn: field.type === 'textarea' ? '1 / -1' : 'auto' }}>
-                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                            {field.label}
+                          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                            {field.label}:{' '}
                           </span>
-                          <p style={{ margin: '2px 0 0 0', fontSize: 12.5, fontWeight: 500, color: 'var(--text-heading)', whiteSpace: 'pre-wrap' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-heading)' }}>
                             {String(val)}
-                          </p>
+                          </span>
                         </div>
                       );
                     })}
@@ -375,35 +304,35 @@ export const Step4ReviewSubmit = ({
             </div>
           </div>
 
-          {/* SECTION 3: BUDGET & FUNDING SUMMARY (SINGLE AMOUNT - NO ITEMIZED TABLE) */}
-          <div style={{ padding: '20px 22px', borderRadius: 'var(--radius-md)', backgroundColor: '#FFFFFF', border: '1.5px solid var(--gold-border)', boxShadow: 'var(--shadow-xs)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-              <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Receipt size={17} color="var(--primary)" />
-                3. Proposed Budget & Funding Details
+          {/* SECTION 3: BUDGET & FUNDING SUMMARY */}
+          <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', backgroundColor: '#FFFFFF', border: '1.5px solid var(--gold-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Receipt size={14} color="var(--primary)" />
+                3. Proposed Budget
               </h3>
               <button
                 type="button"
                 onClick={() => onEditStep(3)}
                 className="cbm-btn cbm-btn-outline cbm-btn-sm"
-                style={{ height: 28, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                style={{ height: 24, fontSize: 11, padding: '0 8px', display: 'inline-flex', alignItems: 'center', gap: 3 }}
               >
-                <Edit2 size={12} /> Edit Section 3
+                <Edit2 size={11} /> Edit
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                 <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Funding Source Head</span>
-                  <p style={{ margin: '3px 0 0 0', fontSize: 14, fontWeight: 700, color: 'var(--text-heading)' }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Funding Source</span>
+                  <p style={{ margin: '1px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>
                     {fundingSource}
                   </p>
                 </div>
 
-                <div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Proposed Budget Amount</span>
-                  <p style={{ margin: '3px 0 0 0', fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Proposed Amount</span>
+                  <p style={{ margin: '1px 0 0 0', fontSize: 17, fontWeight: 800, color: 'var(--primary)' }}>
                     ₹{numericAmount.toLocaleString('en-IN')}
                   </p>
                 </div>
@@ -411,146 +340,120 @@ export const Step4ReviewSubmit = ({
 
               {/* Budget Justification (Displayed only when provided) */}
               {budgetRemarks && budgetRemarks.trim() && (
-                <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    Budget Justification / Special Remarks
-                  </span>
-                  <p style={{ margin: '4px 0 0 0', fontSize: 12.5, color: 'var(--text-body)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
-                    {budgetRemarks}
-                  </p>
+                <div style={{ padding: '6px 10px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)', fontSize: 11.5 }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Remarks: </span>
+                  <span style={{ color: 'var(--text-body)' }}>{budgetRemarks}</span>
                 </div>
               )}
 
               {/* Quota balance info if tracked */}
               {availableBalance > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-muted)', paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
-                  <span>Current Available Quota: ₹{availableBalance.toLocaleString('en-IN')}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--text-muted)', paddingTop: 4, borderTop: '1px solid var(--border-subtle)' }}>
+                  <span>Available Quota: ₹{availableBalance.toLocaleString('en-IN')}</span>
                   <span style={{ fontWeight: 600, color: remainingBalance >= 0 ? 'var(--success-text)' : 'var(--danger-text)' }}>
-                    Estimated Remaining: ₹{remainingBalance.toLocaleString('en-IN')}
+                    Remaining: ₹{remainingBalance.toLocaleString('en-IN')}
                   </span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* SECTION 4: SANCTION / REFERENCE LETTER & DOCUMENT ATTACHMENT */}
-          <div style={{ padding: '18px 20px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <FileText size={16} color="var(--primary)" />
-                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-heading)' }}>
-                  4. Sanction / Permission Letter & Document Attachment <span style={{ color: 'var(--danger)' }}>*</span>
+          {/* SECTION 4: SANCTION LETTER & DOCUMENT ATTACHMENT */}
+          <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', backgroundColor: '#FAFAFA', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <FileText size={14} color="var(--primary)" />
+                <h3 style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: 'var(--text-heading)' }}>
+                  4. Sanction Document
                 </h3>
                 <span
                   style={{
-                    fontSize: 10.5,
+                    fontSize: 10,
                     fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: 4,
+                    padding: '1px 6px',
+                    borderRadius: 3,
                     backgroundColor: isDocumentStepValid ? '#F0FDF4' : '#FEF2F2',
-                    color: isDocumentStepValid ? '#166534' : '#DC2626',
-                    border: isDocumentStepValid ? '1px solid #BBF7D0' : '1px solid #FECACA'
+                    color: isDocumentStepValid ? '#166534' : '#DC2626'
                   }}
                 >
-                  {isDocumentStepValid ? 'Mandatory Requirements Verified' : 'Mandatory Action Required *'}
+                  {isDocumentStepValid ? '✓ Verified' : 'Required *'}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => onEditStep(3)}
                 className="cbm-btn cbm-btn-outline cbm-btn-sm"
-                style={{ height: 28, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                style={{ height: 24, fontSize: 11, padding: '0 8px', display: 'inline-flex', alignItems: 'center', gap: 3 }}
               >
-                <Edit2 size={12} /> Edit Section 3
+                <Edit2 size={11} /> Edit
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px' }}>
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Sanction / Permission Letter ID <span style={{ color: 'var(--danger)' }}>*</span>
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Letter ID <span style={{ color: 'var(--danger)' }}>*</span>
                 </span>
                 {isLetterIdValid ? (
-                  <div>
-                    <p style={{ margin: '3px 0 0 0', fontSize: 13.5, fontWeight: 700, color: 'var(--text-heading)' }}>
-                      {trimmedLetterId}
-                    </p>
-                    <span style={{ fontSize: 11, color: 'var(--success-text)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 2 }}>
-                      <CheckCircle2 size={12} /> Valid Letter ID
-                    </span>
-                  </div>
+                  <p style={{ margin: '1px 0 0 0', fontSize: 12.5, fontWeight: 700, color: 'var(--text-heading)' }}>
+                    {trimmedLetterId}
+                  </p>
                 ) : (
-                  <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--danger)' }}>
-                    ⚠️ Missing mandatory Sanction Letter ID
+                  <p style={{ margin: '1px 0 0 0', fontSize: 11.5, fontWeight: 700, color: 'var(--danger)' }}>
+                    ⚠️ Missing Letter ID
                   </p>
                 )}
               </div>
 
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Attached Sanction Document (PDF) <span style={{ color: 'var(--danger)' }}>*</span>
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  PDF Document <span style={{ color: 'var(--danger)' }}>*</span>
                 </span>
                 {isLetterFileValid ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 3 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <FileCheck size={16} color="#DC2626" />
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-heading)' }}>
-                          {letterFile.name}
-                        </span>
-                        <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                          ({formatFileSize(letterFile.size)})
-                        </span>
-                      </div>
-                      {letterFile.previewUrl && (
-                        <a
-                          href={letterFile.previewUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="cbm-btn cbm-btn-outline cbm-btn-sm"
-                          style={{ height: 26, padding: '0 8px', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                        >
-                          <Eye size={11} /> View PDF
-                        </a>
-                      )}
-                    </div>
-                    <span style={{ fontSize: 11, color: 'var(--success-text)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                      <CheckCircle2 size={12} /> Ready for submission (PDF verified)
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-heading)' }}>
+                      📄 {letterFile.name}
                     </span>
+                    <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
+                      ({formatFileSize(letterFile.size)})
+                    </span>
+                    {letterFile.previewUrl && (
+                      <a
+                        href={letterFile.previewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="cbm-btn cbm-btn-outline cbm-btn-sm"
+                        style={{ height: 22, padding: '0 6px', fontSize: 10.5, display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                      >
+                        <Eye size={10} /> View
+                      </a>
+                    )}
                   </div>
                 ) : (
-                  <p style={{ margin: '3px 0 0 0', fontSize: 13, fontWeight: 700, color: 'var(--danger)' }}>
-                    ⚠️ Missing mandatory Approval Letter (PDF Document)
+                  <p style={{ margin: '1px 0 0 0', fontSize: 11.5, fontWeight: 700, color: 'var(--danger)' }}>
+                    ⚠️ Missing PDF
                   </p>
                 )}
-              </div>
-
-              <div style={{ gridColumn: '1 / -1', padding: '10px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: '#FFFFFF', border: '1px solid var(--border-subtle)', fontSize: 11.5, color: 'var(--text-muted)' }}>
-                <p style={{ margin: 0, lineHeight: 1.4 }}>
-                  <strong>Document Persistence Status:</strong> Sanction Letter ID and document metadata (filename, file size, MIME type, upload timestamp) will be recorded in the proposal record. Cloud binary file storage requires provisioning a Supabase Storage bucket.
-                </p>
               </div>
 
               {!isDocumentStepValid && (
                 <div
                   style={{
                     gridColumn: '1 / -1',
-                    padding: '8px 12px',
+                    padding: '6px 10px',
                     borderRadius: 'var(--radius-sm)',
                     backgroundColor: '#FEF2F2',
                     border: '1px solid #FECACA',
                     color: '#DC2626',
-                    fontSize: 12,
+                    fontSize: 11,
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6
                   }}
                   role="alert"
                 >
-                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                  <span>
-                    Final submission is disabled because required sanction documents are missing. Please click <strong>Edit Section 3</strong> to provide both the Letter ID and approval PDF.
-                  </span>
+                  <AlertCircle size={13} style={{ flexShrink: 0 }} />
+                  <span>Missing required sanction documents. Click Edit to provide Letter ID and PDF.</span>
                 </div>
               )}
             </div>
@@ -560,14 +463,14 @@ export const Step4ReviewSubmit = ({
         {/* Step Navigation Actions */}
         <div
           style={{
-            marginTop: 32,
-            paddingTop: 20,
+            marginTop: 10,
+            paddingTop: 8,
             borderTop: '1px solid var(--border)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 12
+            gap: 8
           }}
         >
           <Button
@@ -575,9 +478,9 @@ export const Step4ReviewSubmit = ({
             variant="outline"
             onClick={onBack}
             icon={ArrowLeft}
-            style={{ height: 42, padding: '0 20px', fontSize: 13.5 }}
+            style={{ height: 34, padding: '0 16px', fontSize: 12.5 }}
           >
-            Back to Budget Details
+            Back to Budget
           </Button>
 
           <Button
@@ -590,7 +493,7 @@ export const Step4ReviewSubmit = ({
             disabled={!canSubmit}
             isLoading={isSubmitting}
             icon={Send}
-            style={{ height: 42, padding: '0 28px', fontSize: 14 }}
+            style={{ height: 34, padding: '0 20px', fontSize: 12.5 }}
             title={!isDocumentStepValid ? 'Both Sanction Letter ID and Approval Letter (PDF) are mandatory.' : (!numericAmount ? 'Valid budget amount required' : '')}
           >
             Submit Proposal

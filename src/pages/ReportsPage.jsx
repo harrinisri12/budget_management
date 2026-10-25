@@ -213,22 +213,20 @@ export const ReportsPage = () => {
 
   return (
     <DashboardLayout pageTitle="CSE Reports & Audits">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Page Header */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Building size={16} style={{ color: 'var(--gold)' }} />
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--gold-text)', letterSpacing: '0.05em' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <Building size={15} style={{ color: 'var(--gold)' }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-text)', letterSpacing: '0.05em' }}>
               OFFICIAL FINANCIAL AUDITS & EXPORTS • {ayLabel}
             </span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>CSE Department Financial Reports</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>CSE Department Financial Reports</h1>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
             Generate and export official departmental financial audit statements, proposal dossiers, and budget quota ledgers.
           </p>
         </div>
-
-        <hr className="cbm-divider" />
 
         {/* Audit Documents Section */}
         <section className="cbm-section">

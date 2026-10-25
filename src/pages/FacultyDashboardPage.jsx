@@ -20,49 +20,46 @@ export const FacultyDashboardPage = () => {
 
   return (
     <FacultyLayout pageTitle="Faculty Dashboard">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Welcome Administrative Header Area */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <Building size={16} style={{ color: 'var(--gold)' }} />
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--gold-text)', letterSpacing: '0.04em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <Building size={14} style={{ color: 'var(--gold)' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-text)', letterSpacing: '0.04em' }}>
                 KONGU ENGINEERING COLLEGE • CSE FACULTY PORTAL
               </span>
             </div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-heading)' }}>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0, lineHeight: 1.2 }}>
               Welcome, {user?.name || 'Faculty Member'}
             </h1>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-              {user?.designation || 'Faculty Member'} • Manage departmental activity proposals, track available financial quotas, and review administrative approvals.
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
+              {user?.designation || 'Faculty Member'} • Manage departmental proposals, track available financial quotas, and review approvals.
             </p>
           </div>
 
           <button
             onClick={() => navigate('/faculty/proposal/new')}
             className="cbm-btn cbm-btn-primary"
-            style={{ height: 40 }}
+            style={{ height: 34, padding: '0 14px', fontSize: 12.5 }}
           >
-            <Plus size={16} />
+            <Plus size={15} />
             <span>Submit New Proposal</span>
           </button>
         </div>
 
-        {/* SECTION DIVIDER */}
-        <hr className="cbm-divider" />
-
-        {/* 1. LARGE SECTION: FINANCIAL QUOTA & BALANCE OVERVIEW */}
+        {/* 1. SECTION: FINANCIAL QUOTA & BALANCE OVERVIEW */}
         <section className="cbm-section" aria-labelledby="section-faculty-quota">
           <div className="cbm-section-header">
             <div>
               <h2 id="section-faculty-quota" className="cbm-section-title">
-                Financial Quota & Activity Summary
+                Financial Quota &amp; Activity Summary
               </h2>
               <p className="cbm-section-subtitle">
                 Individual faculty activity allocation and proposal expenditure breakdown for Academic Year {ayLabel}
               </p>
             </div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold-text)', backgroundColor: 'var(--gold-subtle)', padding: '3px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--gold-border)' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-text)', backgroundColor: 'var(--gold-subtle)', padding: '2px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--gold-border)' }}>
               AY {ayLabel} Quota
             </span>
           </div>
@@ -74,7 +71,7 @@ export const FacultyDashboardPage = () => {
               <div className="cbm-metric-header">
                 <span className="cbm-metric-label">Annual Quota Allocation</span>
                 <div className="cbm-metric-icon cbm-metric-icon-gold">
-                  <Wallet size={16} />
+                  <Wallet size={15} />
                 </div>
               </div>
               <div>
@@ -88,7 +85,7 @@ export const FacultyDashboardPage = () => {
               <div className="cbm-metric-header">
                 <span className="cbm-metric-label">Total Proposed</span>
                 <div className="cbm-metric-icon">
-                  <FileText size={16} />
+                  <FileText size={15} />
                 </div>
               </div>
               <div>
@@ -102,7 +99,7 @@ export const FacultyDashboardPage = () => {
               <div className="cbm-metric-header">
                 <span className="cbm-metric-label">Remaining Quota</span>
                 <div className="cbm-metric-icon">
-                  <ArrowUpRight size={16} />
+                  <ArrowUpRight size={15} />
                 </div>
               </div>
               <div>
@@ -113,10 +110,7 @@ export const FacultyDashboardPage = () => {
           </div>
         </section>
 
-        {/* SECTION DIVIDER */}
-        <hr className="cbm-divider" />
-
-        {/* 2. LARGE SECTION: MY SUBMITTED PROPOSALS */}
+        {/* 2. SECTION: MY SUBMITTED PROPOSALS */}
         <section className="cbm-section" aria-labelledby="section-faculty-proposals">
           <div className="cbm-section-header">
             <div>
@@ -124,23 +118,24 @@ export const FacultyDashboardPage = () => {
                 My Submitted Proposals
               </h2>
               <p className="cbm-section-subtitle">
-                Activity proposals submitted for departmental evaluation & approval
+                Activity proposals submitted for departmental evaluation &amp; approval
               </p>
             </div>
             <button
               onClick={() => navigate('/faculty/proposals')}
               style={{
-                padding: '6px 12px',
+                height: 28,
+                padding: '0 10px',
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'var(--bg-surface)',
                 color: 'var(--text-heading)',
                 border: '1px solid var(--border)',
                 fontWeight: 600,
-                fontSize: 12.5,
+                fontSize: 11.5,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 5,
+                gap: 4,
                 transition: 'all 0.15s ease'
               }}
               onMouseEnter={(e) => {
@@ -152,8 +147,8 @@ export const FacultyDashboardPage = () => {
                 e.currentTarget.style.borderColor = 'var(--border)';
               }}
             >
-              <span>View All Proposals ({metrics.proposals.length})</span>
-              <ArrowUpRight size={13} style={{ color: 'var(--gold)' }} />
+              <span>View All ({metrics.proposals.length})</span>
+              <ArrowUpRight size={12} style={{ color: 'var(--gold)' }} />
             </button>
           </div>
 
@@ -176,13 +171,14 @@ export const FacultyDashboardPage = () => {
                   <TableSkeleton rows={3} columns={8} />
                 ) : metrics.proposals.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '36px 20px', color: 'var(--text-muted)' }}>
-                      <p style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>No proposals submitted yet.</p>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '16px 14px', color: 'var(--text-muted)' }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>No proposals submitted yet.</p>
                       <button
                         onClick={() => navigate('/faculty/proposal/new')}
                         className="cbm-btn cbm-btn-primary cbm-btn-sm"
+                        style={{ height: 28, fontSize: 11.5 }}
                       >
-                        <Plus size={14} />
+                        <Plus size={13} />
                         <span>Create Your First Proposal</span>
                       </button>
                     </td>
