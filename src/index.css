@@ -1220,3 +1220,525 @@ p {
   font-weight: 600;
 }
 
+/* ==========================================================================
+   NBA CRITERIA 9 REPORT SUITE & OFFICIAL DOCUMENT STYLES
+   ========================================================================== */
+
+.nba-report-document {
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 32px 36px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  color: #18181B;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  position: relative;
+  margin-bottom: 24px;
+}
+
+/* Official Header matching Image 1 */
+.nba-doc-header {
+  border-bottom: 2px solid #18181B;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.nba-doc-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.nba-logo-container {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+}
+
+.nba-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.nba-header-text {
+  text-align: left;
+}
+
+.nba-college-name {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #121212;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.nba-college-tagline {
+  font-size: 11px;
+  font-weight: 600;
+  color: #52525B;
+  margin: 2px 0 0 0;
+  letter-spacing: 0.04em;
+}
+
+.nba-college-motto {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--gold-text);
+  margin: 2px 0 0 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nba-doc-titles {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.nba-dept-title {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #121212;
+  letter-spacing: 0.04em;
+  margin: 0 0 4px 0;
+  text-transform: uppercase;
+}
+
+.nba-criteria-badge {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #121212;
+  padding: 2px 10px;
+  margin: 4px 0;
+  text-transform: uppercase;
+}
+
+.nba-expense-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #18181B;
+  margin: 4px 0 2px 0;
+}
+
+.nba-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #52525B;
+  margin: 0;
+}
+
+/* Formal NBA Audit Tables */
+.nba-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 24px;
+}
+
+.nba-audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: #18181B;
+  border: 1px solid #71717A;
+}
+
+.nba-audit-table th,
+.nba-audit-table td {
+  border: 1px solid #A1A1AA;
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
+.nba-audit-table th {
+  background-color: #F4F4F5;
+  color: #09090B;
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+}
+
+.nba-audit-table tbody tr:hover {
+  background-color: #FAFAFA;
+}
+
+.nba-audit-table .nba-subtext {
+  font-size: 10.5px;
+  color: #71717A;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.nba-sdg-pill {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: #F4F4F5;
+  border: 1px solid #D4D4D8;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #18181B;
+  font-family: monospace;
+}
+
+.nba-total-row td {
+  background-color: #F4F4F5;
+  border-top: 2px solid #18181B;
+  border-bottom: 3px double #18181B;
+  font-size: 12px;
+}
+
+/* NBA Section Headers for Tables 9.8.1 and 9.8.2 */
+.nba-nba-criteria-header {
+  border-bottom: 2px solid #18181B;
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.nba-main-criteria-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #121212;
+  margin: 0 0 4px 0;
+}
+
+.nba-sub-criteria-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #27272A;
+  margin: 0 0 6px 0;
+}
+
+.nba-criteria-note {
+  font-size: 11px;
+  color: #52525B;
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+
+.nba-table-name-badge {
+  font-size: 13px;
+  font-weight: 800;
+  color: #121212;
+  display: inline-block;
+  padding: 4px 0;
+  border-top: 1px solid #E4E4E7;
+  width: 100%;
+}
+
+/* Table 9.8.1 Year Cards */
+.nba-summary-tables-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.nba-year-summary-card {
+  border: 1px solid #A1A1AA;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #FFFFFF;
+}
+
+.nba-year-header-strip {
+  background: #27272A;
+  color: #FFFFFF;
+  padding: 7px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.nba-formal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.nba-formal-table th,
+.nba-formal-table td {
+  border: 1px solid #D4D4D8;
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
+.nba-formal-table th {
+  background: #F4F4F5;
+  color: #18181B;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.nba-pct-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.nba-pct-badge.normal {
+  background-color: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+
+.nba-pct-badge.high {
+  background-color: #FFFBEB;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+.nba-inline-input {
+  width: 100%;
+  padding: 3px 6px;
+  font-size: 11.5px;
+  font-family: monospace;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  background: #FFFFFF;
+  text-align: right;
+}
+
+.nba-mini-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nba-mini-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #FFFFFF;
+}
+
+.nba-mini-btn.save {
+  background: #10B981;
+  border-color: #10B981;
+}
+
+/* Table 9.8.2 Matrix Table */
+.nba-matrix-table th {
+  padding: 6px 8px;
+  line-height: 1.25;
+}
+
+.nba-zebra-row td {
+  background-color: #FAFAFA;
+}
+
+/* Verification Signatures Block */
+.nba-signoff-block {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px dashed #A1A1AA;
+}
+
+.nba-signee {
+  text-align: center;
+  min-width: 130px;
+}
+
+.nba-sign-line {
+  width: 110px;
+  height: 1px;
+  background-color: #27272A;
+  margin: 0 auto 8px auto;
+}
+
+.nba-sign-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #18181B;
+}
+
+.nba-sign-role {
+  font-size: 10.5px;
+  color: #52525B;
+  margin-top: 2px;
+}
+
+/* Filter Bar for Reports */
+.nba-filter-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 14px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.nba-filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.nba-filter-select {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-heading);
+  outline: none;
+  cursor: pointer;
+}
+
+.nba-filter-select:focus {
+  border-color: var(--gold);
+}
+
+.nba-action-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Tabs for switching report views */
+.nba-report-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+}
+
+.nba-tab-btn {
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.nba-tab-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-heading);
+}
+
+.nba-tab-btn.active {
+  background: #121212;
+  color: #FFFFFF;
+  border-color: #121212;
+}
+
+/* ==========================================================================
+   PRINT STYLES FOR CRISP INSTITUTIONAL DOCUMENT GENERATION
+   ========================================================================== */
+@media print {
+  /* Hide all dashboard application chrome */
+  .cbm-header,
+  .cbm-sidebar,
+  .cbm-bg-canvas,
+  .no-print,
+  .nba-filter-panel,
+  .nba-report-tabs,
+  .nba-edit-actions,
+  button {
+    display: none !important;
+  }
+
+  body, html {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 11pt !important;
+  }
+
+  .cbm-admin-layout,
+  .cbm-main-area,
+  .cbm-main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .nba-report-document {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    page-break-after: always;
+  }
+
+  .nba-audit-table,
+  .nba-formal-table {
+    border: 1.5pt solid #000000 !important;
+    width: 100% !important;
+  }
+
+  .nba-audit-table th,
+  .nba-audit-table td,
+  .nba-formal-table th,
+  .nba-formal-table td {
+    border: 0.75pt solid #000000 !important;
+    color: #000000 !important;
+  }
+
+  .nba-audit-table th,
+  .nba-formal-table th {
+    background-color: #F0F0F0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .nba-total-row td {
+    border-top: 1.5pt solid #000000 !important;
+    border-bottom: 2.5pt double #000000 !important;
+  }
+
+  .nba-signoff-block {
+    page-break-inside: avoid;
+    margin-top: 30pt !important;
+    padding-top: 15pt !important;
+  }
+
+  .nba-sdg-pill {
+    border: 0.5pt solid #000000 !important;
+    background: transparent !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm 12mm 10mm;
+  }
+}
+
+

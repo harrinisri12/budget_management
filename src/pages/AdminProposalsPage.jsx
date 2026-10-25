@@ -18,7 +18,8 @@ import {
   AlertTriangle,
   FileSpreadsheet,
   RefreshCw,
-  RotateCcw
+  RotateCcw,
+  Loader2
 } from 'lucide-react';
 
 export const AdminProposalsPage = () => {
@@ -33,10 +34,12 @@ export const AdminProposalsPage = () => {
     reopenSettlement,
     refreshProposals,
     refreshBudget,
+    facultyList,
     showToast,
     loading
   } = useBudget();
 
+  const [isExporting, setIsExporting] = useState(false);
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [adminRemarks, setAdminRemarks] = useState('');
@@ -281,6 +284,28 @@ export const AdminProposalsPage = () => {
     };
   }, [selectedProposal, categories, proposals]);
 
+  const handleDownloadExcel = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const recordsToExport = filteredProposals;
+      if (!recordsToExport || recordsToExport.length === 0) {
+        showToast?.('No proposals match the current filter criteria to export.', 'warning');
+        setIsExporting(false);
+        return;
+      }
+      const res = exportProposalsToExcel(recordsToExport, ayLabel, { facultyList });
+      if (res?.success) {
+        showToast?.(`Exported ${res.count} proposal records to ${res.filename}.`, 'success');
+      }
+    } catch (err) {
+      console.error('Error generating Excel export:', err);
+      showToast?.(err.message || 'Failed to generate Excel report.', 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <DashboardLayout pageTitle="Proposals">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -300,7 +325,8 @@ export const AdminProposalsPage = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {isAdmin && (
               <button
-                onClick={() => exportProposalsToExcel(filteredProposals.length > 0 ? filteredProposals : proposals, ayLabel)}
+                onClick={handleDownloadExcel}
+                disabled={isExporting}
                 className="cbm-btn cbm-btn-primary"
                 style={{
                   height: 34,
@@ -310,12 +336,13 @@ export const AdminProposalsPage = () => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  cursor: 'pointer'
+                  cursor: isExporting ? 'not-allowed' : 'pointer',
+                  opacity: isExporting ? 0.7 : 1
                 }}
-                title="Download complete proposals register to Excel with Google Drive file links"
+                title="Download complete proposals and settlements report in official 9-column Excel format"
               >
-                <FileSpreadsheet size={15} />
-                <span>Download Excel</span>
+                {isExporting ? <Loader2 size={15} className="animate-spin" /> : <FileSpreadsheet size={15} />}
+                <span>{isExporting ? 'Exporting...' : 'Download Excel'}</span>
               </button>
             )}
 

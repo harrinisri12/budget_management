@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { TransactionTable } from '../components/dashboard/TransactionTable';
 import { useBudget } from '../context/BudgetContext';
@@ -11,11 +11,13 @@ import {
   Building,
   Activity,
   FileSpreadsheet,
-  Layers
+  Layers,
+  Loader2
 } from 'lucide-react';
 
 export const DashboardPage = () => {
-  const { kpis, proposals, activeAcademicYear, categories } = useBudget();
+  const { kpis, proposals, activeAcademicYear, categories, facultyList, showToast } = useBudget();
+  const [isExporting, setIsExporting] = useState(false);
 
   // 1. TOTAL BUDGET: Active academic year real database budget
   const totalBudget = Number(activeAcademicYear?.budget ?? activeAcademicYear?.annualBudget ?? kpis.totalBudget ?? 0);
@@ -124,9 +126,30 @@ export const DashboardPage = () => {
     };
   });
 
-  const handleDownloadExcel = () => {
-    const recordsToExport = activeYearProposals.length > 0 ? activeYearProposals : proposals;
-    exportProposalsToExcel(recordsToExport, ayLabel);
+  const handleDownloadExcel = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const recordsToExport = (activeYearProposals && activeYearProposals.length > 0)
+        ? activeYearProposals
+        : (proposals || []);
+
+      if (recordsToExport.length === 0) {
+        showToast?.('No proposals found for the current academic year to export.', 'warning');
+        setIsExporting(false);
+        return;
+      }
+
+      const res = exportProposalsToExcel(recordsToExport, ayLabel, { facultyList });
+      if (res?.success) {
+        showToast?.(`Exported ${res.count} proposal records to ${res.filename}.`, 'success');
+      }
+    } catch (err) {
+      console.error('Error generating Excel export:', err);
+      showToast?.(err.message || 'Failed to generate Excel report. Please try again.', 'error');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -151,6 +174,7 @@ export const DashboardPage = () => {
 
           <button
             onClick={handleDownloadExcel}
+            disabled={isExporting}
             className="cbm-btn cbm-btn-primary"
             style={{
               height: 34,
@@ -160,12 +184,13 @@ export const DashboardPage = () => {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              cursor: 'pointer'
+              cursor: isExporting ? 'not-allowed' : 'pointer',
+              opacity: isExporting ? 0.7 : 1
             }}
-            title="Export official proposals and settlements register to Excel with Google Drive links"
+            title="Download complete proposals and settlements report in official 9-column Excel format"
           >
-            <FileSpreadsheet size={15} />
-            <span>Download Excel</span>
+            {isExporting ? <Loader2 size={15} className="animate-spin" /> : <FileSpreadsheet size={15} />}
+            <span>{isExporting ? 'Exporting...' : 'Download Excel'}</span>
           </button>
         </div>
 

@@ -1,42 +1,204 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { Download, FileSpreadsheet, Building } from 'lucide-react';
+import {
+  Download,
+  FileSpreadsheet,
+  Building,
+  Printer,
+  Table as TableIcon,
+  Grid,
+  FileText,
+  Layers
+} from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { useBudget } from '../context/BudgetContext';
+import {
+  getFourYearPeriods,
+  calculateTable981,
+  calculateTable982,
+  prepareCriteria9Ledger,
+  formatNumberIndian,
+  STANDARD_NBA_ITEMS
+} from '../utils/reportCalculations';
+import {
+  exportCriteria9LedgerToExcel,
+  exportCriteria9LedgerToCsv,
+  exportTable981ToExcel,
+  exportTable982ToExcel
+} from '../utils/reportExport';
+import { exportProposalsToExcel } from '../utils/excelExport';
+import { Criteria9BillLedger } from '../components/reports/Criteria9BillLedger';
+import { Table981Summary } from '../components/reports/Table981Summary';
+import { Table982Matrix } from '../components/reports/Table982Matrix';
 
 export const ReportsPage = () => {
-  const { categories, proposals, transactions, facultyList, activeAcademicYear, showToast } = useBudget();
-  const ayLabel = activeAcademicYear?.name || activeAcademicYear?.academicYear || 'Current Session';
-  const ayId = activeAcademicYear?.id;
+  const {
+    categories,
+    proposals,
+    academicYears,
+    activeAcademicYear,
+    facultyList,
+    showToast
+  } = useBudget();
 
-  // Filter proposals & categories for active academic year
-  const activeProposals = useMemo(() => {
-    return (proposals || []).filter(p => {
-      if (!ayId && !activeAcademicYear) return true;
-      return (
-        (ayId && (p.academicYearId === ayId || p.academic_year_id === ayId)) ||
-        (p.academicYear && (p.academicYear === ayLabel || p.academicYear === activeAcademicYear?.academicYear || p.academicYear === activeAcademicYear?.name))
-      );
-    });
-  }, [proposals, ayId, ayLabel, activeAcademicYear]);
+  // Tab State: 'LEDGER' (Image 1), 'TABLE_981' (Image 3), 'TABLE_982' (Image 2), 'CONSOLIDATED', 'RAW_AUDITS'
+  const [activeTab, setActiveTab] = useState('LEDGER');
 
-  const activeCategories = useMemo(() => {
-    if (activeAcademicYear?.categories && activeAcademicYear.categories.length > 0) {
-      return activeAcademicYear.categories;
+  // Selected Academic Year ID (defaults to activeAcademicYear)
+  const [selectedAyId, setSelectedAyId] = useState(() => activeAcademicYear?.id || '');
+
+  // Filters for Criteria 9 Detailed Ledger
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  // Student metrics override (stored in localStorage for persistence)
+  const [studentMetrics, setStudentMetrics] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cbm_nba_student_metrics');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
     }
-    return (categories || []).filter(c => !ayId || c.academic_year_id === ayId || c.academicYearId === ayId);
-  }, [categories, ayId, activeAcademicYear]);
+  });
 
-  // Actual faculty members (strictly faculty and hod roles per schema requirements)
-  const facultyMembers = useMemo(() => {
-    return (facultyList || []).filter(f => {
-      const role = (f.role || '').toLowerCase();
-      return role === 'faculty' || role === 'hod';
+  const handleUpdateMetrics = useCallback((ayLabel, metrics) => {
+    setStudentMetrics((prev) => {
+      const updated = {
+        ...prev,
+        [ayLabel]: {
+          ...(prev[ayLabel] || {}),
+          ...metrics
+        }
+      };
+      try {
+        localStorage.setItem('cbm_nba_student_metrics', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save metrics to localStorage:', e);
+      }
+      return updated;
     });
-  }, [facultyList]);
+    showToast?.(`Updated metrics for ${ayLabel}.`, 'success');
+  }, [showToast]);
 
-  // Utility to download CSV
-  const triggerDownload = (filename, csvContent) => {
+  // Currently selected academic year object
+  const currentAy = useMemo(() => {
+    if (!selectedAyId && activeAcademicYear) return activeAcademicYear;
+    return (academicYears || []).find((ay) => ay.id === selectedAyId) || activeAcademicYear || {
+      name: '2025 - 2026',
+      academicYear: '2025-2026',
+      startYear: 2025
+    };
+  }, [selectedAyId, academicYears, activeAcademicYear]);
+
+  const ayLabel = currentAy?.academicYear || currentAy?.name || '2025-2026';
+
+  // 4 Financial Year Periods (CFY, CFYm1, CFYm2, CFYm3)
+  const fourYearPeriods = useMemo(() => {
+    return getFourYearPeriods(currentAy, academicYears || []);
+  }, [currentAy, academicYears]);
+
+  // Compute Table 9.8.1 Data (Summary of Budget and Actual Expenditure)
+  const table981Data = useMemo(() => {
+    return calculateTable981({
+      periods: fourYearPeriods,
+      proposals: proposals || [],
+      categories: categories || [],
+      studentMetrics
+    });
+  }, [fourYearPeriods, proposals, categories, studentMetrics]);
+
+  // Compute Table 9.8.2 Data (Multi-Year Matrix)
+  const table982Data = useMemo(() => {
+    return calculateTable982({
+      periods: fourYearPeriods,
+      proposals: proposals || [],
+      categories: categories || []
+    });
+  }, [fourYearPeriods, proposals, categories]);
+
+  // Compute Criteria-9 Detailed Program Bill Ledger (Reference Image 1)
+  const ledgerData = useMemo(() => {
+    return prepareCriteria9Ledger({
+      proposals: proposals || [],
+      activeAcademicYear: currentAy,
+      selectedCategory,
+      selectedSubcategory,
+      statusFilter
+    });
+  }, [proposals, currentAy, selectedCategory, selectedSubcategory, statusFilter]);
+
+  // Category options for dropdown
+  const categoryOptions = useMemo(() => {
+    const set = new Set();
+    (categories || []).forEach((c) => {
+      if (c.name) set.add(c.name);
+    });
+    (proposals || []).forEach((p) => {
+      if (p.category) set.add(p.category);
+    });
+    STANDARD_NBA_ITEMS.forEach((item) => set.add(item));
+    return Array.from(set);
+  }, [categories, proposals]);
+
+  // Subcategory options based on selected category
+  const subcategoryOptions = useMemo(() => {
+    const set = new Set();
+    (proposals || []).forEach((p) => {
+      const sub = p.subCategory || p.eventDetails?.subCategoryName;
+      if (sub) set.add(sub);
+    });
+    return Array.from(set);
+  }, [proposals]);
+
+  // Export handlers
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportExcel = () => {
+    if (activeTab === 'LEDGER') {
+      exportCriteria9LedgerToExcel({
+        rows: ledgerData.rows,
+        totalAmount: ledgerData.totalAmount,
+        academicYearLabel: ayLabel,
+        categoryTitle: selectedCategory !== 'ALL' ? selectedCategory : 'Department Association'
+      });
+      showToast?.('Exported Criteria-9 Ledger to Excel.', 'success');
+    } else if (activeTab === 'TABLE_981') {
+      exportTable981ToExcel(table981Data);
+      showToast?.('Exported Table 9.8.1 to Excel.', 'success');
+    } else if (activeTab === 'TABLE_982') {
+      exportTable982ToExcel({
+        periods: fourYearPeriods,
+        rows: table982Data.rows,
+        totals: table982Data.totals
+      });
+      showToast?.('Exported Table 9.8.2 Matrix to Excel.', 'success');
+    } else if (activeTab === 'CONSOLIDATED') {
+      // Export all in sequential files or ledger
+      exportCriteria9LedgerToExcel({
+        rows: ledgerData.rows,
+        totalAmount: ledgerData.totalAmount,
+        academicYearLabel: ayLabel,
+        categoryTitle: 'Consolidated Criteria-9'
+      });
+      showToast?.('Exported Consolidated Criteria-9 Report to Excel.', 'success');
+    }
+  };
+
+  const handleExportCsv = () => {
+    exportCriteria9LedgerToCsv({
+      rows: ledgerData.rows,
+      totalAmount: ledgerData.totalAmount,
+      academicYearLabel: ayLabel,
+      categoryTitle: selectedCategory !== 'ALL' ? selectedCategory : 'Association Expenses'
+    });
+    showToast?.('Exported Criteria-9 Ledger CSV.', 'success');
+  };
+
+  // Legacy CSV Exports for RAW_AUDITS Tab
+  const triggerLegacyDownload = (filename, csvContent) => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -49,254 +211,431 @@ export const ReportsPage = () => {
     showToast?.(`Downloaded ${filename} successfully.`, 'success');
   };
 
-  // Report 1: Category Budget Allocation Worksheet
   const downloadCategoryAllocationReport = () => {
     const headers = ['Category / Unit', 'Allocated Quota (INR)', 'Disbursed Amount (INR)', 'Remaining Balance (INR)', 'Utilization %', 'Proposals Count'];
-    const rows = activeCategories.map(cat => {
+    const rows = (categories || []).map((cat) => {
       const allocated = Number(cat.allocated_amount || cat.budget || 0);
-      const catProps = activeProposals.filter(p =>
-        (p.categoryId === cat.id) ||
-        (p.category && p.category.toLowerCase() === (cat.name || '').toLowerCase())
-      );
-      // Rule 6: unsettled accepted proposals count provisionally; settled count actual settlement amount
-      const spentFromProps = catProps.reduce((sum, p) => {
-        const sLower = (p.status || '').toLowerCase();
-        const ssLower = (p.settlementStatus || '').toLowerCase();
-        const isSettled = sLower === 'settled' || ssLower === 'settled';
-        const isAccepted = ['accepted', 'approved'].includes(sLower);
-        if (isSettled) {
-          return sum + (Number(p.settlementAmount ?? p.actualAmount ?? p.amount ?? 0) || 0);
-        }
-        if (isAccepted) {
-          return sum + (Number(p.approvedAmount ?? p.amount ?? 0) || 0);
-        }
-        return sum;
-      }, 0);
-      const spent = spentFromProps > 0 ? spentFromProps : Number(cat.spent_amount || 0);
+      const spent = Number(cat.spent_amount || 0);
       const remaining = Math.max(0, allocated - spent);
       const util = allocated > 0 ? ((spent / allocated) * 100).toFixed(1) : '0';
-      return [
-        `"${(cat.name || '').replace(/"/g, '""')}"`,
-        allocated,
-        spent,
-        remaining,
-        `${util}%`,
-        catProps.length
-      ];
+      return [`"${(cat.name || '').replace(/"/g, '""')}"`, allocated, spent, remaining, `${util}%`, 0];
     });
-
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    triggerDownload(`KEC_CSE_Budget_Allocation_${ayLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}.csv`, csv);
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    triggerLegacyDownload(`KEC_CSE_Budget_Allocation_${ayLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}.csv`, csv);
   };
 
-  // Report 2: Comprehensive Proposals Audit Dossier
   const downloadProposalsAuditReport = () => {
-    const headers = ['Proposal ID', 'Program Title', 'Category', 'Subcategory', 'Faculty Name', 'Faculty Email', 'Proposed Amount (INR)', 'Approved Amount (INR)', 'Settlement Amount (INR)', 'Settlement Status', 'Status', 'Proposal Date', 'Program Date', 'Academic Year', 'Admin Remarks'];
-    const rows = activeProposals.map(p => {
+    const headers = ['Proposal ID', 'Program Title', 'Category', 'Subcategory', 'Faculty Name', 'Amount (INR)', 'Status', 'Program Date'];
+    const rows = (proposals || []).map((p) => {
       return [
-        `"${(p.proposalNumber || p.proposalId || p.id || '').toString().replace(/"/g, '""')}"`,
+        `"${p.proposalNumber || p.id}"`,
         `"${(p.title || '').replace(/"/g, '""')}"`,
         `"${(p.category || '').replace(/"/g, '""')}"`,
-        `"${(p.subCategory || p.sub_category || '').replace(/"/g, '""')}"`,
-        `"${(p.facultyName || p.faculty_name || '').replace(/"/g, '""')}"`,
-        `"${(p.facultyEmail || p.faculty_email || '').replace(/"/g, '""')}"`,
-        Number(p.amount || 0),
-        Number(p.approvedAmount || p.amount || 0),
-        p.settlementAmount !== null && p.settlementAmount !== undefined && p.settlementAmount !== '' ? Number(p.settlementAmount) : '',
-        `"${p.settlementStatus || 'Unsettled'}"`,
-        `"${p.status || 'Pending'}"`,
-        `"${p.proposalDate || p.proposal_date || ''}"`,
-        `"${p.programDate || p.program_date || ''}"`,
-        `"${p.academicYear || ayLabel}"`,
-        `"${(p.adminRemarks || p.admin_remarks || '').replace(/"/g, '""')}"`
+        `"${(p.subCategory || '').replace(/"/g, '""')}"`,
+        `"${(p.facultyName || '').replace(/"/g, '""')}"`,
+        Number(p.settlementAmount ?? p.amount ?? 0),
+        `"${p.status || 'Approved'}"`,
+        `"${p.programDate || ''}"`
       ];
     });
-
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    triggerDownload(`KEC_CSE_Proposals_Audit_${ayLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}.csv`, csv);
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    triggerLegacyDownload(`KEC_CSE_Proposals_Audit_${ayLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}.csv`, csv);
   };
-
-  // Report 3: Financial Transactions Ledger
-  const downloadTransactionsLedgerReport = () => {
-    const headers = ['Transaction ID', 'Date', 'Description', 'Category', 'Amount (INR)', 'Type', 'Status', 'Requested By', 'Vendor', 'Reference'];
-    const rows = (transactions || []).map(t => {
-      return [
-        `"${(t.id || t.transaction_number || t.dbId || '').toString().replace(/"/g, '""')}"`,
-        `"${t.date || t.transaction_date || ''}"`,
-        `"${(t.description || '').replace(/"/g, '""')}"`,
-        `"${(t.category || '').replace(/"/g, '""')}"`,
-        Number(t.amount || 0),
-        `"${t.type || 'Expense'}"`,
-        `"${t.status || 'Completed'}"`,
-        `"${(t.requestedBy || '').replace(/"/g, '""')}"`,
-        `"${(t.vendor || '').replace(/"/g, '""')}"`,
-        `"${(t.reference || t.proposalId || '').toString().replace(/"/g, '""')}"`
-      ];
-    });
-
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    triggerDownload(`KEC_CSE_Transactions_Ledger_${ayLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}.csv`, csv);
-  };
-
-  // Report 4: Faculty Roster & Activity Summary
-  const downloadFacultyRosterReport = () => {
-    const headers = ['Employee ID', 'Name', 'Email', 'Role', 'Designation', 'Department', 'Status', 'Proposals Submitted', 'Total Disbursed / Settled (INR)'];
-    const rows = facultyMembers.map(f => {
-      const facProps = (proposals || []).filter(p =>
-        (p.facultyEmail && f.email && p.facultyEmail.toLowerCase() === f.email.toLowerCase()) ||
-        (p.facultyId && f.id && p.facultyId === f.id)
-      );
-      const approvedSum = facProps.reduce((sum, p) => {
-        const sLower = (p.status || '').toLowerCase();
-        const ssLower = (p.settlementStatus || '').toLowerCase();
-        const isSettled = sLower === 'settled' || ssLower === 'settled';
-        const isAccepted = ['accepted', 'approved'].includes(sLower);
-        if (isSettled) {
-          return sum + (Number(p.settlementAmount ?? p.actualAmount ?? p.amount ?? 0) || 0);
-        }
-        if (isAccepted) {
-          return sum + (Number(p.approvedAmount ?? p.amount ?? 0) || 0);
-        }
-        return sum;
-      }, 0);
-      return [
-        `"${(f.employeeId || f.employee_id || '').toString().replace(/"/g, '""')}"`,
-        `"${(f.name || '').replace(/"/g, '""')}"`,
-        `"${(f.email || '').replace(/"/g, '""')}"`,
-        `"${(f.displayRole || (f.role === 'hod' ? 'HOD' : 'Faculty')).toUpperCase()}"`,
-        `"${(f.designation || '').replace(/"/g, '""')}"`,
-        `"${(f.department || 'Computer Science and Engineering (CSE)').replace(/"/g, '""')}"`,
-        `"${f.status || 'Active'}"`,
-        facProps.length,
-        approvedSum
-      ];
-    });
-
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    triggerDownload(`KEC_CSE_Faculty_Roster_${ayLabel.replace(/[^a-zA-Z0-9_-]/g, '_')}.csv`, csv);
-  };
-
-  const reports = [
-    {
-      code: 'AUD-CSE-01',
-      name: `CSE Department Budget Allocation Statement (${ayLabel})`,
-      description: 'Departmental category quotas, disbursed allocations, remaining balances, and utilization ratios.',
-      recordsCount: `${activeCategories.length} Categories`,
-      type: 'CSV Spreadsheet',
-      action: downloadCategoryAllocationReport
-    },
-    {
-      code: 'AUD-CSE-02',
-      name: `Department Activity Proposals & Approvals Dossier (${ayLabel})`,
-      description: 'All submitted, approved, pending, and rejected faculty proposals with budget breakdowns and remarks.',
-      recordsCount: `${activeProposals.length} Proposals`,
-      type: 'CSV Spreadsheet',
-      action: downloadProposalsAuditReport
-    },
-    {
-      code: 'AUD-CSE-03',
-      name: 'Financial Ledger & Expenditure Audit Statement',
-      description: 'Real-time transaction history, disbursements, reference proposal numbers, and date ledger.',
-      recordsCount: `${(transactions || []).length} Transactions`,
-      type: 'CSV Spreadsheet',
-      action: downloadTransactionsLedgerReport
-    },
-    {
-      code: 'AUD-CSE-04',
-      name: 'Faculty Member Roster & Grant Summary',
-      description: 'Official department faculty roster, designations, roles, total proposals logged, and approved funds.',
-      recordsCount: `${facultyMembers.length} Faculty Members`,
-      type: 'CSV Spreadsheet',
-      action: downloadFacultyRosterReport
-    }
-  ];
 
   return (
-    <DashboardLayout pageTitle="CSE Reports & Audits">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {/* Page Header */}
-        <div>
+    <DashboardLayout pageTitle="CSE Reports & NBA Criteria-9">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Page Top Header */}
+        <div className="no-print">
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
             <Building size={15} style={{ color: 'var(--gold)' }} />
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-text)', letterSpacing: '0.05em' }}>
-              OFFICIAL FINANCIAL AUDITS & EXPORTS • {ayLabel}
+              NATIONAL BOARD OF ACCREDITATION (NBA) • SAR CRITERION 9
             </span>
           </div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>CSE Department Financial Reports</h1>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
-            Generate and export official departmental financial audit statements, proposal dossiers, and budget quota ledgers.
-          </p>
-        </div>
-
-        {/* Audit Documents Section */}
-        <section className="cbm-section">
-          <div className="cbm-section-header">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h2 className="cbm-section-title">Institutional Audit Documents & Dossiers</h2>
-              <p className="cbm-section-subtitle">
-                Accreditation filings, quarterly balance sheets, proposals records, and laboratory maintenance statements
+              <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-heading)', margin: 0, letterSpacing: '-0.01em' }}>
+                Department Budget Allocation & Expenditure Reports
+              </h1>
+              <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3, marginBottom: 0 }}>
+                Official Self Assessment Report (SAR) Criteria 9 tables, multi-year utilization matrices, and itemized bill ledgers.
               </p>
             </div>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)' }}>
-              {reports.length} Statements Ready
+
+            {/* Quick Stats Pill */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 'var(--radius-sm)' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>CFY Incurred Expenses</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'monospace' }}>
+                  ₹ {formatNumberIndian(table981Data[0]?.actualExpenditure || ledgerData.totalAmount)}
+                </span>
+              </div>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 'var(--radius-sm)' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Program Bills Logged</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--gold-text)' }}>
+                  {ledgerData.count} Invoices
+                </span>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="cbm-table-container">
-            <table className="cbm-table">
-              <thead>
-                <tr>
-                  <th>Audit Code</th>
-                  <th>Document Title & Description</th>
-                  <th>Format</th>
-                  <th>Database Records</th>
-                  <th style={{ textAlign: 'right' }}>Export Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.map((r, i) => (
-                  <tr key={i}>
+        {/* Tab Navigation */}
+        <div className="nba-report-tabs no-print">
+          <button
+            type="button"
+            className={`nba-tab-btn ${activeTab === 'LEDGER' ? 'active' : ''}`}
+            onClick={() => setActiveTab('LEDGER')}
+          >
+            <FileText size={14} />
+            <span>Criteria-9 Bill Ledger (Image 1)</span>
+          </button>
+
+          <button
+            type="button"
+            className={`nba-tab-btn ${activeTab === 'TABLE_981' ? 'active' : ''}`}
+            onClick={() => setActiveTab('TABLE_981')}
+          >
+            <TableIcon size={14} />
+            <span>Table 9.8.1: Summary (Image 3)</span>
+          </button>
+
+          <button
+            type="button"
+            className={`nba-tab-btn ${activeTab === 'TABLE_982' ? 'active' : ''}`}
+            onClick={() => setActiveTab('TABLE_982')}
+          >
+            <Grid size={14} />
+            <span>Table 9.8.2: 4-Year Matrix (Image 2)</span>
+          </button>
+
+          <button
+            type="button"
+            className={`nba-tab-btn ${activeTab === 'CONSOLIDATED' ? 'active' : ''}`}
+            onClick={() => setActiveTab('CONSOLIDATED')}
+          >
+            <Layers size={14} />
+            <span>Full SAR Institutional Dossier</span>
+          </button>
+
+          <button
+            type="button"
+            className={`nba-tab-btn ${activeTab === 'RAW_AUDITS' ? 'active' : ''}`}
+            onClick={() => setActiveTab('RAW_AUDITS')}
+          >
+            <FileSpreadsheet size={14} />
+            <span>CSV Data Audits</span>
+          </button>
+        </div>
+
+        {/* Global Filter & Action Toolbar */}
+        <div className="nba-filter-panel no-print">
+          <div className="nba-filter-controls">
+            {/* Academic Year Selector */}
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                Academic Year (CFY)
+              </label>
+              <select
+                className="nba-filter-select"
+                value={selectedAyId}
+                onChange={(e) => setSelectedAyId(e.target.value)}
+              >
+                {(academicYears || []).map((ay) => (
+                  <option key={ay.id} value={ay.id}>
+                    {ay.name || ay.academicYear} {ay.isActive ? '• (Active)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Category Filter (Active for Ledger view) */}
+            {(activeTab === 'LEDGER' || activeTab === 'CONSOLIDATED') && (
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                  Expenditure Category
+                </label>
+                <select
+                  className="nba-filter-select"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <option value="ALL">All Categories / Full Department</option>
+                  {categoryOptions.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Subcategory / SDG Filter */}
+            {activeTab === 'LEDGER' && (
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                  Subcategory / SDG
+                </label>
+                <select
+                  className="nba-filter-select"
+                  value={selectedSubcategory}
+                  onChange={(e) => setSelectedSubcategory(e.target.value)}
+                >
+                  <option value="ALL">All Subcategories</option>
+                  {subcategoryOptions.map((sub) => (
+                    <option key={sub} value={sub}>
+                      {sub}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Status Filter */}
+            {activeTab === 'LEDGER' && (
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>
+                  Settlement Status
+                </label>
+                <select
+                  className="nba-filter-select"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="ALL">All Proposals & Invoices</option>
+                  <option value="SETTLED_ONLY">Settled Invoices Only</option>
+                  <option value="APPROVED_ONLY">Approved & Settled</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Action Export Buttons */}
+          <div className="nba-action-btns">
+            <Button
+              variant="outline"
+              style={{ height: 34, fontSize: 12, padding: '0 12px', gap: 6 }}
+              onClick={handlePrint}
+            >
+              <Printer size={13} />
+              <span>Print / Save PDF</span>
+            </Button>
+
+            {activeTab !== 'RAW_AUDITS' && (
+              <>
+                <Button
+                  variant="primary"
+                  style={{ height: 34, fontSize: 12, padding: '0 12px', gap: 6 }}
+                  onClick={handleExportExcel}
+                >
+                  <FileSpreadsheet size={13} />
+                  <span>Export Excel (.xlsx)</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  style={{ height: 34, fontSize: 12, padding: '0 12px', gap: 6 }}
+                  onClick={handleExportCsv}
+                >
+                  <Download size={13} />
+                  <span>Export CSV</span>
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ==========================================================================
+            RENDER SELECTED TAB
+            ========================================================================== */}
+
+        {/* TAB 1: Criteria-9 Detailed Program Bill Ledger (Reference Image 1) */}
+        {activeTab === 'LEDGER' && (
+          <Criteria9BillLedger
+            ledgerData={ledgerData}
+            academicYearLabel={ayLabel}
+            categoryTitle={selectedCategory !== 'ALL' ? `${selectedCategory} Expenses` : 'Association Expenses'}
+            subTitle={selectedCategory === 'ALL' || selectedCategory.toLowerCase().includes('association') || selectedCategory.toLowerCase().includes('sdg')
+              ? 'Sustainable Development Goals (SDG)'
+              : `${selectedCategory} Ledger`}
+          />
+        )}
+
+        {/* TAB 2: Table 9.8.1 Summary (Reference Image 3 & Image 2 top) */}
+        {activeTab === 'TABLE_981' && (
+          <Table981Summary
+            tableData={table981Data}
+            onUpdateMetrics={handleUpdateMetrics}
+          />
+        )}
+
+        {/* TAB 3: Table 9.8.2 Multi-Year Matrix (Reference Image 2 bottom) */}
+        {activeTab === 'TABLE_982' && (
+          <Table982Matrix
+            periods={fourYearPeriods}
+            matrixData={table982Data}
+          />
+        )}
+
+        {/* TAB 4: Consolidated Institutional SAR Dossier (All 3 Views Combined) */}
+        {activeTab === 'CONSOLIDATED' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+            <Table981Summary
+              tableData={table981Data}
+              onUpdateMetrics={handleUpdateMetrics}
+              editable={false}
+            />
+
+            <Table982Matrix
+              periods={fourYearPeriods}
+              matrixData={table982Data}
+            />
+
+            <Criteria9BillLedger
+              ledgerData={ledgerData}
+              academicYearLabel={ayLabel}
+              categoryTitle="Association Expenses"
+              subTitle="Sustainable Development Goals (SDG)"
+            />
+          </div>
+        )}
+
+        {/* TAB 5: Raw CSV Audits & Department Dossiers (Legacy Utility) */}
+        {activeTab === 'RAW_AUDITS' && (
+          <section className="cbm-section no-print">
+            <div className="cbm-section-header">
+              <div>
+                <h2 className="cbm-section-title">Institutional Raw Data Files & Audit Ledgers</h2>
+                <p className="cbm-section-subtitle">
+                  Raw tabular exports for college auditor filings, proposals dossiers, and budget quota statements
+                </p>
+              </div>
+            </div>
+
+            <div className="cbm-table-container">
+              <table className="cbm-table">
+                <thead>
+                  <tr>
+                    <th>Audit Code</th>
+                    <th>Document Title & Description</th>
+                    <th>Format</th>
+                    <th style={{ textAlign: 'right' }}>Export Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
                     <td>
-                      <span style={{ padding: '2px 6px', borderRadius: 3, backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', color: 'var(--slate-700)', fontSize: 11.5, fontWeight: 700, fontFamily: 'monospace' }}>
-                        {r.code}
+                      <span style={{ padding: '2px 6px', borderRadius: 3, backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', fontSize: 11.5, fontWeight: 700, fontFamily: 'monospace' }}>
+                        EXCEL-01
                       </span>
                     </td>
                     <td>
                       <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
-                        {r.name}
+                        Official Proposals &amp; Settlements Register ({ayLabel})
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                        {r.description}
-                      </div>
-                    </td>
-                    <td style={{ color: 'var(--text-body)', fontWeight: 500, fontSize: 12.5 }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                        <FileSpreadsheet size={14} style={{ color: 'var(--primary)' }} />
-                        <span>{r.type}</span>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        Official 9-column Microsoft Excel spreadsheet containing Reference Number, Category, Subcategory, Faculty Name, Event Name, Proposed Amount, Settlement Amount, Proposal Status, and Settlement Status.
                       </div>
                     </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: 12.5, fontWeight: 600 }}>
-                      {r.recordsCount}
-                    </td>
+                    <td>Microsoft Excel (.xlsx)</td>
                     <td style={{ textAlign: 'right' }}>
                       <Button
                         variant="primary"
                         style={{ height: 32, fontSize: 12, padding: '0 12px', gap: 6 }}
-                        onClick={r.action}
+                        onClick={() => {
+                          const res = exportProposalsToExcel(proposals, ayLabel, { facultyList });
+                          if (res?.success) showToast?.(`Exported ${res.count} records to ${res.filename}.`, 'success');
+                        }}
                       >
-                        <Download size={13} />
-                        <span>Export CSV</span>
+                        <FileSpreadsheet size={13} /> Export Excel
                       </Button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+
+                  <tr>
+                    <td>
+                      <span style={{ padding: '2px 6px', borderRadius: 3, backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', fontSize: 11.5, fontWeight: 700, fontFamily: 'monospace' }}>
+                        NBA-SAR-01
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
+                        Criteria-9 Detailed Bill Ledger ({ayLabel})
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        Itemized program dates, titles, bill dates, and settlement expenditure ledger.
+                      </div>
+                    </td>
+                    <td>SpreadsheetML (.xlsx) / CSV</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <Button
+                        variant="primary"
+                        style={{ height: 32, fontSize: 12, padding: '0 12px', gap: 6 }}
+                        onClick={handleExportCsv}
+                      >
+                        <Download size={13} /> Export CSV
+                      </Button>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>
+                      <span style={{ padding: '2px 6px', borderRadius: 3, backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', fontSize: 11.5, fontWeight: 700, fontFamily: 'monospace' }}>
+                        NBA-SAR-02
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
+                        Category Budget Allocation Statement ({ayLabel})
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        Allocated quotas, disbursed amounts, and balance ledger.
+                      </div>
+                    </td>
+                    <td>CSV Spreadsheet</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <Button
+                        variant="primary"
+                        style={{ height: 32, fontSize: 12, padding: '0 12px', gap: 6 }}
+                        onClick={downloadCategoryAllocationReport}
+                      >
+                        <Download size={13} /> Export CSV
+                      </Button>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>
+                      <span style={{ padding: '2px 6px', borderRadius: 3, backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', fontSize: 11.5, fontWeight: 700, fontFamily: 'monospace' }}>
+                        NBA-SAR-03
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>
+                        Proposals & Approvals Dossier ({ayLabel})
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        Submitted, approved, and settled proposals list with amounts and remarks.
+                      </div>
+                    </td>
+                    <td>CSV Spreadsheet</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <Button
+                        variant="primary"
+                        style={{ height: 32, fontSize: 12, padding: '0 12px', gap: 6 }}
+                        onClick={downloadProposalsAuditReport}
+                      >
+                        <Download size={13} /> Export CSV
+                      </Button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
       </div>
     </DashboardLayout>
   );
 };
-
-
