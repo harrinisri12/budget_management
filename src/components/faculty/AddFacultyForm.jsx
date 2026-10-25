@@ -16,9 +16,9 @@ export const APPLICATION_ROLES = [
 ];
 
 const DESIGNATIONS_BY_ROLE = {
-  faculty: ['Assistant Professor', 'Associate Professor', 'Professor'],
-  hod: ['Department Head / HOD'],
-  admin: ['Budget Coordinator', 'Chief Budget Administrator']
+  faculty: ['Assistant Professor', 'Associate Professor'],
+  hod: ['HOD'],
+  admin: ['Budget Coordinator']
 };
 
 export const AddFacultyForm = ({ initialRole = 'faculty', lockRole = false, onCancel, onSuccess }) => {

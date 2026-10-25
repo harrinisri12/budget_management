@@ -54,7 +54,7 @@ export const Step1ProposalConfig = ({
       {/* Section Header */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="cbm-form-ribbon" style={{ padding: '3px 8px', fontSize: 11 }}>Step 1 of 5</span>
+          <span className="cbm-form-ribbon" style={{ padding: '3px 8px', fontSize: 11 }}>Step 1 of 3</span>
           <h2 className="cbm-section-title" style={{ margin: 0, fontSize: 16 }}>Proposal Configuration</h2>
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>— Academic Session &amp; Funding Category</span>
         </div>
@@ -381,7 +381,7 @@ export const Step1ProposalConfig = ({
           icon={ArrowRight}
           style={{ height: 38, padding: '0 20px', fontSize: 13 }}
         >
-          Continue to Proposal Details
+          Continue to Proposal Details & Budget
         </Button>
       </div>
     </div>

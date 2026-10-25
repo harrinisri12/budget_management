@@ -216,9 +216,6 @@ export const FacultyList = () => {
         <div className="cbm-section-header">
           <div>
             <h2 className="cbm-section-title">Department Personnel Directory</h2>
-            <p className="cbm-section-subtitle">
-              Active departmental roster, roles (HOD, Faculty, Admin), institutional email identifiers, and credentials
-            </p>
           </div>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted)' }}>
             Showing {filteredFaculty.length} of {facultyList.length} members

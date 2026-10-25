@@ -4,10 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useBudget } from '../context/BudgetContext';
 import { ProposalStepper } from '../components/proposal/ProposalStepper';
 import { Step1ProposalConfig } from '../components/proposal/Step1ProposalConfig';
-import { Step2ProposalDetails } from '../components/proposal/Step2ProposalDetails';
-import { Step3BudgetDetails } from '../components/proposal/Step3BudgetDetails';
-import { Step4ReviewSubmit } from '../components/proposal/Step4ReviewSubmit';
-import { Step5SubmissionComplete } from '../components/proposal/Step5SubmissionComplete';
+import { Step2ProposalDetailsAndBudget } from '../components/proposal/Step2ProposalDetailsAndBudget';
+import { Step3ReviewAndSubmit } from '../components/proposal/Step3ReviewAndSubmit';
 import { getProposalSchema, calculateHackathonDuration } from '../config/proposalFormSchemas';
 import { slugify } from '../utils/slugify';
 import { api } from '../lib/api';
@@ -22,7 +20,7 @@ export const NewProposalPage = () => {
     getFacultyMetrics
   } = useBudget();
 
-  // Workflow Step State (1: Config, 2: Details, 3: Budget, 4: Review, 5: Complete)
+  // Workflow Step State (1: Config, 2: Details & Budget, 3: Review & Submit)
   const [currentStep, setCurrentStep] = useState(1);
   const [maxStepReached, setMaxStepReached] = useState(1);
 
@@ -564,8 +562,8 @@ export const NewProposalPage = () => {
 
       if (result.success) {
         setSubmittedProposal(result.proposal);
-        setCurrentStep(5);
-        setMaxStepReached(5);
+        setCurrentStep(3);
+        setMaxStepReached(3);
       } else {
         setSubmissionError(result.error || 'Failed to submit proposal. Please check the entered data.');
       }
@@ -603,7 +601,7 @@ export const NewProposalPage = () => {
 
   // Stepper click handler
   const handleStepClick = (stepId) => {
-    if (stepId <= maxStepReached && stepId !== 5 && currentStep !== 5) {
+    if (stepId <= maxStepReached && !submittedProposal) {
       setCurrentStep(stepId);
     }
   };
@@ -614,11 +612,6 @@ export const NewProposalPage = () => {
   };
 
   const handleContinueStep2 = () => {
-    setCurrentStep(3);
-    setMaxStepReached((prev) => Math.max(prev, 3));
-  };
-
-  const handleContinueStep3 = () => {
     const trimmedId = (letterId || '').trim();
     if (!trimmedId) {
       setSubmissionError('Sanction / Permission Letter ID is required and cannot be empty or whitespace only.');
@@ -629,8 +622,8 @@ export const NewProposalPage = () => {
       return;
     }
     setSubmissionError('');
-    setCurrentStep(4);
-    setMaxStepReached((prev) => Math.max(prev, 4));
+    setCurrentStep(3);
+    setMaxStepReached((prev) => Math.max(prev, 3));
   };
 
   return (
@@ -653,11 +646,12 @@ export const NewProposalPage = () => {
           )}
         </div>
 
-        {/* Horizontal 5-Step Progress Stepper */}
+        {/* Horizontal 3-Step Progress Stepper */}
         <ProposalStepper
           currentStep={currentStep}
           onStepClick={handleStepClick}
           maxStepReached={maxStepReached}
+          isSubmitted={Boolean(submittedProposal)}
         />
 
         {/* STEP CONTENT CONTAINER */}
@@ -685,9 +679,9 @@ export const NewProposalPage = () => {
             />
           )}
 
-          {/* STEP 2: Dynamically Generated Proposal Details */}
+          {/* STEP 2: Proposal Details & Budget */}
           {currentStep === 2 && (
-            <Step2ProposalDetails
+            <Step2ProposalDetailsAndBudget
               proposalIdPreview={proposalIdPreview}
               categoryName={selectedCategoryName}
               subCategoryName={selectedSubCategoryName}
@@ -720,14 +714,6 @@ export const NewProposalPage = () => {
               onHackathonDurationHoursChange={setHackathonDurationHours}
               eventData={eventData}
               onEventDataChange={handleEventDataChange}
-              onBack={() => setCurrentStep(1)}
-              onContinue={handleContinueStep2}
-            />
-          )}
-
-          {/* STEP 3: Single Budget Amount Details & Sanction Document */}
-          {currentStep === 3 && (
-            <Step3BudgetDetails
               academicYearLabel={selectedAcademicYearLabel}
               allocatedQuota={allocatedQuota}
               approvedCommittedExpenditure={approvedCommittedExpenditure}
@@ -743,14 +729,14 @@ export const NewProposalPage = () => {
               onLetterIdChange={setLetterId}
               letterFile={letterFile}
               onLetterFileChange={setLetterFile}
-              onBack={() => setCurrentStep(2)}
-              onContinue={handleContinueStep3}
+              onBack={() => setCurrentStep(1)}
+              onContinue={handleContinueStep2}
             />
           )}
 
-          {/* STEP 4: Review & Submit */}
-          {currentStep === 4 && (
-            <Step4ReviewSubmit
+          {/* STEP 3: Review & Submit */}
+          {currentStep === 3 && (
+            <Step3ReviewAndSubmit
               academicYearLabel={selectedAcademicYearLabel}
               submissionDateStr={submissionDateStr}
               categoryName={selectedCategoryName}
@@ -781,16 +767,9 @@ export const NewProposalPage = () => {
               isSubmitting={isSubmitting}
               error={submissionError}
               onEditStep={(stepNum) => setCurrentStep(stepNum)}
-              onBack={() => setCurrentStep(3)}
+              onBack={() => setCurrentStep(2)}
               onSubmit={handleSubmitProposal}
-            />
-          )}
-
-          {/* STEP 5: Submission Complete */}
-          {currentStep === 5 && (
-            <Step5SubmissionComplete
               submittedProposal={submittedProposal}
-              academicYearLabel={selectedAcademicYearLabel}
               onResetForm={handleResetForm}
             />
           )}
