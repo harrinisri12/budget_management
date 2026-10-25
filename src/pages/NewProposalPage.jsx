@@ -635,19 +635,19 @@ export const NewProposalPage = () => {
 
   return (
     <FacultyLayout pageTitle="New Proposal">
-      <div style={{ maxWidth: 1100, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ maxWidth: 1100, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Page Title & Session Indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-heading)', margin: 0, lineHeight: 1.2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)', margin: 0, lineHeight: 1.25 }}>
               Submit Programme Budget Proposal
             </h1>
-            <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
               CSE Department Budget Management
             </span>
           </div>
           {selectedAcademicYearLabel && (
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--gold-subtle)', color: 'var(--gold-text)' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--gold-subtle)', color: 'var(--gold-text)' }}>
               Session: {selectedAcademicYearLabel}
             </span>
           )}

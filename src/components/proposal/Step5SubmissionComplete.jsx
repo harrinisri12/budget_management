@@ -44,7 +44,7 @@ export const Step5SubmissionComplete = ({
       <div
         className="cbm-card"
         style={{
-          padding: '16px 20px',
+          padding: '24px 28px',
           textAlign: 'center',
           border: '1px solid var(--border)',
           boxShadow: 'var(--shadow-card)'
@@ -201,13 +201,13 @@ export const Step5SubmissionComplete = ({
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <Button
             type="button"
             variant="outline"
             onClick={() => setShowDetailModal(true)}
             icon={Eye}
-            style={{ height: 34, fontSize: 12, padding: '0 12px' }}
+            style={{ height: 38, fontSize: 13, padding: '0 16px' }}
           >
             View Details
           </Button>
@@ -217,7 +217,7 @@ export const Step5SubmissionComplete = ({
             variant="primary"
             onClick={() => navigate('/faculty/proposals')}
             icon={List}
-            style={{ height: 34, fontSize: 12, padding: '0 14px' }}
+            style={{ height: 38, fontSize: 13, padding: '0 18px' }}
           >
             My Proposals
           </Button>
@@ -227,7 +227,7 @@ export const Step5SubmissionComplete = ({
             variant="outline"
             onClick={onResetForm}
             icon={PlusCircle}
-            style={{ height: 34, fontSize: 12, padding: '0 12px' }}
+            style={{ height: 38, fontSize: 13, padding: '0 16px' }}
           >
             New Proposal
           </Button>

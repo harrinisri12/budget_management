@@ -126,14 +126,14 @@ export const FacultyProposalsPage = () => {
 
   return (
     <FacultyLayout pageTitle="My Proposals">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
               My Budget Proposals
             </h1>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, marginBottom: 0 }}>
               Track the evaluation, approval, and settlement status of your submitted CSE department budget proposals.
             </p>
           </div>
@@ -141,7 +141,7 @@ export const FacultyProposalsPage = () => {
           <button
             onClick={() => navigate('/faculty/proposal/new')}
             className="cbm-btn cbm-btn-primary"
-            style={{ height: 34 }}
+            style={{ height: 38, padding: '0 16px', fontSize: 13 }}
           >
             <Plus size={15} />
             <span>New Proposal</span>
@@ -164,12 +164,12 @@ export const FacultyProposalsPage = () => {
           </div>
 
           {/* Search bar */}
-          <div style={{ marginBottom: 10, maxWidth: 340, width: '100%', position: 'relative' }}>
+          <div style={{ marginBottom: 16, maxWidth: 360, width: '100%', position: 'relative' }}>
             <Search
               size={14}
               style={{
                 position: 'absolute',
-                left: 10,
+                left: 11,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 color: 'var(--slate-400)'
@@ -181,7 +181,7 @@ export const FacultyProposalsPage = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="cbm-input"
-              style={{ height: 34, paddingLeft: 32, fontSize: 12.5 }}
+              style={{ height: 38, paddingLeft: 34, fontSize: 13 }}
             />
           </div>
 
@@ -681,35 +681,35 @@ export const FacultyProposalsPage = () => {
                   selectedProposal.eventDetails?.documentDetails?.letterId ||
                   selectedProposal.eventDetails?.documentDetails?.fileName ||
                   selectedProposal.eventDetails?.documentDetails?.driveUrl) && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-                    <div>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Sanction Letter ID</span>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)', marginTop: 1 }}>
-                        {selectedProposal.eventDetails?.letterId || selectedProposal.eventDetails?.documentDetails?.letterId || '—'}
-                      </p>
-                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 12, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
+                      <div>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Sanction Letter ID</span>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)', marginTop: 1 }}>
+                          {selectedProposal.eventDetails?.letterId || selectedProposal.eventDetails?.documentDetails?.letterId || '—'}
+                        </p>
+                      </div>
 
-                    <div>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Document</span>
-                      <p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--primary)', marginTop: 1 }}>
-                        {selectedProposal.eventDetails?.documentDetails?.driveUrl ? (
-                          <a
-                            href={selectedProposal.eventDetails.documentDetails.driveUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: 'var(--primary)', textDecoration: 'underline' }}
-                          >
-                            📄 View Google Drive File
-                          </a>
-                        ) : selectedProposal.eventDetails?.documentDetails?.fileName ? (
-                          `📄 ${selectedProposal.eventDetails.documentDetails.fileName}`
-                        ) : (
-                          'No document attached'
-                        )}
-                      </p>
+                      <div>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Document</span>
+                        <p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--primary)', marginTop: 1 }}>
+                          {selectedProposal.eventDetails?.documentDetails?.driveUrl ? (
+                            <a
+                              href={selectedProposal.eventDetails.documentDetails.driveUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: 'var(--primary)', textDecoration: 'underline' }}
+                            >
+                              📄 View Google Drive File
+                            </a>
+                          ) : selectedProposal.eventDetails?.documentDetails?.fileName ? (
+                            `📄 ${selectedProposal.eventDetails.documentDetails.fileName}`
+                          ) : (
+                            'No document attached'
+                          )}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Financial Details (Separating Proposed Amount from Settlement Amount) */}
                 <div

@@ -20,20 +20,20 @@ export const FacultyDashboardPage = () => {
 
   return (
     <FacultyLayout pageTitle="Faculty Dashboard">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Welcome Administrative Header Area */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <Building size={14} style={{ color: 'var(--gold)' }} />
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-text)', letterSpacing: '0.04em' }}>
                 KONGU ENGINEERING COLLEGE • CSE FACULTY PORTAL
               </span>
             </div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0, lineHeight: 1.2 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)', margin: 0, lineHeight: 1.25 }}>
               Welcome, {user?.name || 'Faculty Member'}
             </h1>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, marginBottom: 0 }}>
               {user?.designation || 'Faculty Member'} • Manage departmental proposals, track available financial quotas, and review approvals.
             </p>
           </div>
@@ -41,7 +41,7 @@ export const FacultyDashboardPage = () => {
           <button
             onClick={() => navigate('/faculty/proposal/new')}
             className="cbm-btn cbm-btn-primary"
-            style={{ height: 34, padding: '0 14px', fontSize: 12.5 }}
+            style={{ height: 38, padding: '0 16px', fontSize: 13 }}
           >
             <Plus size={15} />
             <span>Submit New Proposal</span>
@@ -124,14 +124,14 @@ export const FacultyDashboardPage = () => {
             <button
               onClick={() => navigate('/faculty/proposals')}
               style={{
-                height: 28,
-                padding: '0 10px',
+                height: 32,
+                padding: '0 12px',
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'var(--bg-surface)',
                 color: 'var(--text-heading)',
                 border: '1px solid var(--border)',
                 fontWeight: 600,
-                fontSize: 11.5,
+                fontSize: 12,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',

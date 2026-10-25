@@ -147,8 +147,8 @@ export const AddFacultyForm = ({ initialRole = 'faculty', lockRole = false, onCa
   const currentDesignations = DESIGNATIONS_BY_ROLE[formData.role] || DESIGNATIONS_BY_ROLE.faculty;
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 20 }}>
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 16 }}>
         {/* Full Name */}
         <Input
           label="Full Name"

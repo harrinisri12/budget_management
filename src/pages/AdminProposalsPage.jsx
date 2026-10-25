@@ -199,8 +199,8 @@ export const AdminProposalsPage = () => {
   // Calculate settlement variance preview
   const prevDeductionForSettling = settlingProposal
     ? (settlingProposal.settlementStatus === 'settled' && settlingProposal.settlementAmount !== null
-        ? Number(settlingProposal.settlementAmount)
-        : Number(settlingProposal.approvedAmount ?? settlingProposal.amount ?? 0))
+      ? Number(settlingProposal.settlementAmount)
+      : Number(settlingProposal.approvedAmount ?? settlingProposal.amount ?? 0))
     : 0;
   const currentSettlementInputVal = Number(settlementAmountInput || 0);
   const settlementDiff = !isNaN(currentSettlementInputVal)
@@ -308,14 +308,14 @@ export const AdminProposalsPage = () => {
 
   return (
     <DashboardLayout pageTitle="Proposals">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Page Top Header with Download Excel Button */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
               Faculty Budget Proposals &amp; Management
             </h1>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, marginBottom: 0 }}>
               {isAdmin
                 ? 'Review, accept, and reject department proposals, evaluate category allocations, and finalize post-activity settlements.'
                 : 'Review department funding proposals submitted by faculty members.'}
@@ -329,9 +329,9 @@ export const AdminProposalsPage = () => {
                 disabled={isExporting}
                 className="cbm-btn cbm-btn-primary"
                 style={{
-                  height: 34,
-                  padding: '0 14px',
-                  fontSize: 12.5,
+                  height: 38,
+                  padding: '0 16px',
+                  fontSize: 13,
                   fontWeight: 600,
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -347,8 +347,8 @@ export const AdminProposalsPage = () => {
             )}
 
             {!isAdmin && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', fontSize: 11.5, color: 'var(--slate-700)', fontWeight: 600 }}>
-                <AlertCircle size={13} />
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--slate-100)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--slate-700)', fontWeight: 600 }}>
+                <AlertCircle size={14} />
                 <span>Read-only evaluation mode</span>
               </div>
             )}
@@ -372,18 +372,18 @@ export const AdminProposalsPage = () => {
           </div>
 
           {/* Status Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Filter size={13} style={{ color: 'var(--slate-500)' }} /> Filter:
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Filter size={14} style={{ color: 'var(--slate-500)' }} /> Filter:
             </span>
             {['All', 'Pending', 'Accepted', 'Settlement Review', 'Settled', 'Rejected'].map((st) => (
               <button
                 key={st}
                 onClick={() => setFilterStatus(st)}
                 style={{
-                  padding: '4px 10px',
+                  padding: '6px 12px',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: 12,
+                  fontSize: 12.5,
                   fontWeight: filterStatus === st ? 600 : 500,
                   backgroundColor: filterStatus === st ? 'var(--primary)' : 'var(--bg-surface)',
                   color: filterStatus === st ? '#FFFFFF' : 'var(--text-body)',
@@ -774,10 +774,10 @@ export const AdminProposalsPage = () => {
                       <span style={{ fontSize: 10.5, color: selectedProposal.settlementStatus === 'settled' ? 'var(--success-text)' : '#92400E', fontWeight: 600 }}>
                         {selectedProposal.settlementStatus === 'settled'
                           ? (selectedProposal.settlementAmount < selectedProposal.amount
-                              ? `₹${(selectedProposal.amount - selectedProposal.settlementAmount).toLocaleString('en-IN')} credited back to category`
-                              : selectedProposal.settlementAmount > selectedProposal.amount
-                                ? `₹${(selectedProposal.settlementAmount - selectedProposal.amount).toLocaleString('en-IN')} additional deducted`
-                                : 'Exact match with proposed amount')
+                            ? `₹${(selectedProposal.amount - selectedProposal.settlementAmount).toLocaleString('en-IN')} credited back to category`
+                            : selectedProposal.settlementAmount > selectedProposal.amount
+                              ? `₹${(selectedProposal.settlementAmount - selectedProposal.amount).toLocaleString('en-IN')} additional deducted`
+                              : 'Exact match with proposed amount')
                           : 'Awaiting administrator finalization'}
                       </span>
                     </div>

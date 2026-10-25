@@ -90,21 +90,21 @@ export const BudgetOverviewPage = () => {
 
   return (
     <DashboardLayout pageTitle="CSE Budget Overview">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Page Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
                 DEPARTMENTAL ALLOCATIONS • {ayLabel}
               </span>
             </div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>CSE Department Category Allocations</h1>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>CSE Department Category Allocations</h1>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, marginBottom: 0 }}>
               Annual budget quotas and utilization ratios across active departmental categories, associations, and laboratories.
             </p>
           </div>
-          <Button variant="outline" size="sm" icon={Download} onClick={handleExport}>
+          <Button variant="outline" icon={Download} onClick={handleExport} style={{ height: 38, padding: '0 16px', fontSize: 13 }}>
             Export Quota Worksheet
           </Button>
         </div>

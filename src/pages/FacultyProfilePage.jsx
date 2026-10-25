@@ -45,15 +45,15 @@ export const FacultyProfilePage = () => {
 
   return (
     <FacultyLayout pageTitle="Faculty Profile">
-      <div style={{ maxWidth: 840, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ maxWidth: 840, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
               OFFICIAL FACULTY RECORD
             </span>
           </div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>Faculty Profile & Credentials</h1>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>Faculty Profile & Credentials</h1>
+          <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, marginBottom: 0 }}>
             Your official Kongu Engineering College faculty portal record and account security settings.
           </p>
         </div>
@@ -70,7 +70,7 @@ export const FacultyProfilePage = () => {
           </div>
 
           {/* Details Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
               <div style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: 'var(--gold-subtle)', color: 'var(--gold-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--gold-border)', flexShrink: 0 }}>
                 <UserCheck size={15} />
@@ -127,14 +127,14 @@ export const FacultyProfilePage = () => {
             </div>
           </div>
 
-          <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {message.text && (
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  padding: '8px 12px',
+                  padding: '10px 14px',
                   borderRadius: 6,
                   backgroundColor: message.type === 'error' ? 'var(--danger-bg)' : '#F0FDF4',
                   border: message.type === 'error' ? '1px solid rgba(220, 38, 38, 0.2)' : '1px solid rgba(22, 163, 74, 0.2)',
@@ -164,8 +164,8 @@ export const FacultyProfilePage = () => {
               required
             />
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 4 }}>
-              <Button variant="primary" size="sm" type="submit" disabled={loading}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 8 }}>
+              <Button variant="primary" type="submit" disabled={loading} style={{ height: 38, padding: '0 18px', fontSize: 13 }}>
                 {loading ? 'Updating Password...' : 'Update Password'}
               </Button>
             </div>

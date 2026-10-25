@@ -8,8 +8,8 @@ export const AddAdminPage = () => {
   const navigate = useNavigate();
 
   return (
-    <DashboardLayout pageTitle="Add Administrator / Budget Coordinator">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 900, margin: '0 auto' }}>
+    <DashboardLayout pageTitle="Add Faculty / Budget Coordinator">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 900, margin: '0 auto' }}>
         {/* Back Link */}
         <button
           onClick={() => navigate('/faculty')}
@@ -31,8 +31,8 @@ export const AddAdminPage = () => {
         </button>
 
         {/* Card Form Container */}
-        <div className="cbm-card" style={{ padding: '14px 18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+        <div className="cbm-card">
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
             <div
               style={{
                 width: 34,

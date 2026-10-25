@@ -65,7 +65,7 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
         {/* Sidebar Brand Header */}
         <div
           style={{
-            padding: '16px 18px',
+            padding: '18px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -111,7 +111,7 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
         </div>
 
         {/* User Card */}
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
+        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
@@ -145,11 +145,11 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
         <nav
           className="cbm-sidebar-nav"
           style={{
-            padding: '14px 10px',
+            padding: '16px 12px',
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            gap: 3
+            gap: 4
           }}
         >
           {navItems.map((item) => {
@@ -163,7 +163,7 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
-                  padding: '8px 12px',
+                  padding: '11px 14px',
                   borderRadius: 'var(--radius-sm)',
                   fontSize: 13,
                   fontWeight: isActive ? 700 : 500,
@@ -186,7 +186,7 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
         </nav>
 
         {/* Logout Button & Policy */}
-        <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: '16px 14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button
             onClick={() => setShowLegalModal(true)}
             style={{
@@ -195,9 +195,9 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
-              padding: '6px 8px',
+              padding: '8px 10px',
               borderRadius: 'var(--radius-sm)',
-              fontSize: 11.5,
+              fontSize: 12,
               fontWeight: 500,
               color: 'var(--text-muted)',
               backgroundColor: 'transparent',
@@ -217,7 +217,7 @@ export const FacultySidebar = ({ isMobileOpen, setIsMobileOpen }) => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              padding: '8px 12px',
+              padding: '10px 14px',
               borderRadius: 'var(--radius-sm)',
               fontSize: 13,
               fontWeight: 600,

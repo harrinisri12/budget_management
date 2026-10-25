@@ -154,44 +154,20 @@ export const DashboardPage = () => {
 
   return (
     <DashboardLayout pageTitle="Dashboard">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Page Top Title Area with Download Excel Button */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <Building size={14} style={{ color: 'var(--gold)' }} />
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-text)', letterSpacing: '0.04em' }}>
                 {activeAcademicYear ? `ADMINISTRATIVE PORTAL • ACADEMIC YEAR ${ayLabel}` : 'ADMINISTRATIVE PORTAL • NO ACTIVE ACADEMIC YEAR CONFIGURED'}
               </span>
             </div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0, lineHeight: 1.2 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)', margin: 0, lineHeight: 1.25 }}>
               CSE Department Budget Dashboard
             </h1>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
-              Official administrative ledger for managing departmental budget quotas, allocations, proposals, and audits.
-            </p>
           </div>
-
-          <button
-            onClick={handleDownloadExcel}
-            disabled={isExporting}
-            className="cbm-btn cbm-btn-primary"
-            style={{
-              height: 34,
-              padding: '0 14px',
-              fontSize: 12.5,
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              cursor: isExporting ? 'not-allowed' : 'pointer',
-              opacity: isExporting ? 0.7 : 1
-            }}
-            title="Download complete proposals and settlements report in official 9-column Excel format"
-          >
-            {isExporting ? <Loader2 size={15} className="animate-spin" /> : <FileSpreadsheet size={15} />}
-            <span>{isExporting ? 'Exporting...' : 'Download Excel'}</span>
-          </button>
         </div>
 
         {/* 1. SECTION: BUDGET & FINANCIAL OVERVIEW */}
@@ -223,20 +199,6 @@ export const DashboardPage = () => {
               <div>
                 <div className="cbm-metric-value">₹{totalBudget.toLocaleString('en-IN')}</div>
                 <div className="cbm-metric-supporting">Academic Year Quota</div>
-              </div>
-            </div>
-
-            {/* Metric 2: Allocated Amount */}
-            <div className="cbm-metric-item">
-              <div className="cbm-metric-header">
-                <span className="cbm-metric-label">Allocated Quota</span>
-                <div className="cbm-metric-icon">
-                  <PieChart size={15} />
-                </div>
-              </div>
-              <div>
-                <div className="cbm-metric-value">₹{allocatedQuota.toLocaleString('en-IN')}</div>
-                <div className="cbm-metric-supporting">{allocationPercent}% of Total Budget</div>
               </div>
             </div>
 
@@ -285,9 +247,6 @@ export const DashboardPage = () => {
               <p className="cbm-section-subtitle">
                 Category budget allocations, reserved amounts for accepted proposals, finalized settlements, and remaining budgets.
               </p>
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
-              Remaining Budget = Total Category Budget − Reserved − Expenditure
             </div>
           </div>
 
@@ -371,12 +330,8 @@ export const DashboardPage = () => {
                   Recent Department Activity
                 </h2>
               </div>
-              <p className="cbm-section-subtitle">
-                Real-time departmental proposals, category allocations, and activity audit trail
-              </p>
             </div>
           </div>
-
           <TransactionTable />
         </section>
       </div>

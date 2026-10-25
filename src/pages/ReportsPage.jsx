@@ -244,7 +244,7 @@ export const ReportsPage = () => {
 
   return (
     <DashboardLayout pageTitle="CSE Reports & NBA Criteria-9">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Page Top Header */}
         <div className="no-print">
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>

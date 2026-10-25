@@ -160,38 +160,38 @@ export const TransactionTable = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Table Title & Filter Controls Header */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-heading)' }}>Department Activity & Proposals</span>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0 0' }}>Proposals submitted, evaluated, and disbursed for the academic year</p>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-heading)' }}>Department Activity & Proposals</span>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Proposals submitted, evaluated, and disbursed for the academic year</p>
           </div>
 
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={exportCsv}
               className="cbm-btn cbm-btn-outline cbm-btn-sm"
             >
-              <FileDown size={13} />
+              <FileDown size={14} />
               <span>Export Audit</span>
             </button>
           </div>
         </div>
 
         {/* Filter Controls Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10 }}>
           {/* Search Box */}
           <div className="cbm-input-wrapper">
-            <Search size={13} style={{ position: 'absolute', left: 10, color: 'var(--slate-400)' }} />
+            <Search size={14} style={{ position: 'absolute', left: 11, color: 'var(--slate-400)' }} />
             <input
               type="text"
               placeholder="Search ID, purpose, faculty..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="cbm-input"
-              style={{ height: 34, paddingLeft: 30, fontSize: 12 }}
+              style={{ height: 38, paddingLeft: 32, fontSize: 13 }}
             />
           </div>
 
@@ -200,7 +200,7 @@ export const TransactionTable = () => {
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="cbm-select"
-            style={{ height: 34, fontSize: 12 }}
+            style={{ height: 38, fontSize: 13 }}
           >
             {categoryFilterOptions.map(c => (
               <option key={c} value={c}>{c}</option>
@@ -212,7 +212,7 @@ export const TransactionTable = () => {
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="cbm-select"
-            style={{ height: 34, fontSize: 12 }}
+            style={{ height: 38, fontSize: 13 }}
           >
             {STATUS_OPTIONS.map(s => (
               <option key={s} value={s}>{s}</option>
@@ -223,10 +223,10 @@ export const TransactionTable = () => {
           <button
             onClick={() => toggleSort('amount')}
             className="cbm-btn cbm-btn-outline"
-            style={{ height: 34, fontSize: 12, justifyContent: 'space-between' }}
+            style={{ height: 38, fontSize: 13, justifyContent: 'space-between' }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <ArrowUpDown size={13} /> Amount
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ArrowUpDown size={14} /> Amount
             </span>
             <span>{sortField === 'amount' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}</span>
           </button>

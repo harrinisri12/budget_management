@@ -186,46 +186,27 @@ export const FacultyList = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Header & Centralized User Management CTAs */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
               DEPARTMENT USER MANAGEMENT
             </span>
           </div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>Faculty & User Directory</h1>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0 }}>
-            Manage departmental faculty roster, Head of Department (HOD), and Budget Coordinators.
-          </p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>Faculty & User Directory</h1>
         </div>
 
         {/* Action Buttons for User Creation */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <Button
             variant="outline"
-            size="sm"
-            icon={Plus}
-            onClick={openAddHodModal}
-          >
-            Add HOD
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
             icon={Plus}
             onClick={openAddAdminModal}
+            style={{ height: 38, padding: '0 16px', fontSize: 13 }}
           >
-            Add Admin / Budget Coordinator
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={Plus}
-            onClick={openAddFacultyModal}
-          >
-            Add Faculty Member
+            Add Faculty / Budget Coordinator
           </Button>
         </div>
       </div>
@@ -245,23 +226,23 @@ export const FacultyList = () => {
         </div>
 
         {/* Filters and Search Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
           {/* Search Box */}
           <div style={{ position: 'relative', flex: 1, minWidth: 240, maxWidth: 360 }}>
-            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+            <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
             <input
               type="text"
               placeholder="Search by name, email, ID, designation..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="cbm-input"
-              style={{ height: 34, paddingLeft: 30, fontSize: 12 }}
+              style={{ height: 38, paddingLeft: 34, fontSize: 13 }}
             />
           </div>
 
           {/* Role Filter Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-heading)' }}>Role:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-heading)' }}>Role:</span>
             {[
               { label: 'All', value: 'All' },
               { label: 'Faculty', value: 'faculty' },
@@ -272,9 +253,9 @@ export const FacultyList = () => {
                 key={r.value}
                 onClick={() => setRoleFilter(r.value)}
                 style={{
-                  padding: '4px 10px',
+                  padding: '6px 12px',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: 11.5,
+                  fontSize: 12,
                   fontWeight: roleFilter === r.value ? 600 : 500,
                   backgroundColor: roleFilter === r.value ? 'var(--primary)' : 'var(--bg-surface)',
                   color: roleFilter === r.value ? '#FFFFFF' : 'var(--text-body)',
@@ -289,16 +270,16 @@ export const FacultyList = () => {
           </div>
 
           {/* Status Filter Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-heading)' }}>Status:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-heading)' }}>Status:</span>
             {['All', 'Active', 'Inactive'].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
                 style={{
-                  padding: '4px 10px',
+                  padding: '6px 12px',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: 11.5,
+                  fontSize: 12,
                   fontWeight: statusFilter === status ? 600 : 500,
                   backgroundColor: statusFilter === status ? 'var(--primary)' : 'var(--bg-surface)',
                   color: statusFilter === status ? '#FFFFFF' : 'var(--text-body)',

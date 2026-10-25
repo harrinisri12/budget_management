@@ -112,17 +112,17 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
         {/* Right side: Search, Notifications & Profile dropdown */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           {/* Quick Search */}
-          <div style={{ position: 'relative', width: 200 }} className="hidden sm:block">
-            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+          <div style={{ position: 'relative', width: 220 }} className="hidden sm:block">
+            <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
             <input
               type="text"
               placeholder="Search budgets..."
               style={{
                 width: '100%',
-                height: 34,
-                paddingLeft: 30,
-                paddingRight: 10,
-                fontSize: 12.5,
+                height: 38,
+                paddingLeft: 34,
+                paddingRight: 12,
+                fontSize: 13,
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border)',
                 backgroundColor: 'var(--bg-page)',
@@ -140,8 +140,8 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
                 setShowUserDropdown(false);
               }}
               style={{
-                width: 34,
-                height: 34,
+                width: 38,
+                height: 38,
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'var(--bg-surface)',
                 border: '1px solid var(--border)',
@@ -226,18 +226,19 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
+                height: 38,
                 backgroundColor: 'var(--bg-surface)',
                 border: '1px solid var(--border)',
                 cursor: 'pointer',
-                padding: '3px 8px 3px 3px',
+                padding: '3px 10px 3px 4px',
                 borderRadius: 'var(--radius-md)',
                 transition: 'background-color 0.15s ease'
               }}
             >
               <div
                 style={{
-                  width: 28,
-                  height: 28,
+                  width: 30,
+                  height: 30,
                   borderRadius: 4,
                   backgroundColor: 'var(--primary)',
                   color: '#FFFFFF',
@@ -245,7 +246,7 @@ export const Header = ({ pageTitle = 'Dashboard', onMenuToggle }) => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 700,
-                  fontSize: 12.5
+                  fontSize: 13
                 }}
               >
                 {userInitial}

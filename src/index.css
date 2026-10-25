@@ -224,20 +224,14 @@ p {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  padding: 14px 18px;
+  padding: 20px;
   box-shadow: var(--shadow-card);
   width: 100%;
 }
 
-@media (max-height: 850px) {
-  .cbm-section {
-    padding: 10px 14px;
-  }
-}
-
 @media (max-width: 640px) {
   .cbm-section {
-    padding: 12px 12px;
+    padding: 16px;
   }
 }
 
@@ -247,28 +241,29 @@ p {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
 }
 
 .cbm-section-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-heading);
   letter-spacing: -0.01em;
 }
 
 .cbm-section-subtitle {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--text-muted);
-  margin-top: 1px;
+  margin-top: 6px;
+  line-height: 1.4;
 }
 
 .cbm-divider {
   border: none;
   border-top: 1px solid var(--border);
-  margin: 4px 0;
+  margin: 8px 0;
 }
 
 /* Structured Metric Strip (Replaces isolated floating cards) */
@@ -283,12 +278,12 @@ p {
 }
 
 .cbm-metric-item {
-  padding: 10px 14px;
+  padding: 18px 20px;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   justifyContent: space-between;
-  gap: 6px;
+  gap: 12px;
   background: var(--bg-surface);
 }
 
@@ -315,19 +310,20 @@ p {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .cbm-metric-label {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--text-muted);
 }
 
 .cbm-metric-icon {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -343,15 +339,16 @@ p {
 }
 
 .cbm-metric-value {
-  font-size: clamp(17px, 2vw, 20px);
-  font-weight: 700;
+  font-size: clamp(20px, 2.2vw, 24px);
+  font-weight: 800;
   color: var(--text-heading);
   letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.25;
+  margin-bottom: 4px;
 }
 
 .cbm-metric-supporting {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text-muted);
   font-weight: 500;
 }
@@ -366,6 +363,7 @@ p {
   box-shadow: var(--shadow-card);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   max-width: 100%;
+  padding: 20px;
 }
 
 .cbm-card-hover:hover {
@@ -384,9 +382,9 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 14px;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
   font-size: 13px;
   font-weight: 600;
   border-radius: var(--radius-md);
@@ -399,9 +397,10 @@ p {
 }
 
 .cbm-btn-sm {
-  height: 28px;
-  padding: 0 10px;
-  font-size: 11.5px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  gap: 6px;
 }
 
 /* Primary Button: Solid Black / Gold Accent */
@@ -472,12 +471,12 @@ p {
 .cbm-input-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   width: 100%;
 }
 
 .cbm-label {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--text-heading);
 }
@@ -491,9 +490,9 @@ p {
 
 .cbm-input, .cbm-select, .cbm-textarea {
   width: 100%;
-  height: 34px;
-  padding: 0 10px;
-  font-size: 13px;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13.5px;
   color: var(--text-heading);
   background-color: var(--bg-surface);
   border: 1px solid var(--border-strong);
@@ -505,8 +504,8 @@ p {
 
 .cbm-textarea {
   height: auto;
-  min-height: 60px;
-  padding: 6px 10px;
+  min-height: 80px;
+  padding: 10px 12px;
   resize: vertical;
 }
 
@@ -619,23 +618,23 @@ p {
   min-width: 650px;
   border-collapse: collapse;
   text-align: left;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .cbm-table th {
   background-color: #F8FAFC;
   color: var(--slate-700);
   font-weight: 700;
-  font-size: 11px;
+  font-size: 11.5px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 7px 10px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
 .cbm-table td {
-  padding: 7px 10px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--slate-100);
   color: var(--text-body);
   vertical-align: middle;
@@ -664,7 +663,7 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px;
+  padding: 20px;
   animation: fadeIn 0.15s ease-out;
 }
 
@@ -674,20 +673,20 @@ p {
   border: 1px solid var(--border);
   box-shadow: var(--shadow-modal);
   width: 100%;
-  max-width: 620px;
+  max-width: 650px;
   max-height: 90vh;
   overflow-y: auto;
-  padding: 16px 20px;
+  padding: 24px;
   position: relative;
   animation: slideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (max-width: 640px) {
   .cbm-modal-backdrop {
-    padding: 10px;
+    padding: 14px;
   }
   .cbm-modal-content {
-    padding: 14px 14px;
+    padding: 18px 16px;
     border-radius: var(--radius-card);
   }
 }
@@ -767,31 +766,19 @@ p {
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px 20px;
+  padding: 20px;
   -webkit-overflow-scrolling: touch;
-}
-
-@media (max-height: 850px) {
-  .cbm-main-content {
-    padding: 8px 16px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .cbm-main-content {
-    padding: 12px 14px;
-  }
 }
 
 @media (max-width: 640px) {
   .cbm-main-content {
-    padding: 10px 10px;
+    padding: 16px;
   }
 }
 
 /* Header */
 .cbm-header {
-  height: 52px;
+  height: 56px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   padding: 0 20px;
@@ -804,17 +791,10 @@ p {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
-@media (max-height: 850px) {
-  .cbm-header {
-    height: 48px;
-    padding: 0 16px;
-  }
-}
-
 @media (max-width: 768px) {
   .cbm-header {
-    height: 48px;
-    padding: 0 14px;
+    height: 52px;
+    padding: 0 16px;
   }
 }
 
@@ -1146,7 +1126,7 @@ p {
 
 .cbm-expenditure-table th {
   background: #FAFAFA;
-  padding: 10px 12px;
+  padding: 11px 14px;
   font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1157,7 +1137,7 @@ p {
 }
 
 .cbm-expenditure-table td {
-  padding: 8px 10px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
 }
@@ -1228,19 +1208,19 @@ p {
   background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  padding: 32px 36px;
+  padding: 24px 28px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
   color: #18181B;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   position: relative;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 /* Official Header matching Image 1 */
 .nba-doc-header {
   border-bottom: 2px solid #18181B;
   padding-bottom: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   text-align: center;
 }
 
@@ -1336,13 +1316,13 @@ p {
 /* Formal NBA Audit Tables */
 .nba-table-wrapper {
   overflow-x: auto;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .nba-audit-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 12.5px;
   color: #18181B;
   border: 1px solid #71717A;
 }
@@ -1350,7 +1330,7 @@ p {
 .nba-audit-table th,
 .nba-audit-table td {
   border: 1px solid #A1A1AA;
-  padding: 8px 10px;
+  padding: 10px 14px;
   vertical-align: middle;
 }
 
@@ -1465,7 +1445,7 @@ p {
 .nba-formal-table th,
 .nba-formal-table td {
   border: 1px solid #D4D4D8;
-  padding: 8px 10px;
+  padding: 10px 14px;
   vertical-align: middle;
 }
 
@@ -1579,10 +1559,10 @@ p {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  padding: 14px 18px;
+  padding: 16px 20px;
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 14px;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
@@ -1596,9 +1576,9 @@ p {
 }
 
 .nba-filter-select {
-  height: 34px;
-  padding: 0 10px;
-  font-size: 12.5px;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13px;
   font-weight: 500;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1626,12 +1606,12 @@ p {
   gap: 8px;
   border-bottom: 2px solid var(--border);
   margin-bottom: 20px;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
 }
 
 .nba-tab-btn {
   padding: 8px 16px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   border-radius: var(--radius-sm);
   background: transparent;

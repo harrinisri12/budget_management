@@ -959,22 +959,22 @@ export const AcademicYearsPage = () => {
 
   return (
     <DashboardLayout pageTitle="Academic Years">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* ===================================================================== */}
         {/* TOP HEADER AREA */}
         {/* ===================================================================== */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <CalendarRange size={15} style={{ color: 'var(--gold)' }} />
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-text)', letterSpacing: '0.04em' }}>
                 ADMINISTRATIVE SETUP & LEDGER
               </span>
             </div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
               Academic Year Management
             </h1>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0, maxWidth: 850 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, marginBottom: 0, maxWidth: 850 }}>
               Configure consecutive academic year cycles, assign departmental category budgets, and establish subcategory groupings for faculty proposals.
             </p>
           </div>
@@ -982,9 +982,9 @@ export const AcademicYearsPage = () => {
           {viewMode === 'list' && (
             <Button
               variant="primary"
-              size="sm"
               icon={Plus}
               onClick={handleOpenNewWizard}
+              style={{ height: 38, padding: '0 16px', fontSize: 13 }}
             >
               Configure Academic Year
             </Button>
@@ -993,9 +993,9 @@ export const AcademicYearsPage = () => {
           {viewMode === 'wizard' && (
             <Button
               variant="outline"
-              size="sm"
               icon={X}
               onClick={() => setViewMode('list')}
+              style={{ height: 38, padding: '0 16px', fontSize: 13 }}
             >
               Close Wizard
             </Button>
@@ -1006,9 +1006,9 @@ export const AcademicYearsPage = () => {
         {/* WIZARD MODE (Multi-Step Creation Flow) */}
         {/* ===================================================================== */}
         {viewMode === 'wizard' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Step Indicator Strip */}
-            <div className="cbm-card" style={{ padding: '16px 20px', backgroundColor: 'var(--bg-surface)' }}>
+            <div className="cbm-card" style={{ padding: '20px', backgroundColor: 'var(--bg-surface)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', overflowX: 'auto', gap: 12 }}>
                 {STEPS.map((step, idx) => {
                   const isCompleted = activeStep > step.id;
@@ -1088,7 +1088,7 @@ export const AcademicYearsPage = () => {
                   </div>
                 </div>
 
-                <div className="cbm-card" style={{ maxWidth: 720, padding: '24px 28px' }}>
+                <div className="cbm-card" style={{ maxWidth: 720, padding: '20px' }}>
                   {step1Error && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 6, backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, marginBottom: 18 }}>
                       <AlertCircle size={16} />
@@ -1415,7 +1415,7 @@ export const AcademicYearsPage = () => {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
                   {categories.map((cat) => (
-                    <div key={cat.id} className="cbm-card" style={{ padding: '16px 20px' }}>
+                    <div key={cat.id} className="cbm-card" style={{ padding: '20px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Layers size={16} style={{ color: 'var(--gold)' }} />
@@ -1658,7 +1658,7 @@ export const AcademicYearsPage = () => {
             {/* STEP 5: SAVE & CREATE */}
             {activeStep === 5 && (
               <section className="cbm-section">
-                <div className="cbm-card" style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center', padding: '32px 24px' }}>
+                <div className="cbm-card" style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center', padding: '24px 20px' }}>
                   {saveSuccess ? (
                     <div>
                       <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
@@ -1707,23 +1707,23 @@ export const AcademicYearsPage = () => {
         {/* LIST VIEW: ACADEMIC YEARS REGISTER */}
         {/* ===================================================================== */}
         {viewMode === 'list' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Filter & Search Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', width: 240 }}>
-                  <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', width: 260 }}>
+                  <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                   <input
                     type="text"
                     className="cbm-form-input"
                     placeholder="Search academic year..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ height: 34, paddingLeft: 30, fontSize: 12.5 }}
+                    style={{ height: 38, paddingLeft: 34, fontSize: 13 }}
                   />
                 </div>
 
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 6 }}>
                   {['All', 'Active', 'Draft', 'Closed'].map((tab) => (
                     <button
                       key={tab}

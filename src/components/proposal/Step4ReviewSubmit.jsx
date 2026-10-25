@@ -105,16 +105,16 @@ export const Step4ReviewSubmit = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Main Review Card */}
-      <div className="cbm-card" style={{ padding: '12px 18px' }}>
+      <div className="cbm-card">
         {/* Header */}
-        <div style={{ marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span className="cbm-form-ribbon" style={{ padding: '2px 7px', fontSize: 10.5 }}>Step 4 of 5</span>
-              <h2 className="cbm-section-title" style={{ margin: 0, fontSize: 14 }}>Review &amp; Confirm Proposal</h2>
-              <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+        <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span className="cbm-form-ribbon" style={{ padding: '3px 8px', fontSize: 11 }}>Step 4 of 5</span>
+              <h2 className="cbm-section-title" style={{ margin: 0, fontSize: 16 }}>Review &amp; Confirm Proposal</h2>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 — Verify specifications before final submission
               </span>
             </div>
@@ -463,14 +463,14 @@ export const Step4ReviewSubmit = ({
         {/* Step Navigation Actions */}
         <div
           style={{
-            marginTop: 10,
-            paddingTop: 8,
+            marginTop: 18,
+            paddingTop: 14,
             borderTop: '1px solid var(--border)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 8
+            gap: 10
           }}
         >
           <Button
@@ -478,7 +478,7 @@ export const Step4ReviewSubmit = ({
             variant="outline"
             onClick={onBack}
             icon={ArrowLeft}
-            style={{ height: 34, padding: '0 16px', fontSize: 12.5 }}
+            style={{ height: 38, padding: '0 18px', fontSize: 13 }}
           >
             Back to Budget
           </Button>
@@ -493,7 +493,7 @@ export const Step4ReviewSubmit = ({
             disabled={!canSubmit}
             isLoading={isSubmitting}
             icon={Send}
-            style={{ height: 34, padding: '0 20px', fontSize: 12.5 }}
+            style={{ height: 38, padding: '0 20px', fontSize: 13 }}
             title={!isDocumentStepValid ? 'Both Sanction Letter ID and Approval Letter (PDF) are mandatory.' : (!numericAmount ? 'Valid budget amount required' : '')}
           >
             Submit Proposal

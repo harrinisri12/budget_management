@@ -39,18 +39,18 @@ export const CSEAPage = () => {
 
   return (
     <DashboardLayout pageTitle="CSEA Association">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Page Header */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.05em' }}>
               CSE DEPARTMENT STUDENT ASSOCIATION
             </span>
           </div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>
             Computer Science and Engineering Association (CSEA)
           </h1>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, marginBottom: 0, maxWidth: 850 }}>
+          <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4, marginBottom: 0, maxWidth: 850 }}>
             Primary departmental student association driving technical symposiums, workshops, guest lectures, and industry interaction for CSE students.
           </p>
         </div>
