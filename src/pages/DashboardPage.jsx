@@ -1,33 +1,23 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { TransactionTable } from '../components/dashboard/TransactionTable';
 import { useBudget } from '../context/BudgetContext';
-import { exportProposalsToExcel } from '../utils/excelExport';
 import {
   Wallet,
-  PieChart,
   Clock,
   CreditCard,
   Building,
   Activity,
-  FileSpreadsheet,
-  Layers,
-  Loader2
+  Layers
 } from 'lucide-react';
 
 export const DashboardPage = () => {
-  const { kpis, proposals, activeAcademicYear, categories, facultyList, showToast } = useBudget();
-  const [isExporting, setIsExporting] = useState(false);
+  const { kpis, proposals, activeAcademicYear, categories } = useBudget();
 
   // 1. TOTAL BUDGET: Active academic year real database budget
   const totalBudget = Number(activeAcademicYear?.budget ?? activeAcademicYear?.annualBudget ?? kpis.totalBudget ?? 0);
 
-  // 2. ALLOCATED QUOTA: SUM(budget_categories.allocated_amount) for active academic year
   const activeAyCategories = (categories || []).filter(c => !activeAcademicYear || c.academic_year_id === activeAcademicYear.id || c.academicYearId === activeAcademicYear.id);
-  const allocatedQuota = (activeAyCategories.length > 0 ? activeAyCategories : (categories || [])).reduce(
-    (sum, c) => sum + Number(c.allocated_amount || c.allocatedAmount || c.allocated || 0),
-    0
-  ) || kpis.allocated || 0;
 
   // 3. REMAINING BALANCE: Available budget = annual budget minus accepted proposals that have not yet been settled,
   // minus finalized settlement expenses. Pending and rejected proposals must not reduce available budget.
@@ -67,9 +57,6 @@ export const DashboardPage = () => {
   const ayLabel = activeAcademicYear
     ? (activeAcademicYear.name || activeAcademicYear.academicYear || `${activeAcademicYear.startYear} - ${activeAcademicYear.endYear}`)
     : 'No Active Academic Year';
-  const allocationPercent = totalBudget > 0
-    ? ((allocatedQuota / totalBudget) * 100).toFixed(1)
-    : '0';
 
   // 5. CATEGORY BUDGET SUMMARY:
   // Remaining Budget = Total Category Budget - Reserved Amount - Actual Expenditure
@@ -126,31 +113,7 @@ export const DashboardPage = () => {
     };
   });
 
-  const handleDownloadExcel = async () => {
-    if (isExporting) return;
-    setIsExporting(true);
-    try {
-      const recordsToExport = (activeYearProposals && activeYearProposals.length > 0)
-        ? activeYearProposals
-        : (proposals || []);
 
-      if (recordsToExport.length === 0) {
-        showToast?.('No proposals found for the current academic year to export.', 'warning');
-        setIsExporting(false);
-        return;
-      }
-
-      const res = exportProposalsToExcel(recordsToExport, ayLabel, { facultyList });
-      if (res?.success) {
-        showToast?.(`Exported ${res.count} proposal records to ${res.filename}.`, 'success');
-      }
-    } catch (err) {
-      console.error('Error generating Excel export:', err);
-      showToast?.(err.message || 'Failed to generate Excel report. Please try again.', 'error');
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   return (
     <DashboardLayout pageTitle="Dashboard">

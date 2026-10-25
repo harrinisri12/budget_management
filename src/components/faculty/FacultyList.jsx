@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Eye, Edit2, Trash2, Key, UserCheck, Shield, Award } from 'lucide-react';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
@@ -10,7 +9,6 @@ import { AddFacultyForm } from './AddFacultyForm';
 import { useBudget } from '../../context/BudgetContext';
 
 export const FacultyList = () => {
-  const navigate = useNavigate();
   const { facultyList, deleteFaculty, updateFacultyStatus, updateFacultyPassword, refreshFaculty, loading } = useBudget();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,23 +37,7 @@ export const FacultyList = () => {
     refreshFaculty?.();
   }, [refreshFaculty]);
 
-  const openAddFacultyModal = () => {
-    setAddModalConfig({
-      initialRole: 'faculty',
-      lockRole: true,
-      title: 'Add New Faculty Member'
-    });
-    setAddModalOpen(true);
-  };
 
-  const openAddHodModal = () => {
-    setAddModalConfig({
-      initialRole: 'hod',
-      lockRole: false,
-      title: 'Add Department Head (HOD)'
-    });
-    setAddModalOpen(true);
-  };
 
   const openAddAdminModal = () => {
     setAddModalConfig({

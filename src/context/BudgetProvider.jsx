@@ -1080,20 +1080,16 @@ export const BudgetProvider = ({ children }) => {
               remarks
             });
           } catch {
-            try {
-              const { data: rpcRes, error: rpcErr } = await supabase.rpc('settle_proposal', {
-                p_proposal_id: targetUuid,
-                p_settler_id: userId,
-                p_actual_amount: parsedAmount,
-                p_remarks: remarks || null
-              });
-              if (!rpcErr && rpcRes?.success) {
-                res = { success: true, message: `Settlement of ₹${parsedAmount.toLocaleString('en-IN')} finalized successfully.` };
-              } else {
-                throw rpcErr || new Error('RPC not available');
-              }
-            } catch (err) {
-              throw err;
+            const { data: rpcRes, error: rpcErr } = await supabase.rpc('settle_proposal', {
+              p_proposal_id: targetUuid,
+              p_settler_id: userId,
+              p_actual_amount: parsedAmount,
+              p_remarks: remarks || null
+            });
+            if (!rpcErr && rpcRes?.success) {
+              res = { success: true, message: `Settlement of ₹${parsedAmount.toLocaleString('en-IN')} finalized successfully.` };
+            } else {
+              throw rpcErr || new Error('RPC not available');
             }
           }
         } else {

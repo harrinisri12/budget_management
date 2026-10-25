@@ -672,7 +672,6 @@ export const NewProposalPage = () => {
               availableSubcategories={availableSubcategories}
               subcategoriesLoading={subcategoriesLoading}
               subcategoriesError={subcategoriesError}
-              onReloadSubcategories={() => loadSubcategoriesForCat(selectedCategoryId)}
               selectedSubCategoryId={selectedSubCategoryId}
               onSubCategoryChange={handleSubCategoryChange}
               onContinue={handleContinueStep1}

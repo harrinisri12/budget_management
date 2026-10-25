@@ -16,7 +16,6 @@ export const Step1ProposalConfig = ({
   availableSubcategories = [],
   subcategoriesLoading = false,
   subcategoriesError = '',
-  onReloadSubcategories,
   selectedSubCategoryId,
   onSubCategoryChange,
   onContinue

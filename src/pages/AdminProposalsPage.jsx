@@ -17,7 +17,6 @@ import {
   Receipt,
   AlertTriangle,
   FileSpreadsheet,
-  RefreshCw,
   RotateCcw,
   Loader2
 } from 'lucide-react';
@@ -32,8 +31,6 @@ export const AdminProposalsPage = () => {
     rejectProposal,
     settleProposal,
     reopenSettlement,
-    refreshProposals,
-    refreshBudget,
     facultyList,
     showToast,
     loading

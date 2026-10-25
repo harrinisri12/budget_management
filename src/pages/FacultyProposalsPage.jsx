@@ -14,8 +14,7 @@ import {
   Clock,
   AlertTriangle,
   Calendar,
-  X,
-  FileText
+  X
 } from 'lucide-react';
 
 export const FacultyProposalsPage = () => {
